@@ -1,0 +1,53 @@
+name: cadd
+channels:
+  - genomedk
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bzip2=1.0.8=h3422bc3_4
+  - ca-certificates=2022.12.7=h4653dfc_0
+  - libffi=3.4.2=h3422bc3_5
+  - libsqlite=3.40.0=h76d750c_0
+  - libzlib=1.2.13=h03a7124_4
+  - ncurses=6.3=h07bb92c_1
+  - openssl=3.0.7=h03a7124_1
+  - perl=5.32.1=2_h9b22ae9_perl5
+  - pip=22.3.1=pyhd8ed1ab_0
+  - progressbar=2.5=py_0
+  - python=3.11.0=h3ba56d0_1_cpython
+  - readline=8.1.2=h46ed386_0
+  - setuptools=66.0.0=pyhd8ed1ab_0
+  - tk=8.6.12=he1e0b03_0
+  - tzdata=2022g=h191b570_0
+  - wheel=0.38.4=pyhd8ed1ab_0
+  - xz=5.2.6=h57fd34a_0
+  - pip:
+      - bleach==5.0.1
+      - boltons==21.0.0
+      - certifi==2022.12.7
+      - charset-normalizer==3.0.1
+      - docutils==0.19
+      - galaxy-containers==22.1.1
+      - galaxy-sequence-utils==1.1.5
+      - galaxy-tool-util==22.1.5
+      - galaxy-util==22.1.2
+      - idna==3.4
+      - importlib-resources==5.10.2
+      - lxml==4.9.2
+      - markupsafe==2.1.2
+      - packaging==21.3
+      - pycryptodome==3.16.0
+      - pydantic==1.10.4
+      - pyparsing==3.0.9
+      - pyyaml==6.0
+      - repoze-lru==0.7
+      - requests==2.28.2
+      - routes==2.5.1
+      - six==1.16.0
+      - sortedcontainers==2.4.0
+      - typing-extensions==4.4.0
+      - urllib3==1.26.14
+      - webencodings==0.5.1
+      - zipstream-new==1.1.8
+prefix: /Users/juliahoglund/miniconda3/envs/cadd
