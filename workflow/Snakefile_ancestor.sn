@@ -1,0 +1,331 @@
+'''
+ The snakemake file goes through part 1 of extracting an ancestral sequence from a msa. 
+ This file can/will be called from the snakefile, but can be run separately as shown below.
+ The data directory should contain the msa files of the species of interest and a 'genome' folder containing the genome of the species of interest.
+ The output directory should be empty, since here comes the outputs that the scripts generates.
+ The scripts directory contains all the used scripts by the snakemake file.
+ This pipeline takes in maf files. If the user has another file format, these whould be converter before, either with the emf2maf.pl script of with the msaconverter. The pipeline can be rune either with extracting a reconstructed ancestor, or by using an outgroup (i.e. related species with available data), with changing the config option.
+
+ :Author: Seyan Hu
+ :Date: 30-9-2022
+ :Exttension and modification: Julia Höglund
+ :Date: 1-4-2023
+ :Usage: snakemake -p --snakefile <snakefile script> --config option='ancestor|outgroup'
+ Params can be adjusted for any givenen species of interest. 
+'''
+
+rule all:
+	input:
+		'output/finished_extract_ancestor.txt'
+
+
+if config['option'] == 'ancestor':
+	'''
+	 Identifies the last common ancestor between two given species and marks it with an identifier.
+	 Manual input:	
+					'ancestor', 	the ancestor of interest (example: Human_Chimp)
+					'sp1', 		first species of interest 
+					'sp2', 		second species of interst
+					'sp1_ab',	abbreviation of the scientific name of sp1
+					'sp2_ab', 	abbreviation of the scientific name of sp2
+					'name_sp1', 	scientific name of the first species of interest (example: mus_musculus)
+	'''
+	rule mark_ancestor:
+		input:
+			'workflow/step_1_extract_ancestor/scripts/mark_ancestor.py'
+		params:
+			script = 'workflow/step_1_extract_ancestor/scripts/mark_ancestor.py',
+			inp_path = './fulldata/',
+			ancestor = 'Pig_Cow',
+			file_ident = '43_mammals.epo',
+			sp1 = 'Pig',
+			sp2 = 'Cow',
+			sp1_ab = 'Sscr',
+			sp2_ab = 'Btau',
+			name_sp1 = 'sus_scrofa'
+		output:
+			'output/finished_mark_ancestor.txt'
+		shell:
+			'''
+		  DIR=output
+
+			if [ -d "$DIR" ]      
+			then
+				echo "$DIR exists. will not be created again"
+			else
+				mkdir $DIR
+			fi
+
+			python {params.script} \
+			-p {params.inp_path} \
+			-a {params.ancestor} \
+			-i {params.file_ident} \
+			-s {params.sp1},{params.sp2} \
+			-c {params.sp1_ab},{params.sp2_ab} \
+			-f {params.name_sp1}
+			'''
+
+elif config['option'] == 'outgroup':
+	'''
+	 Identifies the species of interest and marks it with an identifier.
+	 Manual input:	
+					'ancestor', 	sequence ( = species) which should be marked as ancestror
+					'name_sp1', 	scientific name of the (reference) species of interest (example: mus_musculus)
+	'''
+
+	rule mark_outgroup:
+		input:
+			'workflow/step_1_extract_ancestor/scripts/mark_outgroup.py'
+		params:
+			script = 'workflow/step_1_extract_ancestor/scripts/mark_outgroup.py',
+			inp_path = './fulldata/',
+			ancestor = 'bos_taurus',
+			file_ident = '43_mammals.epo',
+			name_sp1 = 'sus_scrofa'
+		output:
+			'output/finished_mark_ancestor.txt'
+		shell:
+			'''
+		  DIR=output
+
+			if [ -d "$DIR" ]      
+			then
+				echo "$DIR exists. will not be created again"
+			else
+				mkdir $DIR
+			fi
+
+			python {params.script} \
+			-p {params.inp_path} \
+			-a {params.ancestor} \
+			-i {params.file_ident} \
+			-f {params.name_sp1}
+			'''
+else:
+    sys.exit()
+
+'''
+ 1. Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
+ 2. Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand.
+    Not all strand are flipped, thus later the alignment blocks with sequences that are still on the minus strand needs to be removed.
+ 3. Reorders species within any alignment block, so that the wanted species are in front.
+   (it also removes sequences that are not from species given in the order)
+Manual input:	
+				'marked', 	path to folder (including prefix of files) with marked alignment files
+				'genome', 	path to (reference) genome including the prefix 
+				'filtered', 	path to folder (including prefix of files) with filtered files (to be computed)
+				'order',	species and ancestor in the desired order, separated only by commas
+				'stranded', 	path to folder (including prefic of files) with files with flipped strands
+				'rowpath', 	prefix to use for the last files, after reordering rows
+				'clean'		remove intermediate files after computation [yes/no]
+				'previous'	remove marked files from previous step (mark ancestor) after computation [yes/no]
+
+'''
+rule mafTools:
+	input:
+		'output/finished_mark_ancestor.txt'
+	params:
+		script = 'workflow/step_1_extract_ancestor/scripts/apply_mafTools.py',
+		marked = 'marked/marked_',
+		genome = './Sus_scrofa_ref',
+		order = 'sus_scrofa,Ancestor_Pig_Cow,bos_taurus',
+		stranded = './mSTR/mSTR_',
+		rowpath = './mRO/mRO_',
+		filtered = './mDF/mDF_',
+		clean = 'no',
+		previous = 'no',
+		awk = '{sub("/[^/]+$","")} 1'
+	output:
+		'output/finished_apply_mafTools.txt'
+	shell:
+		'''
+		python {params.script} \
+		-m {params.marked} \
+		-g {params.genome} \
+		-o {params.order} \
+		-r {params.rowpath} \
+		-s {params.stranded} \
+		-c {params.clean} \
+		-f {params.filtered} \
+		-p {params.previous}
+		mv `echo {params.marked} | awk '{params.awk}'` output/
+		mv `echo {params.stranded} | awk '{params.awk}'` output/
+		mv `echo {params.filtered} | awk '{params.awk}'` output/
+		'''
+
+'''
+ Creates one maf file for each chromosome,
+ as each chromosome might have multiple maf files. 
+ This is due to that each maf file can only contain 200 alignment blocks.
+ Should not contains maf files from 'scaffolds'.
+ Manual input:	
+				'species', 		name of species, based of which the chromosomes should be ordered 
+				'chromosomes', 		chromosomes that should be considered in the ordering, including possible sex chromosomes and 'Other'
+				'path'			path to folder with processed files by mafRowOrderer
+				'prefix'		prefix of processed files (default = mRO_mStr_mDF_)
+				'ordered'		directory within which the new output will be saved
+				'clean'			remove intermediate files (from previous step) after computation [yes/no]
+
+'''
+rule sort_by_chromosome:
+	input:
+		'output/finished_apply_mafTools.txt'
+	params:
+		script = 'workflow/step_1_extract_ancestor/scripts/sort_by_chromosome.py',
+		path = 'mRO/',
+		prefix = 'mRO_mSTR_mDF_',
+		species = 'sus_scrofa',
+		ordered = 'sorted',
+		clean = 'no',
+		chromosomes = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X,Y'
+	output:
+		'output/finished_sort_by_chromosome.txt'
+	shell:
+		'''
+		python {params.script} \
+		-s {params.species} \
+		-k {params.chromosomes} \
+		-p {params.path} \
+		-f {params.prefix} \
+		-o {params.ordered} \
+		-c {params.clean}
+		mv {params.path} output/
+		'''
+
+'''
+ Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
+ If this part of the pipe was performed before, all .fai files should be removed in the directory of the genome. 
+ Manual input:	
+				'path', 	Path to input folder (i.e. output from previous step) 
+				'species'	Species of interest
+				'ordered'	directory within which the new output will be saved
+				'clean'		remove intermediate files after computation [yes/no]
+'''
+rule sort_msa_blocks:
+	input:
+		'output/finished_sort_by_chromosome.txt'
+	params:
+		script = 'workflow/step_1_extract_ancestor/scripts/sort_msa_blocks.py',
+		path = 'sorted/',
+		species = 'sus_scrofa',
+		ordered = 'sortedMSA',
+		clean = 'no'
+	output:
+		'output/finished_sort_msa_blocks.txt'
+	shell:
+		'''
+		python {params.script} \
+		-p {params.path} \
+		-s {params.species} \
+		-o {params.ordered} \
+		-c {params.clean}
+		mv {params.path} output/
+		'''
+
+'''
+ Removes other species with similar names to the species of interest from all alignment blocks. 
+ Manual input:	
+				'path', 		path to folder with mafSorted_EPO files. 
+				'fileprefix'		prefix of the processed files (default mS_)
+				'species'		species of interest (i.e. reference species)
+				'removed'		directory within which the new output will be saved
+				'clean'			remove intermediate files after computation [yes/no]
+'''
+rule remove_species:
+	input:
+		'output/finished_sort_msa_blocks.txt'
+	params:
+		script = 'workflow/step_1_extract_ancestor/scripts/remove_species.py',
+		path = './sortedMSA ',
+		fileprefix = 'mS_',
+		species = 'sus_scrofa',
+		removed = 'pruned',
+		clean = 'no'
+	output:
+		'output/finished_removing_unwanted_species.txt'
+	shell:
+		'''
+		python {params.script} \
+		-p {params.path} \
+		-f {params.fileprefix} \
+		-s {params.species} \
+		-r {params.removed} \
+		-c {params.clean}
+		mv {params.path} output/
+		'''
+
+'''
+ If mafTools Strander fails to flip the sequences on the reverse strand in the alignment blocks, 
+ rmOppositeStrand will remove alignment block with sequences that are still on the reverse strand. 
+ Manual input:	
+				'path', 		Path to processed maf files 
+				'fileprefix'		Prefix of processed files
+				'removed'		directory within which the new output will be saved
+				'clean'			remove intermediate files after computation [yes/no]
+'''
+rule remove_opposite_strand:
+	input:
+		'output/finished_removing_unwanted_species.txt'
+	params:
+		script = 'workflow/step_1_extract_ancestor/scripts/remove_opposite_strand.py',
+		path = './pruned',
+		fileprefix = 'rmSP_mS_',
+		removed = 'forwardStrandOnly',
+		clean = 'no'
+
+	output:
+		'output/finished_remove_opposite_strand.txt'
+	shell:
+		'''
+		python {params.script} \
+		-p {params.path} \
+		-f {params.fileprefix} \
+		-r {params.removed} \
+		-c {params.clean}
+		mv {params.path} output/
+		'''
+
+
+'''
+ Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
+ and outputs per chromosome a fasta file of the ancestral sequence. 
+ Manual input:	
+				'path', 		Path to processed maf files
+				'fileprefix', 		Prefix of the maf files from which the ancestor will be extracted
+				'ancestor'		Ancestor identifier of the ancestral sequence which should be retrieved.
+				'species'		Scientific name of the species of interest.
+				'generate'		generate", help="path to where the 'generate_ancestor.py' script is located
+'''
+rule wrapper_extract_ancestor:
+	input:
+		'output/finished_remove_opposite_strand.txt'
+	params:
+		script = 'workflow/step_1_extract_ancestor/scripts/wrapper_extract_ancestor.py',
+		path = './forwardStrandOnly ',
+		fileprefix = 'sus_scrofa_',
+		ancestor = 'Ancestor_Pig_Cow',
+		species = 'sus_scrofa',
+		generate = './scripts'
+	output:
+		'output/finished_extract_ancestor.txt'
+	shell:
+		'''
+		python {params.script} \
+		-p {params.path} \
+		-f {params.fileprefix} \
+		-a {params.ancestor} \
+		-s {params.species} \
+		-g {params.generate}
+
+    DIR=output/extracted_ancestor
+
+		if [ -d "$DIR" ]      
+		then
+			echo "$DIR exists. will not be created again"
+		else
+			mkdir $DIR
+		fi
+
+		mv processedMAFfiles/ output/
+		mv {params.ancestor}* output/extracted_ancestor
+		'''
