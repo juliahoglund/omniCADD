@@ -33,6 +33,8 @@ rule NAME:
         "output.txt"
     container:
         "library://juliahoeglund/collection/maftools:latest"
+        # OR
+        "docker://juliahoglund/maftools"
     script:
         '''
         scripts
