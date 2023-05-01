@@ -46,7 +46,6 @@ Where: \
 									<PATH TO NEW FILES> is the name of the directory that will created in which the new files will be saved")
 
 
-### LÄGG TILL ATT GÖRA EN DIR FÖR OUTPUT ATT SPARA ALLT I SOM MATCHAR NÄSTA
 parser.add_option_group(group)
 parser.add_option("-p", "--path", dest="path", help="path to folder with processed files by mafRowOrderer", default= "./mRO")
 parser.add_option("-f", "--fileprefix", dest="prefix", help="prefix of processed files (default = mRO_mStr_mDF_)", default="mRO_mStr_mDF_")

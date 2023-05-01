@@ -67,13 +67,11 @@ def sequence_processing(g_seq,ancestor_seq):
 	anc_out_seq = SeqIO.SeqRecord(id=ancestor_seq.id,seq=Seq(''),name=ancestor_seq.name,annotations={'start': ancestor_seq.annotations['start'], 'srcSize': ancestor_seq.annotations['srcSize'], 'strand': ancestor_seq.annotations['strand'], 'size': ancestor_seq.annotations['size']})
 	
 	for (g_char,anc_char) in zip(g_seq,ancestor_seq):
-		#print(g_char,anc_char)
 		if g_char!='-':
 			anc_out_seq.seq = anc_out_seq.seq + Seq(anc_char)
 		
 	# Checks if the length is the same as the size in annotations
 	if len(anc_out_seq)!=anc_out_seq.annotations['size']:
-		#sys.exit('The length of the processed ancestor sequence differs from the stated size: \n Annotations : {0} \n length : {1}'.format(anc_out_seq.annotations,len(anc_out_seq)))
 		return 'Removed'
 	else:
 		return anc_out_seq 

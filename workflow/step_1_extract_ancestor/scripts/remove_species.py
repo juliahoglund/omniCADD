@@ -13,8 +13,6 @@ This script should be performed after mafSorter in the pipeline.
 python scripts/remove_species.py -p output/ -f mS_ -s mus_musculus pruned
 '''
 
-# also make sure the name is like understandable
-
 # Import dependencies
 import sys, os
 from optparse import OptionParser
