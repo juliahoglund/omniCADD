@@ -18,20 +18,31 @@
 
 ## Targets
 # Code collecting output files from this part of the pipeline
-all_outputs.append('output/finished_mark_ancestor.txt', 'output/finished_apply_mafTools.txt', 'output/finished_sort_by_chromosome.txt', 'output/finished_sort_msa_blocks.txt', 'output/finished_removing_unwanted_species.txt', 'output/finished_remove_opposite_strand.txt', 'output/finished_extract_ancestor.txt')
+all_outputs.append('output/finished_mark_ancestor.txt')
+all_outputs.append('output/finished_apply_mafTools.txt')
+all_outputs.append('output/finished_sort_by_chromosome.txt')
+all_outputs.append('output/finished_sort_msa_blocks.txt')
+all_outputs.append('output/finished_removing_unwanted_species.txt')
+all_outputs.append('output/finished_remove_opposite_strand.txt')
+all_outputs.append('output/finished_extract_ancestor.txt')
     
 
 ## rules
-rule all:
-	input:
-		'output/finished_extract_ancestor.txt'
-
+rule ancestor:
+	input: 
+		SCRIPTS_1 + 'mark_ancestor.py'
+	output: 
+		'output/start_step1.txt'
+	shell:
+		'''
+		touch output/start_step1.txt
+		'''
 
 if config['option'] == 'ancestor':
 
 	rule mark_ancestor:
 		input:
-			SCRIPTS_1 + 'mark_ancestor.py'
+			'output/start_step1.txt'
 		params:
 			script = SCRIPTS_1 + 'mark_ancestor.py',
 			inp_path = config['1_inp_path'],
@@ -68,9 +79,9 @@ elif config['option'] == 'outgroup':
 
 	rule mark_outgroup:
 		input:
-			'workflow/step_1_extract_ancestor/scripts/mark_outgroup.py'
+			'output/start_step1.txt'
 		params:
-			script = 'workflow/step_1_extract_ancestor/scripts/mark_outgroup.py',
+			script = SCRIPTS_1 + 'mark_outgroup.py',
 			inp_path = config['1_inp_path'],
 			ancestor = config['1_1_ancestor'],
 			file_ident = config['1_file_ident'],
@@ -108,7 +119,7 @@ rule mafTools:
 		order = config['2_order'],
 		stranded = config['2_stranded'],
 		rowpath = config['2_rowpath'],
-		filtered = 'config['2_filtered'],
+		filtered = config['2_filtered'],
 		clean = config['2_clean'],
 		previous = config['2_previous'],
 		awk = '{sub("/[^/]+$","")} 1'
@@ -146,7 +157,6 @@ rule sort_by_chromosome:
 		'''
 		python {params.script} \
 		-s {params.species} \
-		-k {params.chromosomes} \
 		-p {params.path} \
 		-f {params.prefix} \
 		-o {params.ordered} \
