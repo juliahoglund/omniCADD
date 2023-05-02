@@ -95,7 +95,7 @@ control_mut,control_mutCpG,control_total = 0,0,0
 try:
   for filename in filenames:
     infile = open(filename)
-    sys.stderr.write("Logfile considered: %s"%filename)
+    sys.stderr.write("Logfile considered: %s\n"%filename)
     line = infile.readline()
     while line != "":
       if line == "#A\tC\tG\tT\tCpGs\n":
@@ -260,8 +260,7 @@ sys.stderr.write('Iterating over genome...\n')
 
 # ITERATE; SIMULATE VARIANTS, PRINT TO VCF OUTPUT
 VCFheader = """##fileformat=VCFv4.1
-##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the human
-reference sequence).
+##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).
 #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"""
 output.write(VCFheader+"\n")
 to_sort = list(intervals.keys())
