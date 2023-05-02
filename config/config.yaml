@@ -13,20 +13,20 @@ species: 'sus_scrofa'
 #         'sp1_ab',     abbreviation of the scientific name of sp1
 #         'sp2_ab',     abbreviation of the scientific name of sp2
 #         'species',    scientific name of the first species of interest (example: mus_musculus)
-1_inp_path: './fulldata/',
-1_ancestor: 'Pig_Cow',
-1_file_ident: '43_mammals.epo',
-1_sp1: 'Pig',
-1_sp2: 'Cow',
-1_sp1_ab: 'Sscr',
-1_sp2_ab: 'Btau',
+1_inp_path: './fulldata/'
+1_ancestor: 'Pig_Cow'
+1_file_ident: '43_mammals.epo'
+1_sp1: 'Pig'
+1_sp2: 'Cow'
+1_sp1_ab: 'Sscr'
+1_sp2_ab: 'Btau'
 
 ### RULE MARK OUTGROUP ###
 # Identifies the species of interest and marks it with an identifier.
 # Manual input:  
 #         'ancestor',  sequence ( = species) which should be marked as ancestror
 #         'species',   scientific name of the (reference) species of interest (example: mus_musculus)
-1_1_ancestor: 'bos_taurus',
+1_1_ancestor: 'bos_taurus'
 
 ### RULE MAFTOOLS ###
 # 1. Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
@@ -43,14 +43,14 @@ species: 'sus_scrofa'
 #        'rowpath',     prefix to use for the last files, after reordering rows
 #        'clean'        remove intermediate files after computation [yes/no]
 #        'previous'     remove marked files from previous step (mark ancestor) after computation [yes/no]
-2_marked: 'marked/marked_',
-2_genome: './Sus_scrofa_ref',
-2_order: 'sus_scrofa,Ancestor_Pig_Cow,bos_taurus',
-2_stranded: './mSTR/mSTR_',
-2_rowpath: './mRO/mRO_',
-2_filtered: './mDF/mDF_',
-2_clean: 'no',
-2_previous: 'no',
+2_marked: 'marked/marked_'
+2_genome: './Sus_scrofa_ref'
+2_order: 'sus_scrofa,Ancestor_Pig_Cow,bos_taurus'
+2_stranded: './mSTR/mSTR_'
+2_rowpath: './mRO/mRO_'
+2_filtered: './mDF/mDF_'
+2_clean: 'no'
+2_previous: 'no'
 
 ### RULE SORT BY CHROMOSOME ##
 # Creates one maf file for each chromosome,
@@ -63,10 +63,10 @@ species: 'sus_scrofa'
 #        'prefix'       prefix of processed files (default = mRO_mStr_mDF_)
 #        'ordered'      directory within which the new output will be saved
 #        'clean'        remove intermediate files (from previous step) after computation [yes/no]
-3_path: 'mRO/',
-3_prefix: 'mRO_mSTR_mDF_',
-3_ordered: 'sorted',
-3_clean: 'no',
+3_path: 'mRO/'
+3_prefix: 'mRO_mSTR_mDF_'
+3_ordered: 'sorted'
+3_clean: 'no'
 
 ### RULE SORT MSA BLOCKS ###
 # Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
@@ -76,8 +76,8 @@ species: 'sus_scrofa'
 #        'species'     Species of interest
 #        'ordered'     directory within which the new output will be saved
 #        'clean'       remove intermediate files after computation [yes/no]
-4_path: 'sorted/',
-4_ordered: 'sortedMSA',
+4_path: 'sorted/'
+4_ordered: 'sortedMSA'
 4_clean: 'no'
 
 ### RULE REMOVE UNWANTED SPECIES ###
@@ -88,9 +88,9 @@ species: 'sus_scrofa'
 #        'species'     species of interest (i.e. reference species)
 #        'removed'     directory within which the new output will be saved
 #        'clean'       remove intermediate files after computation [yes/no]
-5_path: './sortedMSA',
-5_fileprefix: 'mS_',
-5_removed: 'pruned',
+5_path: './sortedMSA'
+5_fileprefix: 'mS_'
+5_removed: 'pruned'
 5_clean: 'no'
 
 ### RULE REMOVE OPPOSITE STRAND ###
@@ -101,9 +101,9 @@ species: 'sus_scrofa'
 #       'fileprefix'    Prefix of processed files
 #       'removed'       directory within which the new output will be saved
 #       'clean'         remove intermediate files after computation [yes/no]
-6_path: './pruned',
-6_fileprefix: 'rmSP_mS_',
-6_removed: 'forwardStrandOnly',
+6_path: './pruned'
+6_fileprefix: 'rmSP_mS_'
+6_removed: 'forwardStrandOnly'
 6_clean: 'no'
 
 ### RULE EXTRACT ANCESTOR ###
@@ -115,9 +115,9 @@ species: 'sus_scrofa'
 #        'ancestor'     Ancestor identifier of the ancestral sequence which should be retrieved.
 #        'species'      Scientific name of the species of interest.
 #        'generate'     generate", help="path to where the 'generate_ancestor.py' script is located
-7_path: './forwardStrandOnly',
-7_fileprefix: 'sus_scrofa_',
-7_ancestor: 'Ancestor_Pig_Cow',
+7_path: './forwardStrandOnly'
+7_fileprefix: 'sus_scrofa_'
+7_ancestor: 'Ancestor_Pig_Cow'
 7_generate: './scripts'
 
 
@@ -134,16 +134,14 @@ species: 'sus_scrofa'
 #         'prefix',      prefix of ancestral files
 #         'species',     name of reference species
 #         'reference',   prefix of reference species files
-8_ancestor: './output/extracted_ancestor/',
-8_genome: './genome/',
-8_chromosomes: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
-8_prefix: 'Ancestor_Pig_Cow.',
-8_species: 'sus_scrofa',
-8_reference: 'Sus_scrofa_ref_',
+8_ancestor: './output/extracted_ancestor/'
+8_genome: './genome/'
+8_chromosomes: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X'
+8_prefix: 'Ancestor_Pig_Cow.'
+8_reference: 'Sus_scrofa_ref_'
 # preprocessing parameters within rule:
 # use full path
-8_refGenome: 'Sus_scrofa_ref_',
-8_ancGenome: 'Ancestor_Pig_Cow.$i\_chr$i',
+8_ancGenome: 'Ancestor_Pig_Cow.$i\_chr$i'
 # use $i as it will be a placeholder for chr. numbers in a loop
 8_ancX: 'Ancestor_Pig_Cow.X_chrX.fa'
 # full name of X file. remove full line if only autosomals are used
@@ -156,11 +154,11 @@ species: 'sus_scrofa'
 #          'params_folder', folder with parameter files including prefix of files
 #          'infile',      prefix of ancestral files
 #          'outfile',     name of reference species
-9_events: '10000000',
-9_chroms: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
-9_params_folder: 'logfiles/sus_scrofa_chr',
-9_infile: 'genome/Sus_scrofa_ref.fa',
-9_outfile: 'simVariants.vcf',
+9_events: '10000000'
+9_chroms: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X'
+9_params_folder: 'logfiles/sus_scrofa_chr'
+9_infile: 'genome/Sus_scrofa_ref.fa'
+9_outfile: 'simVariants.vcf'
 
 
 
