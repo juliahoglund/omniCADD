@@ -9,7 +9,7 @@ Python dependencies:
 
 Python-specific dependencies are all exported in the conda environment `cadd.yml`. The pipeline can be run within this environment. The pipeline handles `.maf`-files. If your MSA files have the wrong suffix, they can be converted eg. with [msaconverter](https://github.com/linzhi2013/msaconverter), also included in the environment.
 
-This first part is subdivided into _x_ steps:
+This first part is subdivided into _7_ steps:
 1. `mark.ancestor.py`
   Usage:
   `python mark_ancestor.py -p <path to files> -a [ancestor] -i [file
@@ -52,7 +52,7 @@ This first part is subdivided into _x_ steps:
   This script wraps the script `extract_ancestor.py` which in turn does the ancestral sequence extractions and writes it to fasta files (one per chromosome)
 
 These scripts are all wrapped with a pipeline Snakemake file and can be run like this:
-`snakemake -c4 --config option='outgroup|ancestor'`
+`snakemake -c4 --snakefile Snakemake_ancestor.sn --config option='outgroup|ancestor'`
 
 ## Run with reconstructed ancestor.
 When running the pipeline with the aim of extracting a reconstructed ancestral sequence, the pipeline will go through the steps mentioned above.
