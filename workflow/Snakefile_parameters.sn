@@ -1,3 +1,5 @@
+# -*- snakemake -*-
+
 '''
  The snakemake file goes through part 2 of creating and applying the paramters and simulating the
  variants. The first part will create the log files needed, with mutation rates and alike,
@@ -11,6 +13,12 @@
  Params can be adjusted for any given species of interest. 
 '''
 
+## Targets
+# Code collecting output files from this part of the pipeline
+all_outputs.append('output/finished_substitution_calc.txt', 'output/finished_apply_parameters.txt')
+    
+
+## rules
 rule all:
     input:
         'output/finished_apply_parameters.txt'

@@ -1,3 +1,5 @@
+# -*- snakemake -*-
+
 '''
  The snakemake file goes through part 1 of extracting an ancestral sequence from a msa. 
  This file can/will be called from the snakefile, but can be run separately as shown below.
@@ -14,6 +16,12 @@
  Params can be adjusted for any givenen species of interest. 
 '''
 
+## Targets
+# Code collecting output files from this part of the pipeline
+all_outputs.append('output/finished_mark_ancestor.txt', 'output/finished_apply_mafTools.txt', 'output/finished_sort_by_chromosome.txt', 'output/finished_sort_msa_blocks.txt', 'output/finished_removing_unwanted_species.txt', 'output/finished_remove_opposite_strand.txt', 'output/finished_extract_ancestor.txt')
+    
+
+## rules
 rule all:
 	input:
 		'output/finished_extract_ancestor.txt'
