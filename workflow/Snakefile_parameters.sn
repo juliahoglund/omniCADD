@@ -1,0 +1,83 @@
+'''
+ The snakemake file goes through part 2 of creating and applying the paramters and simulating the
+ variants. The first part will create the log files needed, with mutation rates and alike,
+ and the next part will apply these parameters while simulating variants.
+ This is based on the same genome file as the previous step, together with the extracted ancestral sequence. 
+
+ :Author: Julia Höglund
+ :Date: 06-4-2023
+ :Usage: snakemake -p --snakefile <snakefile script>
+
+ Params can be adjusted for any given species of interest. 
+'''
+
+rule all:
+    input:
+        'output/finished_apply_parameters.txt'
+
+
+rule create_parameters:
+    input:
+        SCRIPTS_2 + 'wrapper_create_parameters.py'
+    params:
+        script = SCRIPTS_2 + 'wrapper_create_parameters.py',
+        ancestor = config['8_ancestor'],
+        genome = config['8_genome'],
+        chromosomes = config['8_chromosomes'],
+        prefix = config['8_prefix'],
+        species = config['species'],
+        reference = config['8_reference'],
+
+        refGenome = config['8_reference'],
+        ancGenome = config['8_ancGenome'],
+        ancX = config['8_ancX'],
+
+    output:
+        'output/finished_substitution_calc.txt'
+
+    shell:
+        '''
+        # CHOP REF GENOME TO CHROMOSOMES
+        awk '/^>/ {{ gsub(">","",$1); FILE={params.refGenome}$1".fa"; print ">" $1 >> FILE; next}}; {{ print >> FILE }}' {params.refGenome}.fa && rm {params.refGenome}AEMK*.fa && rm {params.refGenome}FPKY*.fa
+
+        # MULTILINE REF GENOME TO SINGLE LINE
+        for i in {{1..18}}; do echo "Reference sequences:" && echo "Formatting multiline fasta to single line fasta ($i of 18)..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {printf("\n");}}' {params.refGenome}$i.fa > tmp && mv tmp {params.refGenome}$i.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"; done
+
+        echo "Formatting multiline fasta to single line fasta ..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.refGenome}X.fa > tmp && mv tmp {params.refGenome}X.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"
+
+        # MULTILINE ANCESTOR TO SINGLE LINE
+        for i in {{1..18}}; do echo "Ancestral sequences:" && echo "Formatting multiline fasta to single line fasta ($i of 18)..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} { printf("%s",$0);}}  END {{printf("\n");}}' {params.ancGenome}.fa > tmp && mv tmp {params.ancGenome}.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"; done
+
+        echo "Formatting multiline fasta to single line fasta ..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.ancX} > tmp && mv tmp {params.ancX} && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"
+
+        python {params.script} \
+        -a {params.ancestor} \
+        -g {params.genome} \
+        -c {params.chromosomes} \
+        -p {params.prefix} \
+        -r {params.reference} \
+        -s {params.species}
+        '''
+
+rule apply_parameters:
+    input:
+        'output/finished_substitution_calc.txt'
+    params:
+        script = SCRIPTS_2 + 'apply_parameters.py',
+        events = config['9_events'],
+        chroms = config['9_chroms'],
+        params_folder = config['9_params_folder'],
+        infile = config['9_infile'],
+        outfile = config['9_outfile'],
+
+    output:
+        'output/finished_apply_parameters.txt'
+    shell:
+        '''
+        python {params.script} \
+        -n {params.events} \
+        -c {params.chroms} \
+        -p {params.params_folder} \
+        -i {params.infile} \
+        -o {params.outfile} \
+        '''
