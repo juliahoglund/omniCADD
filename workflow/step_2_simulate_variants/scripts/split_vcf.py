@@ -10,6 +10,11 @@
 :Date: 20-10-2022
 :Extension and modification: Julia Höglund
 
+This script splits the vcf file into two; one containing SNPs only
+And one with indels only
+As the pipeline currently cannot handle indel scoring, 
+this file is only used for statistics
+
 :Usage: python <python file> -p <path to vcf file> -i <name of vcf file>
 
 :Example:
