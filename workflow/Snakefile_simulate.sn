@@ -95,3 +95,24 @@ rule apply_parameters:
         -i {params.infile} \
         -o {params.outfile} \
         '''
+
+rule split_vcf
+    input:
+        'output/finished_apply_parameters.txt'
+    params: 
+        script = SCRIPTS_2 + 'split_vcf.py'
+        input = config['10_input']
+        path = config['10_path']
+    output:
+        'output/finished_vcf_splitting.txt'
+    shell:
+        '''
+        python {params.script} \
+        -p {params.path} \
+        -i {params.input}        
+        '''
+
+
+
+
+
