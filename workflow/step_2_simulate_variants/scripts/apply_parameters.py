@@ -170,26 +170,28 @@ except:
   traceback.print_tb(exc_traceback)
   sys.stderr.write('Script terminated early. Printing current values.\n')
 
-# PRINT STATS TO STDERR
-sys.stderr.write("Chromosomes considered: %s\n"%len(intervals))
-sys.stderr.write("Number of regions: %d\n"%len(interval_vals))
+# PRINT STATS TO LOGFILE
+logfile = open("parameter_logfile.log",'w')
+
+logfile.write("Chromosomes considered: %s\n"%len(intervals))
+logfile.write("Number of regions: %d\n"%len(interval_vals))
 
 sum_obs = float(totalrefA+totalrefC+totalrefG+totalrefT)
 total = float(total)
 totalCpG = float(totalCpG)
-sys.stderr.write("Total aligned positions: %d (Exp: %d)\n"%(sum_obs,control_total))
-sys.stderr.write("Total mutations: %d/%d (Exp: %d/%d); Rate: %.8f/%.8f\n"%(mut,mutCpG,control_mut,control_mutCpG,mut/total,mutCpG/totalCpG))
+logfile.write("Total aligned positions: %d (Exp: %d)\n"%(sum_obs,control_total))
+logfile.write("Total mutations: %d/%d (Exp: %d/%d); Rate: %.8f/%.8f\n"%(mut,mutCpG,control_mut,control_mutCpG,mut/total,mutCpG/totalCpG))
 gmut = mut/total
 gmutCpG = mutCpG/totalCpG
 
 gmut_ = mut/sum_obs
 gmutCpG_ = mutCpG/sum_obs
-sys.stderr.write("Abs. mutation rate non-CpG: %.8f\tAbs. mutation rate CpGs: %.8f\n"%(gmut_,gmutCpG_))
+logfile.write("Abs. mutation rate non-CpG: %.8f\tAbs. mutation rate CpGs: %.8f\n"%(gmut_,gmutCpG_))
 
 dmut = (options.number*gmut_/(gmut_+gmutCpG_))/total
 dmutCpG = (options.number*gmutCpG_/(gmut_+gmutCpG_))/totalCpG
 dmutindel = options.number/sum_obs
-sys.stderr.write("Likelihood altering a CpG: %.8f; Altering another base: %.8f\n"%(dmutCpG,dmut))
+logfile.write("Likelihood altering a CpG: %.8f; Altering another base: %.8f\n"%(dmutCpG,dmut))
 
 # RATES DETERMINED FROM HUMAN-CHIMP ANCESTOR (CORRECTED FOR BASE COMPOSITION)
 
@@ -224,31 +226,31 @@ for ki,key in enumerate(GTR_CpG.keys()):
 # INITIATE INSERT NORMALIZED LIKELIHOODS
 inserts = []
 tinserts = float(sum(insertionsizes.values()))
-sys.stderr.write("TOTAL INSERTS FROM MSA:\t%d\n"%tinserts)
+logfile.write("TOTAL INSERTS FROM MSA:\t%d\n"%tinserts)
 to_sort = list(insertionsizes.keys())
 to_sort.sort()
-sys.stderr.write("Length\tCount\tnFreq\n")
+logfile.write("Length\tCount\tnFreq\n")
 for key in to_sort:
   value = insertionsizes[key]/tinserts
   inserts.append((key,value))
 del insertionsizes
 ginserts = tinserts/sum_obs
-sys.stderr.write("INSERTIONS: gfreq=%.8f, %s...\n"%(ginserts,str(inserts)[:120]))
+logfile.write("INSERTIONS: gfreq=%.8f, %s...\n"%(ginserts,str(inserts)[:120]))
 
 # INITIATE DELETION NORMALIZED LIKELIHOODS
 deletions = []
 tdeletions = float(sum(deletionsizes.values()))
-sys.stderr.write("TOTAL DELETIONS FROM MSA:\t%d\n"%tdeletions)
+logfile.write("TOTAL DELETIONS FROM MSA:\t%d\n"%tdeletions)
 to_sort = list(deletionsizes.keys())
 to_sort.sort()
-sys.stderr.write("Length\tCount\tnFreq\n")
+logfile.write("Length\tCount\tnFreq\n")
 for key in to_sort:
   value = deletionsizes[key]/tdeletions
-  #if key <= 10: sys.stderr.write("%d\t%d\t%.8f\n"%(key, deletionsizes[key], value))
+  #if key <= 10: logfile.write("%d\t%d\t%.8f\n"%(key, deletionsizes[key], value))
   deletions.append((key,value))
 del deletionsizes
 gdeletions = tdeletions/sum_obs
-sys.stderr.write("DELETIONS: gfreq=%.8f, %s...\n"%(gdeletions,str(deletions)[:120]))
+logfile.write("DELETIONS: gfreq=%.8f, %s...\n"%(gdeletions,str(deletions)[:120]))
 
 #OPEN FASTA COPY WITH MMAP
 sys.stderr.write('Doing mmap of genome file...\n')
@@ -395,7 +397,7 @@ for chrom in to_sort:
                        break
                  output.write("%s\t%d\t.\t%s\t%s\t.\t.\t.\t.\n"%(chrom,pos,base,base+insseq))
                  break
-           pbar.update(ind)
+         pbar.update(ind)
        pbar.finish()
        sys.stderr.write("Chrom %s done.\n"%chrom)
   else:
