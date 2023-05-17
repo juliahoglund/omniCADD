@@ -242,15 +242,11 @@ for c in chrom_list:
 							mutCpG += 1
 				write = 1
 
-	vcf_open.seek(0)
-	if chrom != c and write == 1:
-
+	if vcf_open.readline() == '' and write == 1:
 		## Print data. 
 		log_simulated.write("\nChromosome considered: " + str(c) + '\n')
-
 		# For non CpG site mutations. 
 		log_simulated.write('Total mut: ' + str(mut) + '\n')
-
 		log_simulated.write("#AC\tAG\tAT\n")
 		log_simulated.write(str(ACn) + '\t' + str(AGn) + '\t' + str(ATn) + '\n')
 		log_simulated.write(str((100/mut)*ACn) + '%\t' + str((100/mut)*AGn) + '%\t' + str((100/mut)*ATn) + '%\n')
@@ -278,3 +274,5 @@ for c in chrom_list:
 		log_simulated.write(str(GA) + '\t' + str(GC) + '\t' + str(GT) + '\n')
 		log_simulated.write(str((100/mutCpG)*GA) + '%\t' + str((100/mutCpG)*GC) + '%\t' + str((100/mutCpG)*GT) + '%\n')	
 	
+
+	vcf_open.seek(0)
