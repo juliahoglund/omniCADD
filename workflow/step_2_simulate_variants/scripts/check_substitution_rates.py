@@ -19,6 +19,7 @@ python check_substitution_rates.py -i data/simVariants.vcf -l data/logfiles/
 # Import dependencies.
 import sys, os
 from optparse import OptionParser
+import natsort
 
 
 # OptionParser for input. 
@@ -66,6 +67,7 @@ chrom_list = []
 
 log_logfiles = open("parameters.log", "w")
 filenames = [x for x in os.listdir(options.logfiles) if x.endswith(".log")]
+filenames = natsort.natsorted(filenames)
 
 for file in filenames:
 	log_open = open(options.logfiles + file, 'r')
