@@ -15,12 +15,16 @@
 
 ## Targets
 # Code collecting output files from this part of the pipeline
+all_outputs.append('output/start_step2.txt')
 all_outputs.append('output/finished_substitution_calc.txt')
 all_outputs.append('output/finished_apply_parameters.txt')
-    
+all_outputs.append('output/finished_vcf_splitting.txt')
+all_outputs.append('output/finished_vcf_filtering.txt')
+all_outputs.append('output/finished_check_substitution_rates.txt')
+
 
 ## rules
-rule parameter:
+rule simulation:
     input: 
         SCRIPTS_2 + 'wrapper_create_parameters.py'
     output: 
@@ -44,7 +48,7 @@ rule create_parameters:
 
         refGenome = config['8_reference'],
         ancGenome = config['8_ancGenome'],
-        ancX = config['8_ancX'],
+        ancX = config['8_ancX']
 
     output:
         'output/finished_substitution_calc.txt'
@@ -82,7 +86,7 @@ rule apply_parameters:
         chroms = config['9_chroms'],
         params_folder = config['9_params_folder'],
         infile = config['9_infile'],
-        outfile = config['9_outfile'],
+        outfile = config['9_outfile']
 
     output:
         'output/finished_apply_parameters.txt'
@@ -96,12 +100,12 @@ rule apply_parameters:
         -o {params.outfile} \
         '''
 
-rule split_vcf
+rule split_vcf:
     input:
         'output/finished_apply_parameters.txt'
     params: 
-        script = SCRIPTS_2 + 'split_vcf.py'
-        input = config['10_input']
+        script = SCRIPTS_2 + 'split_vcf.py',
+        input = config['10_input'],
         path = config['10_path']
     output:
         'output/finished_vcf_splitting.txt'
@@ -112,7 +116,45 @@ rule split_vcf
         -i {params.input}        
         '''
 
+rule filter_vcf:
+    input:
+        'output/finished_vcf_splitting.txt'
+    params:
+        script = SCRIPTS_2 + 'filter_vcf.py',
+        indels = config['11_indels'],
+        snps = config['11_snps'],
+        ancestor = config['11_ancestor']
+    output:
+        'output/finished_vcf_filtering.txt'
 
+    shell:
+        '''
+        python {params.script}
+        -i {params.indels}
+        -s {params.snps}
+        -a {params.ancestor}
 
+        # sort files in GATK order (1-n, X, Y, MT)
+        cut -d "." -f2 {params.ancestor}*.fai | cut -f1,2 | sort -n > genome.order && sed -i '1h;1d;$G' genome.order && gsort snps_*_filtered.vcf genome.order > tmp && mv tmp snps_*_filtered.vcf && rm genome.order
 
+        cut -d "." -f2 {params.ancestor}*.fai | cut -f1,2 | sort -n > genome.order && sed -i '1h;1d;$G' genome.order && gsort indels_*_filtered.vcf genome.order > tmp && mv tmp indels_*_filtered.vcf && rm genome.order
+        '''
 
+rule check_substitutions_rates:
+    input:
+        'output/finished_vcf_filtering.txt'
+
+    params:
+        script = SCRIPTS_2 + 'check_substitutions_rates.py',
+        infile = config['12_infile'],
+        logfiles = config['12_logfiles']
+
+    output:
+        'output/finished_check_substitution_rates.txt'
+
+    shell:
+        '''
+        python {params.script} \
+        -i {params.infile} \
+        -l {params.logfiles}
+        '''
