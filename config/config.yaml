@@ -1,7 +1,7 @@
 #####################
 ##### Step one: #####
 #####################
-config: 'ancestor'
+option: 'ancestor'
 species: 'sus_scrofa'
 
 ### RULE MARK ANCESTOR###
@@ -161,6 +161,82 @@ species: 'sus_scrofa'
 9_outfile: 'simVariants.vcf'
 
 
+#### RULE SPLIT VCF ####
+# splits the simulated variants into one vcf file with SNPs and one with indels
+# Manual input:
+#         'input',       name of input vcf file
+#         'path',        path to location of vcf file
+10_input: 'simVariants.vcf'
+10_path: './'
 
+
+#### RULE FILTER VCF ####
+# filters the vcf files for variants that has a corresponding base pair position in the ancestral seqeuence
+# and it not located in a gap
+# Manual input:
+#         'indels',      name of simulated indel variants
+#         'snps',        name of simulated SNP variants
+#         'ancestor',    path to ancestor genome files
+11_indels: './indels_simVariants.vcf'
+11_snps: 'snps_simVariants.vcf'
+11_ancestor: './output/extracted_ancestor'
+
+#### RULE CHECK SUBSTITUTION RATES ####
+# goes through the created log files and the simulated variants and makes sure the simulation has been
+# performed as intended. 
+# Manual input:
+#         'infile',      name of (and path to) file with simulated variants 
+#         'logfiles',    path to folder with logfiles
+
+12_infile: './data/simVariants.vcf'
+12_logfiles: './output/logfiles'
+
+####################
+#### Step three ####
+####################
+
+### RULE CREATE DATAFILES ###
+# Creates the datafiles needed for the visual summary report, and stores them in an R data clump. 
+# Manual input:  
+#         'vcf',         vcf with simulated variants
+#         'snp',         vcf with simulated SNPs
+#         'indels',      vcf with filtered snps
+#         'snpFiltered',   vcf with filtered snps
+#         'indelFiltered', vcf with filtered indels
+#         'reference',   reference genome fasta index file
+#         'chromosome',  number of chromosomes to extract from fasta index files (i.e. to exclude scaffolds)
+#         'ancestor',    path to ancestor log files
+#         'parameters',  log file with output from checked rates parameters
+#         'simulated',   log file with output from checked rates simulated variants
+
+13_vcf: './data/simVariants.vcf'
+13_snp: './data/snps_simVariants.vcf'
+13_indels: './data/indels_simVariants.vcf'
+13_snpFiltered: './data/snps_simVariants_filtered.vcf'
+13_indelFiltered: './data/indels_simVariants_filtered.vcf'
+13_reference: './data/Sus_scrofa_ref.fai'
+13_chromosome: 20
+13_ancestor: './data/logfiles/'
+13_parameters: './data/parameters.log'
+13_simulated: './data/simVariants.log'
+
+
+### RULE CREATE SUMMARY ###
+# R markdown file that is knitted to an html output of all graphs and tables from previous step
+#
+# NOTE!: the ideogram and the newick tree has to be downloaded / created beforhand.
+#        if a full tree is within the MSA file, this can be used (as a separate file)
+#        and if available, ideograms can be downloaded from here:
+#        https://genome.ucsc.edu/cgi-bin/hgTables
+#
+# Manual input:  
+#         'tree',        full path and newick tree of msa (if available, default 'None')
+#         'ideogram',    full path and name of ideogram file (if available, default 'None')
+#         'ingroup',     (scientific) name of ingroup (if tree available)
+#         'outgroup',    (scientific) name of outgroup (if tree available)
+14_tree: './data/43_eutherian_mammals_EPO_default.nh'
+14_ideogram: './data/sus_scrofa_ideo'
+14_ingroup: 'Sus scrofa'
+14_outgroup: 'Bos taurus'
 
 
