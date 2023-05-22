@@ -1,0 +1,346 @@
+---
+title: "Summary statistics of simulated variants"
+output:
+  html_document:
+    df_print: paged
+date: "`r Sys.Date()`"
+params: 
+  tree: 'None'
+  ideogram: 'None'
+  ingroup: 'None'
+  outgroup: 'None'
+  path: '/Users/juliahoglund/Documents/omniCADD/'
+  
+  
+---
+
+```{r setup, include = FALSE}
+
+# https://hgdownload.soe.ucsc.edu/downloads.html
+# ftp://hgdownload.soe.ucsc.edu/goldenPath
+# https://genome.ucsc.edu/cgi-bin/hgTables
+
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape")
+list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont", "ggpubr")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
+
+new.bioconductor <- list.of.bioconductor[!(list.of.bioconductor %in% installed.packages()[,"Package"])]
+if(length(new.packages)) BiocManager::install(new.bioconductor, force = TRUE)
+# MAKE YES AUTOMATIC ON INSTALL FROM SOURCE, and update all!!
+
+library(tidyverse)
+library(tidytree)
+library(devtools)
+library(data.table)
+library(ggfittext)
+library(gridExtra)
+library(patchwork)
+library(ggplotify)
+library(knitr)
+library(kableExtra)
+library(ggtree)
+library(biomaRt)
+library(chromPlot)
+library(GenomicFeatures)
+library(ape)
+library(grid)
+library(emojifont)
+library(ggpubr)
+load.fontawesome()
+
+load(paste(params$path, "graphs.RData", sep = ""))
+```
+
+# Variant simulator; report
+### Node used for reconstructing ancestral genome sequence
+
+If a (newick) phylogenetic tree file has been provided, the visualisation of the MSA used in the calculations is shown below. The two chosen groups (i.e. 'ingroup' / species of interest, and outgroup) are highlighted in the tree. Most recent common ancestor (MRCA) is highlighted in purple and labeled. The rest of the clades in the alignment is shown in lighter grey. Regardless whether a reconstructed ancestral sequence at a node, or an outgroup, has been chosen as the ancestor, the MRCA will be highlighted.
+
+```{r generate tree, include = FALSE}
+
+### if no tree file, print not available
+
+if (params$tree == 'None') {
+
+  text <- text_grob("[no phylo tree available]", face = "bold", color = "grey55", just = "bottom", size = 30)
+  code <- ggplot() + geom_emoji("herb", color='grey', size = 50) + theme_void() +
+    theme(legend.position="none",
+          plot.margin=unit(c(-0.5,1,1,1), "cm"))
+  
+  phylogenetic.tree <- as.ggplot(grid.arrange(text, code))
+  
+} else {
+  tree <- read.tree(params$tree)
+  tree
+  
+  for (i in 1:length(tree$tip.label)) {
+    tree$tip.label[i] <- paste(unlist(str_split(tree$tip.label[i], "_"))[1:2], collapse = ' ')
+  }
+  
+  ancNode <- getMRCA(tree, c(params$ingroup, params$outgroup))
+  ingroup <- parent(tree, which(tree$tip.label == params$ingroup))
+  outgroup <- parent(tree, which(tree$tip.label == params$outgroup))
+
+  clade <- c("ancestor" = ancNode, "ingroup" = ingroup, "outgroup" = outgroup)
+  tree <- groupClade(tree, clade)
+  data <- data.frame(id = c(ancNode, ingroup, outgroup),
+                     annote = c("clade in \nancestral node", "ingroup", "outgroup"),
+                     offset = c(0.05, 0.03, 0.03),
+                     offset.text = c(0.15, 0.15, 0.15))
+  
+  p <- ggtree(tree) + hexpand(.4)
+  selected_nodes <- offspring(p, ancNode)$node
+  
+}
+
+#################
+```
+
+```{r print tree, echo=FALSE, warning = FALSE, fig.width = 13, fig.height = 7}
+
+if (params$tree == 'None') {
+  phylogenetic.tree
+} else {
+  # Generate
+  phylogenetic.tree <- 
+    p + 
+    geom_text(aes(label = label), 
+              data = td_filter(isTip & node %in% selected_nodes), 
+              hjust = 0, 
+              fontface = 3) + 
+    geom_nodepoint(aes(subset = node == ancNode), 
+                   size=5, 
+                   color='purple') +
+    geom_nodelab(aes(label = "most recent common ancestor", subset = node == ancNode),
+                 geom = 'label',
+                 color = 'purple',
+                 hjust = 1.2) +
+    geom_cladelab(data=data, 
+                  mapping=aes(node=id, label=annote, offset=offset),
+                  barcolor = "darkgrey", 
+                  textcolor = "black", 
+                  barsize = 3.2, 
+                  fontsize = 3, 
+                  fontface = 2, 
+                  align = TRUE) +
+    geom_hilight(data = data[2:3,],
+                 mapping = aes(node = id),
+                 alpha = 0.2,
+                 extendto = 1.4) + 
+    geom_tree(aes(color=group))+
+    scale_color_manual(values=c("darkgrey","black", "darkgreen", "maroon")) +
+    theme(legend.position = "none")
+  
+  # print
+  phylogenetic.tree
+}
+
+```
+
+### Distribution of simulated variants across the reference genome
+If an ideogram (often possible to download on the UCSC website, [here](https://genome.ucsc.edu/cgi-bin/hgTables)) has been provided, the distribution of simulated variants is shown across the genome of the species of interest. The grey distribution corresponds to the total amount of simulated variants, whereas the red distribution corresponds to the subset that is overlapping with a corresponding ancestral sequence. 
+If there is no forced subsampling due to lack of ancestral sequence, the distribution will be fully red. 
+
+```{r genome distribution, echo = FALSE, include = FALSE}
+
+if (params$ideogram == 'None') {
+
+  text <- text_grob("[no ideogram information available]", face = "bold", color = "grey55", just = "bottom", size = 30)
+  code <- ggplot() + geom_emoji("paw_prints", color='grey', size = 80) + theme_void() +
+    theme(legend.position="none",
+          plot.margin=unit(c(-0.5,1,1,1), "cm"))
+  
+  chromPLOT <- as.ggplot(grid.arrange(text, code))
+  
+} else {
+  # fix data
+  
+  sscr_ideoGram <- fread(params$ideogram, skip = "chrom") %>% 
+    dplyr::rename("Chrom" = "#chrom", "Start" = "chromStart", "End" = "chromEnd") %>%
+    makeGRangesFromDataFrame(.)
+  
+  SimVars <- simulatedSNPs %>%
+    dplyr::rename("Chrom" = "CHROM", "Start" = "POS") %>%
+    dplyr::select(Chrom, Start, ALT) %>%
+    mutate(End = Start) %>% 
+    relocate(ALT, .after = End)
+  
+  OverlapVars <- simulatedAncestorSNPs %>%
+    dplyr::rename("Chrom" = "CHROM", "Start" = "POS") %>%
+    dplyr::select(Chrom, Start, ALT) %>%
+    mutate(End = Start) %>% 
+    relocate(ALT, .after = End)
+}
+
+```
+
+```{r plot distribution, fig.width = 13, fig.height = 14, echo = FALSE}
+# plot data
+# Here's a nice function for suppressing output from cat() by Hadley Wickham:
+
+quiet <- function(x) { 
+  sink(tempfile()) 
+  on.exit(sink()) 
+  invisible(force(x)) 
+}
+
+if (params$tree == 'None') {
+  chromPLOT
+} else {
+  
+  quiet(
+  chromPlot(bands = sscr_ideoGram, 
+            figCols = 4, 
+            annot1 = SimVars,
+            annot2 = OverlapVars,
+            colAnnot1 = "#bababa",
+            colAnnot2 = "tomato",
+            chr = c(1:18, 'X'))
+  )
+}
+
+```
+
+### How much of the reference genome that has an available, aligned reconstructed ancestral sequence
+```{r genome fractions, echo = FALSE}
+# make table
+COVER <- 
+  data.frame(Chromosome = stats$chromosome,
+             A = stats$srcSize,
+             B = stats$size.ancestror,
+             C = stats$frac.covered
+  ) %>%
+  arrange(factor(Chromosome, levels = c(1:19, 'X'))) %>%
+  column_to_rownames(var = "Chromosome") %>%
+  mutate(C = round(C, digits = 2)) %>%
+  dplyr::rename("Size of ref. genome" = "A", 
+         "Size of reconstructed genome" = "B",
+         "Fraction covered of ref. genome" = "C")
+
+kable(COVER, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "Fraction of refence genome that has an available aligned reconstructed ancestral sequence")
+```
+
+
+### Number of simulated variants
+##### and how many are overlapping with an available ancestral sequence
+
+
+```{r snp fractions, echo=FALSE, fig.width = 11, fig.height = 8, fig.align = 'center'}
+fraction.used <- 
+  simulatedSNPs %>% 
+  count(CHROM, FORMAT) %>%
+  group_by(CHROM) %>%
+  mutate(pct=n/sum(n),
+         CHROM = factor(CHROM, levels = c(1:19, 'X'))) %>%    
+  ggplot(aes(CHROM, n, fill=FORMAT)) +
+  geom_bar(stat="identity") +
+  labs(y= "count", x = "chromosome") +
+  scale_fill_manual(name = "overlap", values=c('#d3bcc0', '#8f7a8a')) +
+  ggtitle("fraction of simulated variants with a corresponding non-gap position in ancestral sequence") +
+  ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
+  theme_classic()
+
+fraction.used
+```
+
+##### Table with corresponding data:
+
+```{r SNP table, echo=FALSE}
+# make table
+SNPS <- 
+  data.frame(Chromosome = stats$chromosome,
+             A = stats$no.variants,
+             B = stats$no.SNPs,
+             C = stats$frac.SNPs,
+             D = stats$frac.SNPs.filtered
+  ) %>%
+  arrange(factor(Chromosome, levels = c(1:19, 'X'))) %>%
+  column_to_rownames(var = "Chromosome") %>%
+  mutate(C = round(C, digits = 2),
+         D = round(D, digits = 2)) %>%
+  dplyr::rename("Number of simulated variants" = "A", 
+         "No of sim. SNPs" = "B",
+         "Fraction of simulated SNPs" = "C",
+         "Fraction of sim. SNPs overlapping ancestral seq." = "D")
+
+kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "Fraction of simulated SNPs that is overlapping with a reconstructed ancestral sequence")
+
+```
+
+### Types of simulated mutations
+
+
+```{r variant fractions, echo = FALSE, fig.width = 11, fig.height = 8}
+mutation.types <- 
+  simulatedAncestorSNPs %>% 
+  count(CHROM, FILTER) %>%
+  group_by(CHROM) %>%
+  mutate(pct=n/sum(n),
+         CHROM = factor(CHROM, levels = c(1:19, 'X'))) %>%    
+  ggplot(aes(CHROM, n, fill=FILTER)) +
+  geom_bar(stat="identity") +
+  ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
+  labs(y= "count", x = "chromosome") + 
+  scale_fill_manual(name = "mutation type", values=c('#f2c975', '#b96d41', '#928674')) +
+  ggtitle("fractions of mutation types across the simulated variants, with an available ancestral sequence") +
+  theme_classic()
+
+mutation.types
+```
+
+
+##### Table with corresponding data:
+
+```{r variant table, echo=FALSE}
+# make table
+ANC <- 
+  data.frame(Chromosome = ancestorset$chromosome,
+             A = ancestorset$no.SNPs,
+             B = ancestorset$frac.transitions,
+             C = ancestorset$frac.transversions,
+             D = ancestorset$frac.CpGs,
+             E = ancestorset$frac.nonCpGs
+             ) %>%
+  arrange(factor(Chromosome, levels = c(1:19, 'X'))) %>%
+  column_to_rownames(var = "Chromosome") %>%
+  mutate(B = round(B, digits = 2),
+         C = round(C, digits = 2),
+         D = round(D, digits = 2),
+         E = round(E, digits = 2)) %>%
+  dplyr::rename("No. of SNPs" = "A", 
+         "Fraction transitions" = "B",
+         "Fraction transversions" = "C",
+         "Fraction CpGs" = "D",
+         "Fraction non-CpGs (1-CpGs)" = "E")
+
+kable(ANC, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "fractions of mutation types across the simulated variants, with an available ancestral sequence")
+
+```
+
+### Validation of simulation parameters
+Number of mutations, fractions, and substitution rates.
+To make sure the simulation was performed as expected, the left side is the calculated number and rates in the parameter files, based on information from the ancestor and reference species. The right side is the (re)calculated numbers and rates based on the simulated variants. 
+
+```{r subst rates, echo = FALSE}
+options(knitr.kable.NA = '')
+
+colnames(substitutions) <- c(rep(' ', 6))
+kbl(substitutions, caption = "Comparison of numebr of mutations between log files and actual simulated files") %>%
+  kable_classic() %>%
+  row_spec(c(seq(from = 1, to = nrow(substitutions), by = 21)), 
+           bold = T, color = "#00688B", background = "#87CEEB") %>%
+  row_spec(c(seq(from = 2, to = nrow(substitutions), by = 21), 
+             seq(from = 15, to = nrow(substitutions), by = 21)), 
+           bold = T, color = "#8B636C", background = "#FFC0CB") %>%
+  row_spec(c(seq(from = 3, to = nrow(substitutions), by = 21), 
+             seq(from = 6, to = nrow(substitutions), by = 21),
+             seq(from = 9, to = nrow(substitutions), by = 21), 
+             seq(from = 12, to = nrow(substitutions), by = 21),
+             seq(from = 16, to = nrow(substitutions), by = 21), 
+             seq(from = 19, to = nrow(substitutions), by = 21)), 
+           bold = T, color = "#8B8386", background = "#FFF0F5") %>%
+  add_header_above(c("Parameter files" = 3, "Simulated variant file" = 3))
+ 
+```
