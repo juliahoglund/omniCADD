@@ -21,18 +21,18 @@ Rscript generate_summary_info.R \
 -j ./data/indels_simVariants_filtered.vcf \
 -r ./data/Sus_scrofa_ref.fai \
 -c 20 \
--a ./data/logfiles/ \
+-a ./extracted_ancestor/ \
 -p ./data/parameters.log \
 -u ./data/simVariants.log
 ```
 
 2. render the R markdown creating an html with the stats report
 ```bash
-Rscript -e 'library(rmarkdown)'; rmarkdown::render(params.script}, \
+Rscript -e "rmarkdown::render(params.script}, \
 params = list( \
- tree = './data/43_eutherian_mammals_EPO_default.nh', \
- ideogram = './data/sus_scrofa_ideo', \
+ tree = '/Users/juliahoglund/Documents/omniCADD/data/43_eutherian_mammals_EPO_default.nh', \
+ ideogram = '/Users/juliahoglund/Documents/omniCADD/data/sus_scrofa_ideo', \
  ingroup = 'Sus scrofa', \
  outgroup = 'Bos taurus' \
- ))
+ ))"
 ```
