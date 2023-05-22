@@ -12,8 +12,8 @@ SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
 
 all_outputs = []
 
-include: "workflow/Snakefile_ancestor.sn"		# step one
-include: "workflow/Snakefile_simulate.sn"		# step two 
+# include: "workflow/Snakefile_ancestor.sn"		# step one
+# include: "workflow/Snakefile_simulate.sn"		# step two 
 include: "workflow/Snakefile_stats.sn"			# step three
 
 ############################# PSEUDORULE #################################

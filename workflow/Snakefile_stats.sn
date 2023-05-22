@@ -31,7 +31,7 @@ rule create_summary:
     input:
         'output/start_step3.txt'
     params:
-        script = SCRIPTS_2 + 'generate_summary_info.R',
+        script = SCRIPTS_3 + 'generate_summary_info.R',
         vcf = config['13_vcf'],
         snp = config['13_snp'],
         indels = config['13_indels'],
@@ -59,13 +59,15 @@ rule create_summary:
         -a {params.ancestor} \
         -p {params.parameters} \
         -u {params.simulated}
+
+        touch output/finished_create_summary.txt
         '''
 
 rule create_datafiles:
     input:
         'output/finished_create_summary.txt'
     params:
-        script = SCRIPTS_2 + 'generate_graphs.Rmd',
+        script = SCRIPTS_3 + 'generate_graphs.Rmd',
         path = config['14_path'],
         tree = config['14_tree'],
         ideogram = config['14_ideogram'],
@@ -77,13 +79,14 @@ rule create_datafiles:
 
     shell:
         '''
-        Rscript -e 'library(rmarkdown)'; rmarkdown::render("{params.script}", \
-        params = list( \
-         tree = '{params.tree}', \
-         ideogram = '{params.ideogram}', \
-         ingroup = '{params.ingroup}', \
-         outgroup = '{params.outgroup}' \
-         ))
+        Rscript -e 'rmarkdown::render("{params.script}", \
+         params=list( \
+         tree="{params.tree}", \
+         ideogram="{params.ideogram}", \
+         ingroup="{params.ingroup}", \
+         outgroup="{params.outgroup}" \
+         ))'
 
-         mv workflow/step_3_simulation_report/scripts/generate_graphs.html output/
+        mv workflow/step_3_simulation_report/scripts/generate_graphs.html output/
+        touch output/finished_generate_data.txt
         '''
