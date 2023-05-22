@@ -9,4 +9,4 @@ The parts of the workflow can be found in the directory *workflow*, where the st
 
 configuration files such as a conda environment with dependencies, a singularity container + recipe and dockerfile + setup info can be found in *config*
 
-<a href="https://ibb.co/BsFZQ0h"><img src="https://i.ibb.co/C0D7YRj/dag.jpg" alt="dag" border="0"></a>
+<a href="https://ibb.co/6yQyMdv"><img src="https://i.ibb.co/3TKT3Jf/dag.jpg" alt="dag" border="0"></a>
