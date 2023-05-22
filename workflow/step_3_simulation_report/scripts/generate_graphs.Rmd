@@ -20,19 +20,17 @@ params:
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
 # https://genome.ucsc.edu/cgi-bin/hgTables
 
-list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape")
-list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont", "ggpubr")
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr")
+list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
 
 new.bioconductor <- list.of.bioconductor[!(list.of.bioconductor %in% installed.packages()[,"Package"])]
 if(length(new.packages)) BiocManager::install(new.bioconductor, force = TRUE)
-# MAKE YES AUTOMATIC ON INSTALL FROM SOURCE, and update all!!
 
 library(tidyverse)
 library(tidytree)
-library(devtools)
 library(data.table)
 library(ggfittext)
 library(gridExtra)

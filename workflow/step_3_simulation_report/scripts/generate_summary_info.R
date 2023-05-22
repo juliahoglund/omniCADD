@@ -1,20 +1,19 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("tidyverse", "tidytree", "devtools", "data.table", "scales", "optparse")
+list.of.packages <- c("tidyverse", "tidytree", "data.table", "scales", "optparse", "pandoc", "rmarkdown")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
 
+library(rmarkdown)
 library(tidyverse)
 library(tidytree)
-library(devtools)
 library(data.table)
 library(scales)
 library(optparse)
+library(pandoc)
 
 rm(list=ls())
-# set wd to test locally
-setwd("/Users/juliahoglund/Documents/omniCADD/")
 
 option_list = list(
   make_option(c("-v", "--vcf"), type="character", default="data/simVariants.vcf",
@@ -39,7 +38,7 @@ option_list = list(
               help="number of chromosomes to extract from fasta index files (i.e. to exclude scaffolds)", metavar="integer"),
   
   make_option(c("-a", "--ancestor"), type="character", default="extracted_ancestor/",
-              help="path to ancestor log files", metavar="character"),
+              help="path to ancestor fasta files", metavar="character"),
   
   make_option(c("-p", "--parameters"), type="character", default="parameters.log",
               help="log file with output from checked rates parameters", metavar="character"),
@@ -54,6 +53,8 @@ opt = parse_args(opt_parser)
 #################################################
 ################STATISTICS ######################
 #################################################
+
+message("Reading files with simulated variants ...")
 
 simulatedFull <- read.table(opt$vcf, header = F)
 colnames(simulatedFull) <- 
@@ -74,8 +75,9 @@ colnames(simulatedAncestorSNPs) <-
 simulatedAncestorINDELs <- read.table(opt$indelFiltered, header = F)
 colnames(simulatedAncestorINDELs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
-# nrow(simulatedAncestorINDELs)
-# [1] 106291
+
+
+message("Reading files for the reference genome ...")
 
 reference.fai <- read.table(opt$reference, nrows = opt$chromosome)
 reference.fai <- reference.fai %>%
@@ -88,6 +90,7 @@ filenames <- paste(opt$ancestor, filenames, sep = "")
 ancestor.fai <- data.frame(chromosome = character(),
                            size = numeric()
                            )
+message("Parsing ancestor fasta files ...")
 
 for (i in 1:length(filenames)) { 
   x <- scan(filenames[i], skip = 1, what = "character", sep = "-")
@@ -129,6 +132,8 @@ mutations <- data.frame(
   no.indels.filtered = rep(0, 19)
 )
 
+message("Creating output ...")
+
 for (i in 1:nrow(mutations)) {
   mutations$no.variants[i] <- simulatedFull %>% 
     dplyr::select(CHROM) %>% 
@@ -149,6 +154,8 @@ rm(simulatedINDELs, simulatedAncestorINDELs, simulatedFull)
 #################################################
 ################ MUTATIONS ######################
 #################################################
+
+message("Calculating number of mutations ...")
 
 fullset <- data.frame(
   chromosome = c(1:18, 'X'),
@@ -208,6 +215,8 @@ for (i in 1:nrow(mutations)) {
 
 
 ##########################
+
+message("Making output pretty ..")
 
 ancestorset <- data.frame(
   chromosome = c(1:18, 'X'),
@@ -308,6 +317,8 @@ substitutions <-
 substitutions[] <- lapply(substitutions, str_replace_all, "(\\d+\\.\\d+)", replacement = "\\1%")
 
 ## SAVE
+message("Creating data clump ...")
+
 save(substitutions, simulatedSNPs, simulatedAncestorSNPs, stats, data, info, fullset, ancestorset, file ="graphs.RData")
 
 
