@@ -66,9 +66,6 @@ if not os.path.isdir(options.path):
 if options.species == '':
     sys.stderr.write("No species name given.\n")
     sys.exit()
-if options.chromosomes == '':
-    sys.stderr.write("Forgot to specify chromosomes.\n")
-    sys.exit()
 
 # Checking if the path ends with '/'
 if (not options.path.endswith('/')):
