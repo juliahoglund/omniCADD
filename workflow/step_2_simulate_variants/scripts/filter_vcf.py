@@ -122,5 +122,5 @@ for anc_file in anc_l:
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_vcf_filtering.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_vcf_filtering.txt', './output/finished_vcf_filtering.txt')

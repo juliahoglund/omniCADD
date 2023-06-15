@@ -324,6 +324,6 @@ for key, value in deletionsizes.items():
 print("Done!")
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_create_parameters.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_create_parameters.txt', './output/finished_create_parameters.txt')
 

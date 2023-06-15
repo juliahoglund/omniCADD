@@ -185,5 +185,5 @@ if options.previous=='yes':
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_apply_mafTools.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_apply_mafTools.txt', './output/finished_apply_mafTools.txt')

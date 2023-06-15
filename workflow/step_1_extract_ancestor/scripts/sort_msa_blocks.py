@@ -70,5 +70,5 @@ if options.clean=='yes':
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_sort_msa_blocks.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_sort_msa_blocks.txt', './output/finished_sort_msa_blocks.txt')

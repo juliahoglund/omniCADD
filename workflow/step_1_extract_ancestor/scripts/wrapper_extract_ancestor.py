@@ -71,6 +71,6 @@ print("Step 1; Extract ancestral sequence done.\n")
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_extract_ancestor.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_extract_ancestor.txt', './output/finished_extract_ancestor.txt')
 

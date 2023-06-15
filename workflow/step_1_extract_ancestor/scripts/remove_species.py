@@ -83,7 +83,7 @@ if options.clean=='yes':
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_removing_unwanted_species.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_removing_unwanted_species.txt', './output/finished_removing_unwanted_species.txt')
 
 

@@ -63,7 +63,7 @@ for lines in infile:
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_vcf_splitting.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_vcf_splitting.txt', './output/finished_vcf_splitting.txt')
 
 

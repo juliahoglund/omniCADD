@@ -88,7 +88,7 @@ if options.clean=='yes':
 	
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_remove_opposite_strand.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_remove_opposite_strand.txt', './output/finished_remove_opposite_strand.txt')
 	
 	

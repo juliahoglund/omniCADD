@@ -410,5 +410,5 @@ print("Step 2; Simulate variants done.\n")
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_apply_parameters.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_apply_parameters.txt', './output/finished_apply_parameters.txt')

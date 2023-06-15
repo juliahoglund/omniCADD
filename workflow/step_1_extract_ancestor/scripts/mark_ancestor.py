@@ -210,5 +210,5 @@ for file in processed_file_list:
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_mark_ancestor.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_mark_ancestor.txt', './output/finished_mark_ancestor.txt')

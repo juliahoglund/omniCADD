@@ -110,5 +110,5 @@ if not os.path.isdir('output'):
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_mark_outgroup.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_mark_outgroup.txt', './output/finished_mark_outgroup.txt')

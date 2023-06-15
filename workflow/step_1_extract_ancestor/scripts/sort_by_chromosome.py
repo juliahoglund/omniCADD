@@ -145,5 +145,5 @@ if options.clean=='yes':
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_sort_by_chromosome.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_sort_by_chromosome.txt', './output/finished_sort_by_chromosome.txt')

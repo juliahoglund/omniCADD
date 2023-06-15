@@ -43,7 +43,7 @@ for chr_number in chr_list:
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_substitution_calc.txt', 'x')
-indication.close
+indication.close()
 os.rename('./finished_substitution_calc.txt', './output/finished_substitution_calc.txt')
 
 
