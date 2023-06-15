@@ -129,13 +129,8 @@ for file in filenames:
     file = file.split('/')[-1]
     print('Performing Strander for: ' + file)
 
-	# Get chr number.
-    chr_num = file.split('epo.')[-1] # in case all is not epo change?
-    chr_num = chr_num.split('_')[0]
-    seq_inp = options.genome + '.' + chr_num
-
 	# Perform mafTools on commandline
-    os.system('mafStrander --maf ' + str(path) + str(file) + ' --seq ' + seq_inp + ' --strand + > ' + str(stranded_path) + str(stranded_file_prefix) + file)
+    os.system('mafStrander --maf ' + str(path) + str(file) + ' --seq ' + options.genome + ' --strand + > ' + str(stranded_path) + str(stranded_file_prefix) + file)
 
     if options.clean=='yes':
         os.system('rm ' + str(path) + str(file))
