@@ -57,6 +57,9 @@ These scripts are all wrapped with a pipeline Snakemake file and can be run like
 ## Run with reconstructed ancestor.
 When running the pipeline with the aim of extracting a reconstructed ancestral sequence, the pipeline will go through the steps mentioned above.
 This is run by setting the config variable as `--config option='ancestor'`
+This option relies on having a phylogenetic tree per block in tha maf file. In `hal2maf` conversion (cactus / progressiveCactus / HAL) the default is to not keep it at every block, and thus this has to be changed so that the trees are kept before using this step. 
+
+If it is not possible to get one tree per block, users can manually check the ancestral nodes of interest and feed them to the outgroup-version of the script instead.
 
 ## Run with marking a (outgroup) species as the "last common ancestor"
 If the given msa does not contain reconstructed ancestral sequences of if one choses to run the pipieline with another species (as an outgroup), the config option can be changed to `--config option='outgroup'`
