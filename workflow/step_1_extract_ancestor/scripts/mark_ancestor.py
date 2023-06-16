@@ -105,7 +105,7 @@ def hierarchy(found_clades,required_ancestor):
 
 
 	for f_clade in found_clades:
-		if (ab_sp1 in f_clade.name) and (not ab_sp1 + '_AEMK' in f_clade.name):
+		if (ab_sp1 in f_clade.name) and (len(f_clade.name.split('.')[1]) < 6):
 			binary_dict[sp1] = f_clade.name
 		elif ab_sp2 in f_clade.name:
 			binary_dict[sp2] = f_clade.name

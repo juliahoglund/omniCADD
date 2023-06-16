@@ -89,7 +89,7 @@ chr_lengths = defaultdict(dict)
 
 with open(index_file) as f:
     lines = f.read().splitlines()
-lines = [ x for x in lines if "AEMK" not in x ]
+lines = [ x for x in lines if len(x.split('\t')[0]) < 6 ]
 for line in lines:
 	chrom = line.split()[0]
 	length = line.split()[1]

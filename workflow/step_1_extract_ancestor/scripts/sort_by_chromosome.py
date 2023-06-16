@@ -126,7 +126,7 @@ for maf_f in file_list:
 
 # Loop through keys in dict:
 for chr_num, blocks in maf_blocks.items():
-	if "AEMK" in chr_num:
+	if len(chrom_num) > 5:
 		continue
 	else:
 		new_file = open("./"+options.sorted+"/"+options.species+"_chr%s.reordered.maf" %chr_num, "a")
