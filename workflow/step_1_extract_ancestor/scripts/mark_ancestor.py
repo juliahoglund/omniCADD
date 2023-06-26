@@ -153,6 +153,7 @@ for file in processed_file_list:
 		gunzip(options.path+file)
 	alignment_file = open(options.path+file.replace('.gz', ''), "r")
 	for lines in alignment_file:
+        lines = lines.strip()
 		# Checking if tree contains information regarding ancestor
 		if '# tree:' in lines:
 			i += 1

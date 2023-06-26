@@ -20,10 +20,10 @@ from optparse import OptionParser
 import gzip
 from sh import gunzip
 
-# OptionParser for input. 
+# OptionParser for input.
 parser = OptionParser()
-parser.add_option("-p", "--path", dest="path", help="Path to processed maf files",default= './pruned') 
-parser.add_option("-f", "--fileprefix", dest="prefix", help="Prefix of processed files", default= 'rmSP_mS_') 
+parser.add_option("-p", "--path", dest="path", help="Path to processed maf files",default= './pruned')
+parser.add_option("-f", "--fileprefix", dest="prefix", help="Prefix of processed files", default= 'rmSP_mS_')
 parser.add_option("-r", "--removed", dest="removed", help="directory within which the new output will be saved", default='forwardStrandOnly')
 parser.add_option("-c", "--clean", dest="clean", help="remove intermediate files after computation [yes/no]", default="no")
 
@@ -60,16 +60,17 @@ if not os.path.isdir(options.removed):
 for file_name in maf_l:
 
 	print("Processing file: {}".format(file_name))
-	
-	# Open maf file. 
+
+	# Open maf file.
 	maf_input = open(options.path + file_name, 'r')
 
 	# Create output files
 	outfile1 = open(options.removed + '/rmOS_' + file_name, 'w')
-	
-	# Iterate over lines in file. 
+
+	# Iterate over lines in file.
 	add_order = 0
 	for line in maf_input:
+        line = line.strip()
 		if line.startswith('#'):
 			outfile1.write(line)
 			add_order = 0
@@ -85,11 +86,8 @@ for file_name in maf_l:
 
 if options.clean=='yes':
 	os.system('rm -r ' + str(options.path))
-	
+
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_remove_opposite_strand.txt', 'x')
 indication.close()
 os.rename('./finished_remove_opposite_strand.txt', './output/finished_remove_opposite_strand.txt')
-	
-	
-	

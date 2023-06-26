@@ -8,7 +8,7 @@
 
 If the user does not want to extract a reconstructed ancestor, or if there is non
 in the given MSA file, this script will extract and mark a chosen species instead.
-By adding "Ancestor_" before the name of the species in the msa, 
+By adding "Ancestor_" before the name of the species in the msa,
 The rest of the pipeline will recognize it as the ancestral sequence in the rest of the pipeline
 
 :Updating and reworking
@@ -91,6 +91,7 @@ for file in processed_file_list:
 		gunzip(options.path+file)
 	alignment_file = open(options.path+file.replace('.gz', ''), "r")
 	for lines in alignment_file:
+        lines = lines.strip()
 		if lines.startswith(name_sp1):
 			# Write out given species
 			outfile.write(lines)

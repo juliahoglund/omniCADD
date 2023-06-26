@@ -7,7 +7,7 @@
 :Usage: python remove_species.py -p <path to input files> -f <file prefix> -s <species> -r <new path to new files>
 
 This script removes unwanted species from maf files.
-This script should be performed after mafSorter in the pipeline. 
+This script should be performed after mafSorter in the pipeline.
 
 :Example:
 python scripts/remove_species.py -p output/ -f mS_ -s mus_musculus pruned
@@ -21,7 +21,7 @@ from sh import gunzip
 
 # Option parser for path
 parser = OptionParser()
-parser.add_option("-p", "--path", dest="path", help="path to folder with mafSorted_EPO files.", default= './sortedMSA') 
+parser.add_option("-p", "--path", dest="path", help="path to folder with mafSorted_EPO files.", default= './sortedMSA')
 parser.add_option("-f", "--fileprefix", dest="prefix", help="prefix of the processed files (default mS_)", default='mS_')
 parser.add_option("-s", "--species", dest="species", help="species of interest (i.e. reference species)", default='')
 parser.add_option("-r", "--removed", dest="removed", help="directory within which the new output will be saved", default='pruned')
@@ -62,21 +62,22 @@ if bool(file_list) == False:
 for file_name in file_list:
 	open_f = open(options.path + file_name,'r')
 	content_f = open_f.readlines()
-	
+
 	print("Processing file: {}".format(file_name))
 
 	list_lines = []
-	# Loop through lines in file, 
+	# Loop through lines in file,
 	# add lines to list that doesn't contain species with similar name
 	for line in content_f:
+        line = line.strip()
 		if not line.startswith('s ' + options.species + '_'):
-			list_lines.append(line)	
+			list_lines.append(line)
 
 	# Open new file
 	# Write lines in list to new file.
 	new_f = open(options.removed + '/rmSP_' + file_name, 'w')
 	new_f.writelines(list_lines)
-	new_f.close
+	new_f.close()
 
 if options.clean=='yes':
 	os.system('rm -r ' + str(options.path))
@@ -85,5 +86,3 @@ if options.clean=='yes':
 indication = open('finished_removing_unwanted_species.txt', 'x')
 indication.close()
 os.rename('./finished_removing_unwanted_species.txt', './output/finished_removing_unwanted_species.txt')
-
-

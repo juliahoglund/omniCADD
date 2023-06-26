@@ -12,7 +12,7 @@ Each file in each chromosome will be read and then sorted to the correct chromos
 This is performed to create one maf file per chromosome,
 since there are multiple maf files per chromosome currently.
 
-:Usage: python sort_by_chromosome.py -p <path to processed files> -f <prefix of the processed files> -s 
+:Usage: python sort_by_chromosome.py -p <path to processed files> -f <prefix of the processed files> -s
 [specied_name] -o <new path to new files>
 
 :Example:
@@ -96,7 +96,7 @@ for maf_f in file_list:
 	if maf_f.endswith(".gz"):
 		gunzip(str(options.path)+str(maf_f))
 		open_f = open(options.path + maf_f.replace('.gz', ''),'r')
-	else: 
+	else:
 		open_f = open(options.path + maf_f,'r')
 
 
@@ -106,7 +106,7 @@ for maf_f in file_list:
 
 
 	while line != "":
-		line = open_f.readline()
+		line = open_f.readline().strip()
 		if "a " in line:
 			switch = 0
 			blocks = ""
@@ -120,7 +120,7 @@ for maf_f in file_list:
 		if switch == 1:
 			blocks += '\n'
 			maf_blocks[ident_chr].append(blocks)
-	
+
 	os.system('gzip ' + str(options.path)+str(maf_f.replace('.gz', '')))
 
 
@@ -131,7 +131,7 @@ for chr_num, blocks in maf_blocks.items():
 	else:
 		new_file = open("./"+options.sorted+"/"+options.species+"_chr%s.reordered.maf" %chr_num, "a")
 		new_file.write("##maf version=1\n\n")
-		
+
 		for line in blocks:
 			new_file.write(line)
 
