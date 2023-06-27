@@ -105,7 +105,7 @@ def hierarchy(found_clades,required_ancestor):
 
 
 	for f_clade in found_clades:
-		if (ab_sp1 in f_clade.name) and (len(f_clade.name.split('.')[1]) < 6):
+		if (ab_sp1 in f_clade.name) and (len(f_clade.name.split('.')[0]) < 6):
 			binary_dict[sp1] = f_clade.name
 		elif ab_sp2 in f_clade.name:
 			binary_dict[sp2] = f_clade.name
@@ -123,6 +123,7 @@ processed_file_list = []
 for file in file_list:
 	if (options.identifier in file) and (not 'README' in file):
 		processed_file_list.append(file)
+
 log_file = open(options.path+'%s.log'%(options.ancestor),'w')
 
 ## if path not exist makedir marked else not do it
@@ -135,7 +136,7 @@ for file in processed_file_list:
 	#####################################################
 
 
-	# Iterate over the list until it hits '# tree:'
+	# Iterate over the list until it hits a line starting with 'a'
 	# and read in the newick string and identify if there is a common anecestor
 	# If yes, write out the ancestral identifier and
 	# the information to which chromosome it was aligned,
@@ -153,7 +154,7 @@ for file in processed_file_list:
 		gunzip(options.path+file)
 	alignment_file = open(options.path+file.replace('.gz', ''), "r")
 	for lines in alignment_file:
-        lines = lines.strip()
+		lines = lines.strip()
 		# Checking if tree contains information regarding ancestor
 		if '# tree:' in lines:
 			i += 1
@@ -181,13 +182,13 @@ for file in processed_file_list:
 			# Stores coords for ancestor
 			elem = lines.strip().split()[0:-1]
 			# Write out given species
-			outfile.write(lines)
+			outfile.write(('\t').join(lines.split()) + '\n')
 			if ancestor_seq == '':
 				switch = True
 				continue
 			else:
 				# Do some changes and write out ancestor
-				outfile.write('s '+new_ancestor_name+'.'+elem[1].split('.')[1]+'\t'+'\t'.join(elem[2:])+'\t'+ancestor_seq+'\n')
+				outfile.write('s\t'+new_ancestor_name+'.'+elem[1].split('.')[1]+'\t'+'\t'.join(elem[2:])+'\t'+ancestor_seq+'\n')
 				switch = False
 				continue
 		# This if statement is never entered if there is no name
@@ -195,14 +196,14 @@ for file in processed_file_list:
 		if lines.startswith('s ancestral_sequences.'+ancestor_id):
 			if switch==True:
 				# If coords are already known, do some changes to ancestral and write out ancestral
-				outfile.write('s '+new_ancestor_name+'.'+elem[1].split('.')[1]+'\t'+'\t'.join(elem[2:])+'\t'+lines.strip().split()[-1]+'\n')
+				outfile.write('s\t'+new_ancestor_name+'.'+elem[1].split('.')[1]+'\t'+'\t'.join(elem[2:])+'\t'+lines.strip().split()[-1]+'\n')
 				switch = False
 				continue
 			else:
 				# Store ancestor if given species has not been called up yet
 				ancestor_seq = lines.strip().split()[-1]
 				continue
-		outfile.write(lines)
+		outfile.write(('\t').join(lines.split()) + '\n')
 	log_file.flush()
 	os.system('gzip marked/marked_' + file.replace('.gz', ''))
 	outfile.close()
