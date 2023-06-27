@@ -90,16 +90,19 @@ for file in processed_file_list:
 	if file.endswith(".gz"):
 		gunzip(options.path+file)
 	alignment_file = open(options.path+file.replace('.gz', ''), "r")
+	outfile.write("##maf version=1")
 	for lines in alignment_file:
-        lines = lines.strip()
+		lines = lines.strip()
 		if lines.startswith(name_sp1):
 			# Write out given species
-			outfile.write(lines)
+			outfile.write(('\t').join(lines.split()) + '\n')
 		elif lines.startswith(name_ancestor):
 			newline = lines.strip().split('.')[1]
-			outfile.write('s Ancestor_' + options.ancestor + '.' + newline)
+			outfile.write('s\tAncestor_' + options.ancestor + '.' + ('\t').join(newline.split()) + '\n')
+		elif lines.startswith('##maf'):
+			next
 		else:
-			outfile.write(lines)
+			outfile.write(('\t').join(lines.split()) + '\n')
 	os.system('gzip marked/marked_' + file.replace('.gz', ''))
 	outfile.close()
 	os.system('gzip ' + str(options.path+file.replace('.gz', '')))
