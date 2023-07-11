@@ -14,35 +14,36 @@ library(optparse)
 library(pandoc)
 
 rm(list=ls())
+setwd("/Users/juliahoglund/Documents/localCADD/")
 
 option_list = list(
   make_option(c("-v", "--vcf"), type="character", default="data/simVariants.vcf",
               help="vcf with simulated variants", metavar="character"),
-
+  
   make_option(c("-s", "--snp"), type="character", default="data/snps_simVariants.vcf",
               help="vcf with simulated SNPs", metavar="character"),
-
+  
   make_option(c("-i", "--indels"), type="character", default="data/indels_simVariants.vcf",
               help="vcf with simulated indels", metavar="character"),
-
+  
   make_option(c("-t", "--snpFiltered"), type="character", default="data/snps_simVariants_filtered.vcf",
               help="vcf with filtered snps", metavar="character"),
-
+  
   make_option(c("-j", "--indelFiltered"), type="character", default="data/indels_simVariants_filtered.vcf",
               help="vcf with filtered indels", metavar="character"),
-
+  
   make_option(c("-r", "--reference"), type="character", default="data/Sus_scrofa_ref.fai",
               help="reference genome fasta index", metavar="character"),
-
+  
   make_option(c("-c", "--chromosome"), type="integer", default=20,
               help="number of chromosomes to extract from fasta index files (i.e. to exclude scaffolds)", metavar="integer"),
-
+  
   make_option(c("-a", "--ancestor"), type="character", default="extracted_ancestor/",
               help="path to ancestor fasta files", metavar="character"),
-
-  make_option(c("-p", "--parameters"), type="character", default="data/aparameters.log",
+  
+  make_option(c("-p", "--parameters"), type="character", default="data/parameters.log",
               help="log file with output from checked rates parameters", metavar="character"),
-
+  
   make_option(c("-u", "--simulated"), type="character", default="data/simVariants.log",
               help="log file with output from checked rates simulated variants", metavar="character")
 )
@@ -57,23 +58,23 @@ opt = parse_args(opt_parser)
 message("Reading files with simulated variants ...")
 
 simulatedFull <- read.table(opt$vcf, header = F)
-colnames(simulatedFull) <-
+colnames(simulatedFull) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 simulatedSNPs <- read.table(opt$snp, header = F)
-colnames(simulatedSNPs) <-
+colnames(simulatedSNPs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 simulatedINDELs <- read.table(opt$indels, header = F)
-colnames(simulatedINDELs) <-
+colnames(simulatedINDELs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 simulatedAncestorSNPs <- read.table(opt$snpFiltered, header = F)
-colnames(simulatedAncestorSNPs) <-
+colnames(simulatedAncestorSNPs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 simulatedAncestorINDELs <- read.table(opt$indelFiltered, header = F)
-colnames(simulatedAncestorINDELs) <-
+colnames(simulatedAncestorINDELs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 
@@ -93,16 +94,16 @@ ancestor.fai <- data.frame(chromosome = character(),
 message("Parsing ancestor fasta files ...")
 
 ### here save and make bed file ancestors in the same buch later!
-for (i in 1:length(filenames)) {
+for (i in 1:length(filenames)) { 
   x <- scan(filenames[i], skip = 1, what = "character", sep = "-")
   x <- x[x != ""]
-
-  ancestor.fai <- ancestor.fai %>%
+  
+  ancestor.fai <- ancestor.fai %>% 
     add_row(chromosome = unlist(str_split(unlist(str_split(x[1], ": "))[2], ","))[1],
             size = nchar(paste(x, collapse = ''))) %>%
     arrange(chromosome)
   message("file: ", filenames[i], " done.")
-
+  
 }
 
 ancestor.fai$chromosome <- factor(ancestor.fai$chromosome, levels = str_sort(factor(ancestor.fai$chromosome), numeric = TRUE))
@@ -135,9 +136,9 @@ mutations <- data.frame(
 message("Creating output ...")
 
 for (i in 1:nrow(mutations)) {
-  mutations$no.variants[i] <- simulatedFull %>%
-    dplyr::select(CHROM) %>%
-    dplyr::filter(CHROM == mutations$chromosome[i]) %>%
+  mutations$no.variants[i] <- simulatedFull %>% 
+    dplyr::select(CHROM) %>% 
+    dplyr::filter(CHROM == mutations$chromosome[i]) %>% 
     nrow(.)
   mutations$no.SNPs[i] <- simulatedSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$frac.SNPs[i] <- mutations$no.SNPs[i] / mutations$no.variants[i]
@@ -148,6 +149,8 @@ for (i in 1:nrow(mutations)) {
 }
 
 stats <- merge(info.fai, mutations, by = "chromosome")
+stats$chromosome <- factor(stats$chromosome, levels = str_sort(factor(stats$chromosome), numeric = TRUE))
+
 
 rm(simulatedINDELs, simulatedAncestorINDELs, simulatedFull)
 
@@ -170,48 +173,50 @@ fullset <- data.frame(
 )
 
 for (i in 1:nrow(mutations)) {
-  fullset$no.SNPs[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM) %>%
-    dplyr::filter(CHROM == fullset$chromosome[i]) %>%
+  fullset$no.SNPs[i] <- 
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM) %>% 
+    dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     nrow(.)
-
-  fullset$transitions[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM, REF, ALT, INFO) %>%
-    dplyr::filter(CHROM == fullset$chromosome[i]) %>%
+  
+  fullset$transitions[i] <- 
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     dplyr::filter(INFO == '.') %>%
     dplyr::filter(
       (REF == 'A' & ALT == 'G') | (REF == 'G' & ALT == 'A') |
         (REF == 'C' & ALT == 'T') | (REF == 'T' & ALT == 'C') ) %>%
     nrow(.)
-
+  
   fullset$frac.transitions[i] <- fullset$transitions[i] / fullset$no.SNPs[i]
-
-  fullset$transversions[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM, REF, ALT, INFO) %>%
-    dplyr::filter(CHROM == fullset$chromosome[i]) %>%
+  
+  fullset$transversions[i] <- 
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     dplyr::filter(INFO == '.') %>%
     dplyr::filter(!(
       (REF == 'A' & ALT == 'G') | (REF == 'G' & ALT == 'A') |
         (REF == 'C' & ALT == 'T') | (REF == 'T' & ALT == 'C') )) %>%
     nrow()
-
+  
   fullset$frac.transversions[i] <- fullset$transversions[i] / fullset$no.SNPs[i]
-
-  fullset$CpGs[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM, REF, ALT, INFO) %>%
-    dplyr::filter(CHROM == fullset$chromosome[i]) %>%
+  
+  fullset$CpGs[i] <-  
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     dplyr::filter(INFO == 'CpG') %>%
     nrow(.)
-
+  
   fullset$frac.CpGs[i] <- fullset$CpGs[i] / fullset$no.SNPs[i]
-
+  
   fullset$frac.nonCpGs[i] <- fullset$frac.transitions[i] + fullset$frac.transversions[i]
-
+  
 }
+
+fullset$chromosome <- factor(fullset$chromosome, levels = str_sort(factor(fullset$chromosome), numeric = TRUE))
 
 
 ##########################
@@ -231,48 +236,50 @@ ancestorset <- data.frame(
 )
 
 for (i in 1:nrow(mutations)) {
-  ancestorset$no.SNPs[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM) %>%
-    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>%
+  ancestorset$no.SNPs[i] <- 
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM) %>% 
+    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>% 
     nrow(.)
-
-  ancestorset$transitions[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM, REF, ALT, INFO) %>%
-    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>%
+  
+  ancestorset$transitions[i] <- 
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>% 
     dplyr::filter(INFO == '.') %>%
     dplyr::filter(
       (REF == 'A' & ALT == 'G') | (REF == 'G' & ALT == 'A') |
         (REF == 'C' & ALT == 'T') | (REF == 'T' & ALT == 'C') ) %>%
     nrow(.)
-
+  
   ancestorset$frac.transitions[i] <- ancestorset$transitions[i] / ancestorset$no.SNPs[i]
-
-  ancestorset$transversions[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM, REF, ALT, INFO) %>%
-    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>%
+  
+  ancestorset$transversions[i] <- 
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>% 
     dplyr::filter(INFO == '.') %>%
     dplyr::filter(!(
       (REF == 'A' & ALT == 'G') | (REF == 'G' & ALT == 'A') |
         (REF == 'C' & ALT == 'T') | (REF == 'T' & ALT == 'C') )) %>%
     nrow()
-
+  
   ancestorset$frac.transversions[i] <- ancestorset$transversions[i] / ancestorset$no.SNPs[i]
-
-  ancestorset$CpGs[i] <-
-    simulatedAncestorSNPs %>%
-    dplyr::select(CHROM, REF, ALT, INFO) %>%
-    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>%
+  
+  ancestorset$CpGs[i] <-  
+    simulatedAncestorSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == ancestorset$chromosome[i]) %>% 
     dplyr::filter(INFO == 'CpG') %>%
     nrow(.)
-
+  
   ancestorset$frac.CpGs[i] <- ancestorset$CpGs[i] / ancestorset$no.SNPs[i]
-
+  
   ancestorset$frac.nonCpGs[i] <- ancestorset$frac.transitions[i] + ancestorset$frac.transversions[i]
-
+  
 }
+
+ancestorset$chromosome <- factor(ancestorset$chromosome, levels = str_sort(factor(ancestorset$chromosome), numeric = TRUE))
 
 colnames(simulatedAncestorSNPs)
 simulatedAncestorSNPs$FILTER <- "transversion"
@@ -291,8 +298,8 @@ simulatedSNPs$FILTER[which(simulatedSNPs$INFO == 'CpG')] <- "CpG"
 
 simulatedSNPs$FORMAT = "non-overlapping"
 for (i in ancestor.fai$chromosome) {
-  simulatedSNPs$FORMAT[which((simulatedSNPs$CHROM == i) &
-                               simulatedSNPs$POS %in%
+  simulatedSNPs$FORMAT[which((simulatedSNPs$CHROM == i) & 
+                               simulatedSNPs$POS %in% 
                                simulatedAncestorSNPs$POS)] <- "overlapping"
 }
 
@@ -306,7 +313,7 @@ simulated <- fread(opt$simulated, fill = TRUE, sep = "\t", header=F, blank.lines
 
 substitutions <- cbind(original, simulated)
 substitutions[] <- lapply(substitutions, gsub, pattern='%', replacement='')
-substitutions <-
+substitutions <- 
   substitutions %>%
     t(.) %>%
     data.table(.) %>%
@@ -320,3 +327,5 @@ substitutions[] <- lapply(substitutions, str_replace_all, "(\\d+\\.\\d+)", repla
 message("Creating data clump ...")
 
 save(substitutions, simulatedSNPs, simulatedAncestorSNPs, stats, data, info, fullset, ancestorset, file ="graphs.RData")
+
+

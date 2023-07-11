@@ -9,7 +9,7 @@ params:
   ideogram: 'None'
   ingroup: 'None'
   outgroup: 'None'
-  path: '/Users/juliahoglund/Documents/omniCADD/'
+  path: '/Users/juliahoglund/Documents/localCADD/'
   
   
 ---
@@ -20,7 +20,7 @@ params:
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
 # https://genome.ucsc.edu/cgi-bin/hgTables
 
-list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr")
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools")
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -46,8 +46,10 @@ library(ape)
 library(grid)
 library(emojifont)
 library(ggpubr)
+library(gtools)
 load.fontawesome()
 
+rm(list = )
 load(paste(params$path, "graphs.RData", sep = ""))
 ```
 
@@ -195,7 +197,7 @@ if (params$tree == 'None') {
             annot2 = OverlapVars,
             colAnnot1 = "#bababa",
             colAnnot2 = "tomato",
-            chr = c(1:18, 'X'))
+            chr = stats$chromosome)
   )
 }
 
@@ -209,15 +211,16 @@ COVER <-
              A = stats$srcSize,
              B = stats$size.ancestror,
              C = stats$frac.covered
-  ) %>%
-  arrange(factor(Chromosome, levels = c(1:19, 'X'))) %>%
-  column_to_rownames(var = "Chromosome") %>%
-  mutate(C = round(C, digits = 2)) %>%
-  dplyr::rename("Size of ref. genome" = "A", 
+             ) %>% 
+    arrange_all() %>% 
+    column_to_rownames(var = "Chromosome") %>%
+    mutate(C = round(C, digits = 2)) %>%
+    dplyr::rename("Size of ref. genome" = "A", 
          "Size of reconstructed genome" = "B",
          "Fraction covered of ref. genome" = "C")
 
 kable(COVER, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "Fraction of refence genome that has an available aligned reconstructed ancestral sequence")
+
 ```
 
 
@@ -230,9 +233,12 @@ fraction.used <-
   simulatedSNPs %>% 
   count(CHROM, FORMAT) %>%
   group_by(CHROM) %>%
-  mutate(pct=n/sum(n),
-         CHROM = factor(CHROM, levels = c(1:19, 'X'))) %>%    
-  ggplot(aes(CHROM, n, fill=FORMAT)) +
+  mutate(pct=n/sum(n))
+
+fraction.used$CHROM <- factor(fraction.used$CHROM, levels = str_sort(factor(unique(fraction.used$CHROM)), numeric = TRUE))
+
+fraction.plot <- 
+  ggplot(data = fraction.used, aes(CHROM, n, fill=FORMAT)) +
   geom_bar(stat="identity") +
   labs(y= "count", x = "chromosome") +
   scale_fill_manual(name = "overlap", values=c('#d3bcc0', '#8f7a8a')) +
@@ -240,7 +246,7 @@ fraction.used <-
   ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
   theme_classic()
 
-fraction.used
+fraction.plot
 ```
 
 ##### Table with corresponding data:
@@ -253,8 +259,8 @@ SNPS <-
              B = stats$no.SNPs,
              C = stats$frac.SNPs,
              D = stats$frac.SNPs.filtered
-  ) %>%
-  arrange(factor(Chromosome, levels = c(1:19, 'X'))) %>%
+  ) %>% 
+  arrange_all() %>%
   column_to_rownames(var = "Chromosome") %>%
   mutate(C = round(C, digits = 2),
          D = round(D, digits = 2)) %>%
@@ -262,6 +268,7 @@ SNPS <-
          "No of sim. SNPs" = "B",
          "Fraction of simulated SNPs" = "C",
          "Fraction of sim. SNPs overlapping ancestral seq." = "D")
+
 
 kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "Fraction of simulated SNPs that is overlapping with a reconstructed ancestral sequence")
 
@@ -275,9 +282,12 @@ mutation.types <-
   simulatedAncestorSNPs %>% 
   count(CHROM, FILTER) %>%
   group_by(CHROM) %>%
-  mutate(pct=n/sum(n),
-         CHROM = factor(CHROM, levels = c(1:19, 'X'))) %>%    
-  ggplot(aes(CHROM, n, fill=FILTER)) +
+  mutate(pct=n/sum(n))
+
+mutation.types$CHROM <- factor(mutation.types$CHROM, levels = str_sort(factor(unique(mutation.types$CHROM)), numeric = TRUE))
+
+mutation.plot <-             
+  ggplot(data = mutation.types, aes(CHROM, n, fill=FILTER)) +
   geom_bar(stat="identity") +
   ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
   labs(y= "count", x = "chromosome") + 
@@ -285,7 +295,7 @@ mutation.types <-
   ggtitle("fractions of mutation types across the simulated variants, with an available ancestral sequence") +
   theme_classic()
 
-mutation.types
+mutation.plot
 ```
 
 
@@ -301,7 +311,7 @@ ANC <-
              D = ancestorset$frac.CpGs,
              E = ancestorset$frac.nonCpGs
              ) %>%
-  arrange(factor(Chromosome, levels = c(1:19, 'X'))) %>%
+  arrange_all() %>%
   column_to_rownames(var = "Chromosome") %>%
   mutate(B = round(B, digits = 2),
          C = round(C, digits = 2),
