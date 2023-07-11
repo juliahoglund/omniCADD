@@ -14,6 +14,7 @@ library(optparse)
 library(pandoc)
 
 rm(list=ls())
+setwd("/Users/juliahoglund/Documents/localCADD/")
 
 option_list = list(
   make_option(c("-v", "--vcf"), type="character", default="data/simVariants.vcf",
@@ -40,10 +41,10 @@ option_list = list(
   make_option(c("-a", "--ancestor"), type="character", default="extracted_ancestor/",
               help="path to ancestor fasta files", metavar="character"),
   
-  make_option(c("-p", "--parameters"), type="character", default="parameters.log",
+  make_option(c("-p", "--parameters"), type="character", default="data/aparameters.log",
               help="log file with output from checked rates parameters", metavar="character"),
   
-  make_option(c("-u", "--simulated"), type="character", default="simVariants.log",
+  make_option(c("-u", "--simulated"), type="character", default="data/simVariants.log",
               help="log file with output from checked rates simulated variants", metavar="character")
 )
 
@@ -92,6 +93,7 @@ ancestor.fai <- data.frame(chromosome = character(),
                            )
 message("Parsing ancestor fasta files ...")
 
+### here save and make bed file ancestors in the same buch later!
 for (i in 1:length(filenames)) { 
   x <- scan(filenames[i], skip = 1, what = "character", sep = "-")
   x <- x[x != ""]
@@ -104,32 +106,31 @@ for (i in 1:length(filenames)) {
   
 }
 
-ancestor.fai <-
-  ancestor.fai %>% 
-  arrange(factor(chromosome, levels = c(1:19, 'X')))
+ancestor.fai$chromosome <- factor(ancestor.fai$chromosome, levels = str_sort(factor(ancestor.fai$chromosome), numeric = TRUE))
 
 info <- data.frame(
   file = c("simulatedFull", "simulatedSNPs", "simulatedINDELs", "simulatedAncestorSNPs", "simulatedAncestorINDELs"),
   num = c(nrow(simulatedFull), nrow(simulatedSNPs), nrow(simulatedINDELs), nrow(simulatedAncestorSNPs), nrow(simulatedAncestorINDELs))
   )
 
+
 info.fai <- data.frame(
-  chromosome = reference.fai$chromosome[1:19],
-  srcSize = reference.fai$size[1:19],
+  chromosome = reference.fai$chromosome[1:nrow(ancestor.fai)],
+  srcSize = reference.fai$size[1:nrow(ancestor.fai)],
   size.ancestror = ancestor.fai$size,
-  frac.covered = ancestor.fai$size/reference.fai$size[1:19]
+  frac.covered = ancestor.fai$size/reference.fai$size[1:nrow(ancestor.fai)]
 )
 
 
 mutations <- data.frame(
-  chromosome = c(1:18, 'X'),
-  no.variants = rep(0, 19),
-  no.SNPs = rep(0, 19),
-  frac.SNPs = rep(0, 19),
-  no.SNPs.filtered = rep(0, 19),
-  frac.SNPs.filtered = rep(0, 19),
-  no.indels = rep(0, 19),
-  no.indels.filtered = rep(0, 19)
+  chromosome = ancestor.fai$chromosome,
+  no.variants = rep(0, nrow(ancestor.fai)),
+  no.SNPs = rep(0, nrow(ancestor.fai)),
+  frac.SNPs = rep(0, nrow(ancestor.fai)),
+  no.SNPs.filtered = rep(0, nrow(ancestor.fai)),
+  frac.SNPs.filtered = rep(0, nrow(ancestor.fai)),
+  no.indels = rep(0, nrow(ancestor.fai)),
+  no.indels.filtered = rep(0, nrow(ancestor.fai))
 )
 
 message("Creating output ...")
@@ -158,15 +159,15 @@ rm(simulatedINDELs, simulatedAncestorINDELs, simulatedFull)
 message("Calculating number of mutations ...")
 
 fullset <- data.frame(
-  chromosome = c(1:18, 'X'),
-  no.SNPs = c(rep(0, 19)),
-  transitions = c(rep(0, 19)),
-  frac.transitions = c(rep(0, 19)),
-  transversions = c(rep(0, 19)),
-  frac.transversions = c(rep(0, 19)),
-  CpGs = c(rep(0, 19)),
-  frac.CpGs = c(rep(0, 19)),
-  frac.nonCpGs = c(rep(0, 19))
+  chromosome = ancestor.fai$chromosome,
+  no.SNPs = c(rep(0, nrow(ancestor.fai))),
+  transitions = c(rep(0, nrow(ancestor.fai))),
+  frac.transitions = c(rep(0, nrow(ancestor.fai))),
+  transversions = c(rep(0, nrow(ancestor.fai))),
+  frac.transversions = c(rep(0, nrow(ancestor.fai))),
+  CpGs = c(rep(0, nrow(ancestor.fai))),
+  frac.CpGs = c(rep(0, nrow(ancestor.fai))),
+  frac.nonCpGs = c(rep(0, nrow(ancestor.fai)))
 )
 
 for (i in 1:nrow(mutations)) {
@@ -219,15 +220,15 @@ for (i in 1:nrow(mutations)) {
 message("Making output pretty ..")
 
 ancestorset <- data.frame(
-  chromosome = c(1:18, 'X'),
-  no.SNPs = c(rep(0, 19)),
-  transitions = c(rep(0, 19)),
-  frac.transitions = c(rep(0, 19)),
-  transversions = c(rep(0, 19)),
-  frac.transversions = c(rep(0, 19)),
-  CpGs = c(rep(0, 19)),
-  frac.CpGs = c(rep(0, 19)),
-  frac.nonCpGs = c(rep(0, 19))
+  chromosome = ancestor.fai$chromosome,
+  no.SNPs = c(rep(0, nrow(ancestor.fai))),
+  transitions = c(rep(0, nrow(ancestor.fai))),
+  frac.transitions = c(rep(0, nrow(ancestor.fai))),
+  transversions = c(rep(0, nrow(ancestor.fai))),
+  frac.transversions = c(rep(0, nrow(ancestor.fai))),
+  CpGs = c(rep(0, nrow(ancestor.fai))),
+  frac.CpGs = c(rep(0, nrow(ancestor.fai))),
+  frac.nonCpGs = c(rep(0, nrow(ancestor.fai)))
 )
 
 for (i in 1:nrow(mutations)) {
@@ -290,7 +291,7 @@ simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'C') & (simulatedSNPs$ALT == 'T
 simulatedSNPs$FILTER[which(simulatedSNPs$INFO == 'CpG')] <- "CpG"
 
 simulatedSNPs$FORMAT = "non-overlapping"
-for (i in c(1:19, 'X')) {
+for (i in ancestor.fai$chromosome) {
   simulatedSNPs$FORMAT[which((simulatedSNPs$CHROM == i) & 
                                simulatedSNPs$POS %in% 
                                simulatedAncestorSNPs$POS)] <- "overlapping"
@@ -311,7 +312,7 @@ substitutions <-
     t(.) %>%
     data.table(.) %>%
     type.convert(as.is = TRUE) %>%
-    mutate(across(is.numeric, round, digits=2)) %>%
+    mutate(across(where(is.numeric), round, digits=2)) %>%
     t(.) %>%
     data.table(.)
 substitutions[] <- lapply(substitutions, str_replace_all, "(\\d+\\.\\d+)", replacement = "\\1%")
