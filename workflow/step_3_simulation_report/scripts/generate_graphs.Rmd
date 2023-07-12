@@ -8,19 +8,21 @@ params:
   tree: 'None'
   ideogram: 'None'
   ingroup: 'None'
+  # lower case only!!
+  # and no underscore
   outgroup: 'None'
-  path: '/Users/juliahoglund/Documents/localCADD/'
-  
+  path: 'None'
+
   
 ---
 
 ```{r setup, include = FALSE}
 
-# https://hgdownload.soe.ucsc.edu/downloads.html
+# https://hgdownload.soe.ucsc.edu/downloads.html 
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
-# https://genome.ucsc.edu/cgi-bin/hgTables
+# https://genome.ucsc.edu/cgi-bin/hgTables group "mapping and sequencing", track "Chromosome Band", table "cytoBand" for ideogram
 
-list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools")
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "readr")
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -47,6 +49,7 @@ library(grid)
 library(emojifont)
 library(ggpubr)
 library(gtools)
+library(readr)
 load.fontawesome()
 
 rm(list = )
@@ -76,7 +79,7 @@ if (params$tree == 'None') {
   tree
   
   for (i in 1:length(tree$tip.label)) {
-    tree$tip.label[i] <- paste(unlist(str_split(tree$tip.label[i], "_"))[1:2], collapse = ' ')
+    tree$tip.label[i] <- tolower(paste(unlist(str_split(tree$tip.label[i], "_"))[1:2], collapse = ' '))
   }
   
   ancNode <- getMRCA(tree, c(params$ingroup, params$outgroup))
@@ -128,7 +131,7 @@ if (params$tree == 'None') {
     geom_hilight(data = data[2:3,],
                  mapping = aes(node = id),
                  alpha = 0.2,
-                 extendto = 1.4) + 
+                 extendto = 1.9) + 
     geom_tree(aes(color=group))+
     scale_color_manual(values=c("darkgrey","black", "darkgreen", "maroon")) +
     theme(legend.position = "none")
@@ -157,7 +160,7 @@ if (params$ideogram == 'None') {
 } else {
   # fix data
   
-  sscr_ideoGram <- fread(params$ideogram, skip = "chrom") %>% 
+  sscr_ideoGram <- fread(params$ideogram) %>% 
     dplyr::rename("Chrom" = "#chrom", "Start" = "chromStart", "End" = "chromEnd") %>%
     makeGRangesFromDataFrame(.)
   
@@ -186,7 +189,7 @@ quiet <- function(x) {
   invisible(force(x)) 
 }
 
-if (params$tree == 'None') {
+if (params$ideogram == 'None') {
   chromPLOT
 } else {
   
@@ -197,6 +200,7 @@ if (params$tree == 'None') {
             annot2 = OverlapVars,
             colAnnot1 = "#bababa",
             colAnnot2 = "tomato",
+            # bin = base on genome size!
             chr = stats$chromosome)
   )
 }

@@ -14,7 +14,6 @@ library(optparse)
 library(pandoc)
 
 rm(list=ls())
-setwd("/Users/juliahoglund/Documents/localCADD/")
 
 option_list = list(
   make_option(c("-v", "--vcf"), type="character", default="data/simVariants.vcf",
@@ -143,7 +142,7 @@ for (i in 1:nrow(mutations)) {
   mutations$no.SNPs[i] <- simulatedSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$frac.SNPs[i] <- mutations$no.SNPs[i] / mutations$no.variants[i]
   mutations$no.SNPs.filtered[i] <- simulatedAncestorSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
-  mutations$frac.SNPs.filtered[i] <- mutations$no.SNPs.filtered[i] / mutations$no.variants[i]
+  mutations$frac.SNPs.filtered[i] <- mutations$no.SNPs.filtered[i] / mutations$no.SNPs[i]
   mutations$no.indels[i] <- simulatedINDELs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$no.indels.filtered[i] <- simulatedAncestorINDELs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
 }
@@ -296,12 +295,9 @@ simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'T') & (simulatedSNPs$ALT == 'C
 simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'C') & (simulatedSNPs$ALT == 'T'))] <- "transition"
 simulatedSNPs$FILTER[which(simulatedSNPs$INFO == 'CpG')] <- "CpG"
 
-simulatedSNPs$FORMAT = "non-overlapping"
-for (i in ancestor.fai$chromosome) {
-  simulatedSNPs$FORMAT[which((simulatedSNPs$CHROM == i) & 
-                               simulatedSNPs$POS %in% 
-                               simulatedAncestorSNPs$POS)] <- "overlapping"
-}
+simulatedAncestorSNPs$FORMAT = "overlapping"
+simulatedSNPs <- merge(simulatedSNPs[, 1:8], simulatedAncestorSNPs[, c("CHROM", "POS", "FORMAT")], all.x =T, by = c("CHROM", "POS"))
+simulatedSNPs$FORMAT[which(is.na(simulatedSNPs$FORMAT))] <- "non-overlapping"
 
 #########################
 
