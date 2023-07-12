@@ -99,7 +99,7 @@ for (i in 1:length(filenames)) {
   x <- x[x != ""]
   
   ancestor.fai <- ancestor.fai %>% 
-    add_row(chromosome = unlist(str_split(unlist(str_split(x[1], ": "))[2], ","))[1],
+    add_row(chromosome = unlist(str_split(unlist(str_split(filenames[i], "chr"))[2], "\\."))[1],
             size = nchar(paste(x, collapse = ''))) %>%
     arrange(chromosome)
   message("file: ", filenames[i], " done.")
