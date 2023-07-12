@@ -30,8 +30,7 @@ Then some post-processing:
   This script filters out the variants that are not located on a position with a corresponding ancestral sequence.
 
 5. `check_substitution_rates.py`
-  Usage: `python <script.py> -i <name and path sim. variants> -l <path to logfiles>` 
-
+  Usage: `python <script.py> -i <name and path sim. variants> -l <path to logfiles>`
 
   These scripts are all wrapped with a pipeline Snakemake file and can be run like this:
   `snakemake -c4 --snakefile Snakemake_simulate.sn`

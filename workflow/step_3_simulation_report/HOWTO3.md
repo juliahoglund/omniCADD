@@ -28,11 +28,12 @@ Rscript generate_summary_info.R \
 
 2. render the R markdown creating an html with the stats report
 ```bash
-Rscript -e "rmarkdown::render(params.script}, \
+Rscript -e "rmarkdown::render('generate_graphs.Rmd', \
 params = list( \
  tree = '/Users/juliahoglund/Documents/omniCADD/data/43_eutherian_mammals_EPO_default.nh', \
  ideogram = '/Users/juliahoglund/Documents/omniCADD/data/sus_scrofa_ideo', \
  ingroup = 'Sus scrofa', \
- outgroup = 'Bos taurus' \
+ outgroup = 'Bos taurus', \
+ path = '/Users/juliahoglund/Documents/localCADD/' \
  ))"
 ```

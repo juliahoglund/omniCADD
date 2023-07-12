@@ -18,13 +18,13 @@ The second part renders the output by knitting an Rmd file:
 
 2. `generate_graphs.Rmd'`
   Usage:
-  `Rscript -e 'library(rmarkdown)'; rmarkdown::render("generate_graphs.Rmd",
-        params = list(
-         tree = '<newick tree file>',
-         ideogram = '<ideogram file>',
-         ingroup = '<scientific name of ref species>',
-         outgroup = '<scientific name of outgroup>'
-         path = '<path to r data clump>'
+  `Rscript -e 'library(rmarkdown)'; rmarkdown::render("generate_graphs.Rmd", \
+        params = list( \
+         tree = '<newick tree file>', \
+         ideogram = '<ideogram file>', \
+         ingroup = '<scientific name of ref species>', \
+         outgroup = '<scientific name of outgroup>' \
+         path = '<path to r data clump>' \
          ))`
   If the species of choice does not have avaiable data for an ideogram the params default is 'None' and the script will not try to use it downstream. The same goes for the phylogenetic tree, should the user not be able to provide one.
 
