@@ -1,4 +1,7 @@
 library(RIdeogram)
+library(data.table)
+library(tidyverse)
+
 # all output will be graphs in your working directory.
 # one svg and one png (png can be changed with "device" to eg pdf)
 # what has to be done and downloaded before:
