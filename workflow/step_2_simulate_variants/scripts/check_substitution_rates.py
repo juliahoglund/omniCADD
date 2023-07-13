@@ -25,7 +25,8 @@ import natsort
 # OptionParser for input. 
 parser = OptionParser()
 parser.add_option("-i", "--infile", dest="vcf", help="name of (and path to) file with simulated variants ",default= './simVariants.vcf') 
-parser.add_option("-l", "--logfiles", dest="logfiles", help="path to folder with logfiles",default= './output/logfiles') 
+parser.add_option("-f", "--filtered", dest="filtered", help="name of (and path to) file with simulated variants filtered for ancestral overlap",default= './snps_simVariants_filtered.vcf')
+parser.add_option("-l", "--logfiles", dest="logfiles", help="path to folder with logfiles", default= './output/logfiles') 
 
 (options, args) = parser.parse_args()
 
@@ -147,6 +148,14 @@ for file in filenames:
 #####################################
 ######## simulated variants #########
 #####################################
+
+## reset counters
+# Count for mutations. 
+mut,mutCpG = 0,0
+# Total nt substitution counts.
+ACn, AGn, ATn, CAn, CGn, CTn, GAn, GCn, GTn, TAn, TCn, TGn = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+# Total nt substitution counts in CpG sites.
+CA, CG, CT, GA, GC, GT = 0, 0, 0, 0, 0, 0
 
 # open log file output
 log_simulated = open(''.join(options.vcf.replace(".vcf", ".log").split('/')[-1:]), "w")
@@ -278,3 +287,146 @@ for c in chrom_list:
 	
 
 	vcf_open.seek(0)
+
+##########################################
+######## filtered simulated snps #########
+##########################################
+
+## reset counters
+# Count for mutations. 
+mut,mutCpG = 0,0
+# Total nt substitution counts.
+ACn, AGn, ATn, CAn, CGn, CTn, GAn, GCn, GTn, TAn, TCn, TGn = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+# Total nt substitution counts in CpG sites.
+CA, CG, CT, GA, GC, GT = 0, 0, 0, 0, 0, 0
+
+# open log file output
+log_filtered = open(''.join(options.filtered.replace(".vcf", ".log").split('/')[-1:]), "w")
+# Open vcf file. 
+filtered_open = open(options.filtered, 'r')
+
+
+# Iterate over each line in vcf file.
+
+for c in chrom_list:
+
+	write = 0
+
+	for line in filtered_open:
+		# Skips header, split per line on tab and determine the REF, ALT, INFO (CpG site).
+		if not line.startswith('#'):
+			edited_line = line.split('\t')
+			chrom = edited_line[0]
+			ref = edited_line[3]
+			alt = edited_line[4]
+			CpG_site = edited_line[7]
+
+			if chrom == c:
+
+				# If there is no CpG site.
+				if not CpG_site == 'CpG':
+
+					if ref == 'A':
+						if alt == 'C':
+							ACn += 1
+							mut += 1
+						elif alt == 'G':
+							AGn += 1
+							mut += 1
+						elif alt == 'T':
+							ATn += 1
+							mut += 1
+
+					elif ref == 'C':
+						if alt == 'A':
+							CAn += 1
+							mut += 1
+						elif alt == 'G':
+							CGn += 1
+							mut += 1
+						elif alt == 'T':
+							CTn += 1
+							mut += 1
+				
+					elif ref == 'G':
+						if alt == 'A':
+							GAn += 1
+							mut += 1
+						elif alt == 'C':
+							GCn += 1
+							mut += 1
+						elif alt == 'T':
+							GTn += 1
+							mut += 1
+					
+					elif ref == 'T':
+						if alt == 'A':
+							TAn += 1
+							mut += 1
+						elif alt == 'C':
+							TCn += 1
+							mut += 1
+						elif alt == 'G':
+							TGn += 1
+							mut += 1
+				
+				# If there is a CpG site.
+				elif CpG_site == 'CpG':
+				
+					if ref == 'C':
+						if alt == 'A':
+							CA +=1
+							mutCpG += 1
+						elif alt == 'G':
+							CG += 1
+							mutCpG += 1
+						elif alt == 'T':
+							CT += 1
+							mutCpG += 1
+				
+					elif ref == 'G':
+						if alt == 'A':
+							GA += 1
+							mutCpG += 1
+						elif alt == 'C':
+							GC += 1
+							mutCpG += 1
+						elif alt == 'T':
+							GT += 1
+							mutCpG += 1
+				write = 1
+
+	if filtered_open.readline() == '' and write == 1:
+		## Print data. 
+		log_filtered.write("\nChromosome considered: " + str(c) + '\n')
+		# For non CpG site mutations. 
+		log_filtered.write('Total mut: ' + str(mut) + '\n')
+		log_filtered.write("#AC\tAG\tAT\n")
+		log_filtered.write(str(ACn) + '\t' + str(AGn) + '\t' + str(ATn) + '\n')
+		log_filtered.write(str((100/mut)*ACn) + '%\t' + str((100/mut)*AGn) + '%\t' + str((100/mut)*ATn) + '%\n')
+		
+		log_filtered.write('#CA\tCG\tCT\n')
+		log_filtered.write(str(CAn) + '\t' + str(CGn) + '\t' + str(CTn) + '\n')
+		log_filtered.write(str((100/mut)*CAn) + '%\t'+ str((100/mut)*CGn) + '%\t' + str((100/mut)*CTn) + '%\n')
+			
+		log_filtered.write('#GA\tGC\tGT\n')
+		log_filtered.write(str(GAn) + '\t' + str(GCn) + '\t' + str(GTn) + '\n')
+		log_filtered.write(str((100/mut)*GAn) + '%\t' + str((100/mut)*GCn) + '%\t' + str((100/mut)*GTn) + '%\n')
+			
+		log_filtered.write('#TA\tTC\tTG\n')
+		log_filtered.write(str(TAn) + '\t' + str(TCn) + '\t' + str(TGn) + '\n')
+		log_filtered.write(str((100/mut)*TAn) + '%\t' + str((100/mut)*TCn) + '%\t' + str((100/mut)*TGn) + '%\n')
+			
+		# For CpG site mutations
+		log_filtered.write('Total CpG mut: ' + str(mutCpG) + '\n')
+			
+		log_filtered.write("#CA\tCG\tCT\t(CpG)\n")
+		log_filtered.write(str(CA) + '\t' + str(CG) + '\t' + str(CT) + '\n')
+		log_filtered.write(str((100/mutCpG)*CA)+ '%\t' + str((100/mutCpG)*CG) + '%\t' + str((100/mutCpG)*CT) + '%\n')
+			
+		log_filtered.write("#GA\tGC\tGT\t(CpG)\n")
+		log_filtered.write(str(GA) + '\t' + str(GC) + '\t' + str(GT) + '\n')
+		log_filtered.write(str((100/mutCpG)*GA) + '%\t' + str((100/mutCpG)*GC) + '%\t' + str((100/mutCpG)*GT) + '%\n')	
+	
+
+	filtered_open.seek(0)
