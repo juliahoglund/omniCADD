@@ -1,5 +1,4 @@
 library(RIdeogram)
-library(data.table)
 library(tidyverse)
 
 # all output will be graphs in your working directory.
@@ -14,28 +13,25 @@ library(tidyverse)
 #   ./fasta2bed.py Ancestor.fa > Ancestor.bed 
 #   bedtools coverage -a Ancestor.bed -b CDS.sus_scrofa.bed > coverage.CDS.bed
 #
-#   download ideogram/cytoband from: https://genome.ucsc.edu/cgi-bin/hgTables
+#   create "ideogram" data:
+# grep ">" Ancestor.fa | cut -f3,5,11 -d" " | tr -d "," | tr " " "\t" > Sus_scrofa_ideogram.txt
+
 
 ####################################
 ######## LOAD KARYOGRAM. ###########
 ####################################
 
-karyogram <- fread("/Users/juliahoglund/Documents/localCADD/data/sus_scrofa_ideo")
+karyogram <- read.table("/Users/juliahoglund/Documents/localCADD/Sus_scrofa_ideogram.txt", header = F)
 karyogram <- 
-  karyogram[1:21,] %>% 
+  karyogram %>% 
   # change to desired number of chromosomes
-  rename(Chr = `#chrom`, Start = chromStart, End = chromEnd) %>%
+  rename(Chr = V1, Start = V2, End = V3) %>%
   select(Chr, Start, End) %>%
   # centromere data, needed even if absent
   mutate(CE_start = 0, CE_end = 0)
 
-# remove "chr"
-for (i in 1:nrow(karyogram)) {
-  karyogram[i,1] <- unlist(str_split(karyogram[i,1], "chr"))[2]
-}
-
 # sort chromosomes (is a hassle)
-karyogram$Chr <- factor(karyogram$Chr, levels=c(1:18, "X", "Y", "M"), ordered=TRUE)
+karyogram$Chr <- factor(karyogram$Chr, levels=c(1:18, "X", "Y"), ordered=TRUE)
 karyogram <- karyogram %>% arrange(Chr)
 karyogram$Chr <- as.character(karyogram$Chr)
 
