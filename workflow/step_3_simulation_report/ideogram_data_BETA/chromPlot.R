@@ -19,7 +19,7 @@ library(RIdeogram)
 
 karyogram <- fread("/Users/juliahoglund/Documents/localCADD/data/sus_scrofa_ideo")
 karyogram <- 
-  karyogram[1:21] %>% 
+  karyogram[1:21,] %>% 
   # change to desired number of chromosomes
   rename(Chr = `#chrom`, Start = chromStart, End = chromEnd) %>%
   select(Chr, Start, End) %>%
