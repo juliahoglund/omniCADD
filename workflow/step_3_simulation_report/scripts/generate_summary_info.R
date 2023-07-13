@@ -44,7 +44,11 @@ option_list = list(
               help="log file with output from checked rates parameters", metavar="character"),
   
   make_option(c("-u", "--simulated"), type="character", default="data/simVariants.log",
-              help="log file with output from checked rates simulated variants", metavar="character")
+              help="log file with output from checked rates simulated variants", metavar="character"),
+  
+  make_option(c("-f", "--simulatedFiltered"), type="character", default="data/snps_simVariants_filtered.log",
+              help="log file with output from checked rates simulated variants filtered for ancestral positions", metavar="character")
+  
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -92,7 +96,6 @@ ancestor.fai <- data.frame(chromosome = character(),
                            )
 message("Parsing ancestor fasta files ...")
 
-### here save and make bed file ancestors in the same buch later!
 for (i in 1:length(filenames)) { 
   x <- scan(filenames[i], skip = 1, what = "character", sep = "-")
   x <- x[x != ""]
@@ -307,7 +310,10 @@ original <- fread(opt$parameters, fill = TRUE, sep = "\t", header=F, blank.lines
 simulated <- fread(opt$simulated, fill = TRUE, sep = "\t", header=F, blank.lines.skip = TRUE) %>%
   separate_wider_delim(V1, "\t", names = c("d", "e", "f"), too_few = "align_start", too_many = "merge")
 
-substitutions <- cbind(original, simulated)
+filtered <- fread(opt$simulatedFiltered, fill = TRUE, sep = "\t", header=F, blank.lines.skip = TRUE) %>%
+  separate_wider_delim(V1, "\t", names = c("g", "h", "i"), too_few = "align_start", too_many = "merge")
+
+substitutions <- cbind(original, simulated, filtered)
 substitutions[] <- lapply(substitutions, gsub, pattern='%', replacement='')
 substitutions <- 
   substitutions %>%

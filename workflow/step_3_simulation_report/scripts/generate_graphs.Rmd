@@ -9,7 +9,6 @@ params:
   ideogram: 'None'
   ingroup: 'None'
   # lower case only!!
-  # and no underscore
   outgroup: 'None'
   path: 'None'
 
@@ -22,7 +21,7 @@ params:
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
 # https://genome.ucsc.edu/cgi-bin/hgTables group "mapping and sequencing", track "Chromosome Band", table "cytoBand" for ideogram
 
-list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "readr")
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools")
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -49,7 +48,6 @@ library(grid)
 library(emojifont)
 library(ggpubr)
 library(gtools)
-library(readr)
 load.fontawesome()
 
 rm(list = )
@@ -338,7 +336,7 @@ To make sure the simulation was performed as expected, the left side is the calc
 ```{r subst rates, echo = FALSE}
 options(knitr.kable.NA = '')
 
-colnames(substitutions) <- c(rep(' ', 6))
+colnames(substitutions) <- c(rep(' ', 9))
 kbl(substitutions, caption = "Comparison of numebr of mutations between log files and actual simulated files") %>%
   kable_classic() %>%
   row_spec(c(seq(from = 1, to = nrow(substitutions), by = 21)), 
@@ -353,6 +351,6 @@ kbl(substitutions, caption = "Comparison of numebr of mutations between log file
              seq(from = 16, to = nrow(substitutions), by = 21), 
              seq(from = 19, to = nrow(substitutions), by = 21)), 
            bold = T, color = "#8B8386", background = "#FFF0F5") %>%
-  add_header_above(c("Parameter files" = 3, "Simulated variant file" = 3))
+  add_header_above(c("Parameter files" = 3, "Simulated variant file" = 3, "Simulated variant file \n(filtered for positions with a corresponding non-gap ancestral position)" = 3))
  
 ```
