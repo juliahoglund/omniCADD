@@ -6,9 +6,9 @@ species: 'sus_scrofa'
 
 ### RULE MARK ANCESTOR###
 # Identifies the last common ancestor between two given species and marks it with an identifier.
-# Manual input:  
+# Manual input:
 #         'ancestor',   the ancestor of interest (example: Human_Chimp)
-#         'sp1',        first species of interest 
+#         'sp1',        first species of interest
 #         'sp2',        second species of interst
 #         'sp1_ab',     abbreviation of the scientific name of sp1
 #         'sp2_ab',     abbreviation of the scientific name of sp2
@@ -23,7 +23,7 @@ species: 'sus_scrofa'
 
 ### RULE MARK OUTGROUP ###
 # Identifies the species of interest and marks it with an identifier.
-# Manual input:  
+# Manual input:
 #         'ancestor',  sequence ( = species) which should be marked as ancestror
 #         'species',   scientific name of the (reference) species of interest (example: mus_musculus)
 1_1_ancestor: 'bos_taurus'
@@ -34,9 +34,9 @@ species: 'sus_scrofa'
 #    Not all strand are flipped, thus later the alignment blocks with sequences that are still on the minus strand needs to be removed.
 # 3. Reorders species within any alignment block, so that the wanted species are in front.
 #   (it also removes sequences that are not from species given in the order)
-# Manual input: 
+# Manual input:
 #        'marked',      path to folder (including prefix of files) with marked alignment files
-#        'genome',      path to (reference) genome including the prefix 
+#        'genome',      path to (reference) genome including the prefix
 #        'filtered',    path to folder (including prefix of files) with filtered files (to be computed)
 #        'order',       species and ancestor in the desired order, separated only by commas
 #        'stranded',    path to folder (including prefic of files) with files with flipped strands
@@ -54,11 +54,11 @@ species: 'sus_scrofa'
 
 ### RULE SORT BY CHROMOSOME ##
 # Creates one maf file for each chromosome,
-# as each chromosome might have multiple maf files. 
+# as each chromosome might have multiple maf files.
 # This is due to that each maf file can only contain 200 alignment blocks.
 # Should not contain maf files from 'scaffolds'.
-# Manual input:  
-#        'species',     name of species, based of which the chromosomes should be ordered 
+# Manual input:
+#        'species',     name of species, based of which the chromosomes should be ordered
 #        'path'         path to folder with processed files by mafRowOrderer
 #        'prefix'       prefix of processed files (default = mRO_mStr_mDF_)
 #        'ordered'      directory within which the new output will be saved
@@ -70,9 +70,9 @@ species: 'sus_scrofa'
 
 ### RULE SORT MSA BLOCKS ###
 # Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
-# If this part of the pipe was performed before, all .fai files should be removed in the directory of the genome. 
-# Manual input:  
-#        'path',       Path to input folder (i.e. output from previous step) 
+# If this part of the pipe was performed before, all .fai files should be removed in the directory of the genome.
+# Manual input:
+#        'path',       Path to input folder (i.e. output from previous step)
 #        'species'     Species of interest
 #        'ordered'     directory within which the new output will be saved
 #        'clean'       remove intermediate files after computation [yes/no]
@@ -81,9 +81,9 @@ species: 'sus_scrofa'
 4_clean: 'no'
 
 ### RULE REMOVE UNWANTED SPECIES ###
-# Removes other species with similar names to the species of interest from all alignment blocks. 
-# Manual input:  
-#        'path',       path to folder with mafSorted_EPO files. 
+# Removes other species with similar names to the species of interest from all alignment blocks.
+# Manual input:
+#        'path',       path to folder with mafSorted_EPO files.
 #        'fileprefix'  prefix of the processed files (default mS_)
 #        'species'     species of interest (i.e. reference species)
 #        'removed'     directory within which the new output will be saved
@@ -94,10 +94,10 @@ species: 'sus_scrofa'
 5_clean: 'no'
 
 ### RULE REMOVE OPPOSITE STRAND ###
-# If mafTools Strander fails to flip the sequences on the reverse strand in the alignment blocks, 
-# rmOppositeStrand will remove alignment block with sequences that are still on the reverse strand. 
-# Manual input:  
-#       'path',         Path to processed maf files 
+# If mafTools Strander fails to flip the sequences on the reverse strand in the alignment blocks,
+# rmOppositeStrand will remove alignment block with sequences that are still on the reverse strand.
+# Manual input:
+#       'path',         Path to processed maf files
 #       'fileprefix'    Prefix of processed files
 #       'removed'       directory within which the new output will be saved
 #       'clean'         remove intermediate files after computation [yes/no]
@@ -107,9 +107,9 @@ species: 'sus_scrofa'
 6_clean: 'no'
 
 ### RULE EXTRACT ANCESTOR ###
-# Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
-# and outputs per chromosome a fasta file of the ancestral sequence. 
-# Manual input:  
+# Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers
+# and outputs per chromosome a fasta file of the ancestral sequence.
+# Manual input:
 #        'path',        Path to processed maf files
 #        'fileprefix',  Prefix of the maf files from which the ancestor will be extracted
 #        'ancestor'     Ancestor identifier of the ancestral sequence which should be retrieved.
@@ -126,8 +126,8 @@ species: 'sus_scrofa'
 ####################
 
 ### RULE CREATE PARAMETERS ###
-# Creates the parameters needed for the simulation of variants. Stores the parameters per chromosome in logfiles. 
-# Manual input:  
+# Creates the parameters needed for the simulation of variants. Stores the parameters per chromosome in logfiles.
+# Manual input:
 #         'ancestor',    path to ancestor folder
 #         'genome',      path to (reference) genome folder
 #         'chromosomes', list of chromosomes with an ancestral seq
@@ -148,7 +148,7 @@ species: 'sus_scrofa'
 
 #### RULE APPLY PARAMETERS ###
 # Applies the parameters from the previous step and simulates genetic variant based on those parameters. It creates on genome-wide vcf-file.
-# Manual input:  
+# Manual input:
 #          'events',      number of events (variants) to simulate
 #          'chroms',      chromosomes to be considered
 #          'params_folder', folder with parameter files including prefix of files
@@ -183,9 +183,9 @@ species: 'sus_scrofa'
 
 #### RULE CHECK SUBSTITUTION RATES ####
 # goes through the created log files and the simulated variants and makes sure the simulation has been
-# performed as intended. 
+# performed as intended.
 # Manual input:
-#         'infile',      name of (and path to) file with simulated variants 
+#         'infile',      name of (and path to) file with simulated variants
 #         'logfiles',    path to folder with logfiles
 
 12_infile: './data/simVariants.vcf'
@@ -196,8 +196,8 @@ species: 'sus_scrofa'
 ####################
 
 ### RULE CREATE DATAFILES ###
-# Creates the datafiles needed for the visual summary report, and stores them in an R data clump. 
-# Manual input:  
+# Creates the datafiles needed for the visual summary report, and stores them in an R data clump.
+# Manual input:
 #         'vcf',         vcf with simulated variants
 #         'snp',         vcf with simulated SNPs
 #         'indels',      vcf with filtered snps
@@ -208,6 +208,7 @@ species: 'sus_scrofa'
 #         'ancestor',    path to ancestor log files
 #         'parameters',  log file with output from checked rates parameters
 #         'simulated',   log file with output from checked rates simulated variants
+#         'filtered',   log file with output from checked rates simulated variants filtered for ancestral position
 
 13_vcf: './data/simVariants.vcf'
 13_snp: './data/snps_simVariants.vcf'
@@ -219,6 +220,7 @@ species: 'sus_scrofa'
 13_ancestor: './data/logfiles/'
 13_parameters: './data/parameters.log'
 13_simulated: './data/simVariants.log'
+13_filtered: './data/snps_simVariants_filtered.log'
 
 
 ### RULE CREATE SUMMARY ###
@@ -229,14 +231,13 @@ species: 'sus_scrofa'
 #        and if available, ideograms can be downloaded from here:
 #        https://genome.ucsc.edu/cgi-bin/hgTables
 #
-# Manual input:  
+# Manual input:
 #         'tree',        full path and newick tree of msa (if available, default 'None')
 #         'ideogram',    full path and name of ideogram file (if available, default 'None')
 #         'ingroup',     (scientific) name of ingroup (if tree available)
 #         'outgroup',    (scientific) name of outgroup (if tree available)
+14_path: './'
 14_tree: './data/43_eutherian_mammals_EPO_default.nh'
 14_ideogram: './data/sus_scrofa_ideo'
-14_ingroup: 'Sus scrofa'
-14_outgroup: 'Bos taurus'
-
-
+14_ingroup: 'sus scrofa'
+14_outgroup: 'bos taurus'

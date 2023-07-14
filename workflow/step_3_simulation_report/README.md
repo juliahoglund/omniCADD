@@ -12,7 +12,15 @@ R dependencies:
 The first part is creating a data dump with processed files:
 1. `generate_summary_info.R`
   Usage:
-  `Rscript generate_summary_info.R -v <full vcf file> -s <snp  vcf file> -i <indel vcf file> -t <filtered snp vcf file> -j <filtered indel vcf file> -r <reference species fasta index file> -c <no of chr. to consider in fai file> -a <path to parameter log file> -p <summarised info file from parameter log files> -u <summarised info file from variant log file>`
+  `Rscript generate_summary_info.R -v <full vcf file> -s <snp  vcf file> -i <indel vcf file> -t <filtered snp vcf file> -j <filtered indel vcf file> -r <reference species fasta index file> -c <no of chr. to consider in fai file> -a <path to parameter log file> -p <summarised info file from parameter log files> -u <summarised info file from variant log file> -f <summarised info file from the filtered variant log file>`
+
+  Where,
+  <summarised info file from parameter log files> (default parameters.log) is a summarised version of the log files used when simulated variants
+  <summarised info file from variant log file> (default simVariants.log) is a summarised file with number of mutations and mutations rates from the file with all simulated variants,
+  and
+  <summarised info file from the filtered variant log file> is the same as above but for the file with snps filtered for having a corresponding non-gap ancestral position.
+
+  These three files are generated in the previous step in step 2: `check_substitution_rates.py`
 
 The second part renders the output by knitting an Rmd file:
 
@@ -26,7 +34,11 @@ The second part renders the output by knitting an Rmd file:
          outgroup = '<scientific name of outgroup>' \
          path = '<path to r data clump>' \
          ))`
-  If the species of choice does not have avaiable data for an ideogram the params default is 'None' and the script will not try to use it downstream. The same goes for the phylogenetic tree, should the user not be able to provide one.
+
+  To make sure the ingroup and outgroup can be extracted correctly all times, it has to be entered **in lowercase only** and **without an underscore**, like so:
+  "sus scrofa" or "s scrofa" depending on how they are formatted in the provided tree file.
+
+  If the species of choice does not have available data for an ideogram the params default is 'None' and the script will not try to use it downstream. The same goes for the phylogenetic tree, should the user not be able to provide one.
 
 These scripts are all wrapped with a pipeline Snakemake file and can be run like this:
   `snakemake -c4 --snakefile Snakemake_stats.sn`

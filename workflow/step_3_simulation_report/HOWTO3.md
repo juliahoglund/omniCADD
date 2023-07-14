@@ -10,7 +10,7 @@ conda deactivate # (base)
 conda activate cadd
 ```
 
-1. create an R dump with all files nedded in the report
+1. create an R dump with all files needed in the report
 ```bash
 # run it through in RStudio or:
 Rscript generate_summary_info.R \
@@ -23,7 +23,8 @@ Rscript generate_summary_info.R \
 -c 20 \
 -a ./extracted_ancestor/ \
 -p ./data/parameters.log \
--u ./data/simVariants.log
+-u ./data/simVariants.log \
+-f ./data/snps_simVariants_filtered.log
 ```
 
 2. render the R markdown creating an html with the stats report

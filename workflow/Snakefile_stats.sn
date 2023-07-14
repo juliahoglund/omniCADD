@@ -1,13 +1,16 @@
 # -*- snakemake -*-
 
 '''
- The snakemake file goes through part 3 of creating a summary of the simulated variants and the extracted ancestor from the previous steps. The final output is an html file (to be opened in a browser) with tables and graphs 
+ The snakemake file goes through part 3 of creating a summary
+ of the simulated variants and the extracted ancestor
+ from the previous steps. The final output is an html
+ file (to be opened in a browser) with tables and graphs
 
  :Author: Julia Höglund
  :Date: 19-5-2023
  :Usage: snakemake -p --snakefile <snakefile script>
 
- Params can be adjusted for any given species of interest. 
+ Params can be adjusted for any given species of interest.
 '''
 
 ## Targets
@@ -15,12 +18,12 @@
 all_outputs.append('output/start_step3.txt')
 all_outputs.append('output/finished_generate_data.txt')
 all_outputs.append('output/finished_create_summary.txt')
- 
+
 ## rules
 rule graphs:
-    input: 
+    input:
         SCRIPTS_3 + 'generate_summary_info.R'
-    output: 
+    output:
         'output/start_step3.txt'
     shell:
         '''
@@ -41,7 +44,8 @@ rule create_summary:
         chromosome = config['13_chromosome'],
         ancestor = config['13_ancestor'],
         parameters = config['13_parameters'],
-        simulated = config['13_simulated']
+        simulated = config['13_simulated'],
+        filtered = config['13_filtered']
 
     output:
         'output/finished_create_summary.txt'
@@ -58,7 +62,8 @@ rule create_summary:
         -c {params.chromosome} \
         -a {params.ancestor} \
         -p {params.parameters} \
-        -u {params.simulated}
+        -u {params.simulated} \
+        -f {params.filtered}
 
         touch output/finished_create_summary.txt
         '''
