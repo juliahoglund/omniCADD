@@ -1,5 +1,5 @@
 ---
-title: "Summary statistics of simulated variants"
+title: "Summary statistics of simulated variants and extractred ancestral sequences"
 output:
   html_document:
     df_print: paged
@@ -7,6 +7,7 @@ date: "`r Sys.Date()`"
 params: 
   tree: 'None'
   ideogram: 'None'
+  # lower case only!!
   ingroup: 'None'
   # lower case only!!
   outgroup: 'None'
@@ -21,7 +22,7 @@ params:
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
 # https://genome.ucsc.edu/cgi-bin/hgTables group "mapping and sequencing", track "Chromosome Band", table "cytoBand" for ideogram
 
-list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools")
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "ggtext")
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -48,6 +49,7 @@ library(grid)
 library(emojifont)
 library(ggpubr)
 library(gtools)
+library(ggtext)
 load.fontawesome()
 
 rm(list = )
@@ -57,7 +59,7 @@ load(paste(params$path, "graphs.RData", sep = ""))
 # Variant simulator; report
 ### Node used for reconstructing ancestral genome sequence
 
-If a (newick) phylogenetic tree file has been provided, the visualisation of the MSA used in the calculations is shown below. The two chosen groups (i.e. 'ingroup' / species of interest, and outgroup) are highlighted in the tree. Most recent common ancestor (MRCA) is highlighted in purple and labeled. The rest of the clades in the alignment is shown in lighter grey. Regardless whether a reconstructed ancestral sequence at a node, or an outgroup, has been chosen as the ancestor, the MRCA will be highlighted.
+If a (newick) phylogenetic tree file has been provided, the visualisation of the MSA used in the calculations is shown below. The two chosen groups (i.e. 'ingroup' / species of interest, and outgroup) are highlighted in the tree. The outgroup, used in the computation or not, is the outgroup, which together with the reference species of interest coalesce at the node of interest, from which the ancestral sequence have been extracted. Most recent common ancestor (MRCA) is highlighted in purple and labeled. The rest of the clades in the alignment are shown in lighter grey. Regardless whether a reconstructed ancestral sequence at a node, or an outgroup, has been chosen as the ancestor, the MRCA will be highlighted.
 
 ```{r generate tree, include = FALSE}
 
@@ -134,15 +136,30 @@ if (params$tree == 'None') {
     scale_color_manual(values=c("darkgrey","black", "darkgreen", "maroon")) +
     theme(legend.position = "none")
   
+  fig_legend <- plot_annotation(
+  caption = "**Figure 1.** <br>
+  Phylogenetic representation of the nodes and leaves used in the extraction of a 
+  recontructed ancestral sequence or an outgroup.
+  The two branches in which the ingroup (*reference species*) and outgroup (or branch used to calculate the
+  <span style = 'color:#8432AD;'>most recent common ancestor</span> (**MRCA**), are <span style = 'color:#C7D7E6;'>highlighted</span>.
+  The branch containing the species of interest is marked in <span style = 'color:#055636;'>green</span>, 
+  and the one containing the outgroup in <span style = 'color:#8E2250;'>maroon</span>.",
+  theme = theme(
+    plot.caption = element_textbox_simple(
+      size = 14,
+      box.colour = "black",
+      linetype = 2,
+      padding = unit(c(7, 7, 7, 7), "pt"),
+      r = unit(3, "pt"))))
   # print
-  phylogenetic.tree
-}
+  phylogenetic.tree + fig_legend
+  }
 
 ```
 
 ### Distribution of simulated variants across the reference genome
-If an ideogram (often possible to download on the UCSC website, [here](https://genome.ucsc.edu/cgi-bin/hgTables)) has been provided, the distribution of simulated variants is shown across the genome of the species of interest. The grey distribution corresponds to the total amount of simulated variants, whereas the red distribution corresponds to the subset that is overlapping with a corresponding ancestral sequence. 
-If there is no forced subsampling due to lack of ancestral sequence, the distribution will be fully red. 
+If an ideogram (often possible to download on the UCSC website, [here](https://genome.ucsc.edu/cgi-bin/hgTables)) has been provided, the distribution of simulated variants is shown across the genome of the species of interest. The grey distribution corresponds to the total amount of simulated variants, whereas the red distribution corresponds to the subset that is overlapping with a corresponding non-gap ancestral sequence. 
+If there is no forced sub-sampling due to lack of ancestral sequence, the distribution will be fully red. 
 
 ```{r genome distribution, echo = FALSE, include = FALSE}
 
@@ -201,9 +218,26 @@ if (params$ideogram == 'None') {
             # bin = base on genome size!
             chr = stats$chromosome)
   )
-}
+  }
 
 ```
+
+```{r figure 1 legend, fig.width = 12, fig.height = 2, echo = FALSE}
+if (params$ideogram == 'None') {
+  skip = 1
+  } else {
+    df <- data.frame(
+    x = 1, y = 1, label = paste( "**Figure 2.** <br>
+  chromPlot showing the karyogram of the species of interest from chromosome 1:N and sex chromosome (if applicable). The chromosome number is shown above each chromosome. <span style = 'color:#bababa;'>The count (per bin)</span> of total simulated variants are shown in <span style = 'color:#bababa;'>grey</span>. <span style = 'color:#fa5545;'>The count (per bin)</span> of simulated variants that are overlapping with a corresponding non-gap ancestral sequence, i.e, that are not located within an ancetral gap, are shown in <span style = 'color:#fa5545;'>red</span>. This graph aims to show the overall distribution of simulated variants within the full reference genome against the parts that are aligning to an available ancestral sequence."))
+  text <-  
+    ggplot(df) +
+    ggtext::geom_textbox(aes(x = x, y = y, label = label), width = unit(700, "pt"), box.margin = margin(0,0,0,0, "pt")) +
+    theme_void() 
+  
+  text
+  }
+```
+
 
 ### How much of the reference genome that has an available, aligned reconstructed ancestral sequence
 ```{r genome fractions, echo = FALSE}
@@ -221,7 +255,7 @@ COVER <-
          "Size of reconstructed genome" = "B",
          "Fraction covered of ref. genome" = "C")
 
-kable(COVER, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "Fraction of refence genome that has an available aligned reconstructed ancestral sequence")
+kable(COVER, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 1**\nFraction of refence genome that has an available aligned reconstructed ancestral sequence. The leftmost column represents the total size of the source chromosome (in base pairs), from the species of interest. The middle column represents the size (in base pairs) of the recontructed ancestral genome (or size of aligned outgroup without gaps). The rightmost column represents the fraction of the reference genome that is covered by an ancestral sequence, i.e. the fraction of the reference with a corresponding non-gap ancestral alignment.")
 
 ```
 
@@ -248,7 +282,21 @@ fraction.plot <-
   ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
   theme_classic()
 
-fraction.plot
+fig_legend <- plot_annotation(
+  caption = "**Figure 3.** <br>
+  Stacked barplot depicting how many of the simulated variants are in a position with an aligned non-gap ancestral sequence. Total count of variants is on the Y axis and the chromosome on the X axis. <span style = 'color:#8f7a8a;'>Overlapping variants</span> is the fraction (percentage) that has an aligned ancestral sequence and <span style = 'color:#d3bcc0;'>non-overlapping variants</span> are located within a gap in the ancestral sequence.",
+  theme = theme(
+    plot.caption = element_textbox_simple(
+      size = 14,
+      box.colour = "black",
+      linetype = 2,
+      padding = unit(c(7, 7, 7, 7), "pt"),
+      margin = unit(c(10,10,10,10), "pt"),
+      r = unit(3, "pt"))))
+
+# print
+fraction.plot + fig_legend
+
 ```
 
 ##### Table with corresponding data:
@@ -272,7 +320,7 @@ SNPS <-
          "Fraction of sim. SNPs overlapping ancestral seq." = "D")
 
 
-kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "Fraction of simulated SNPs that is overlapping with a reconstructed ancestral sequence")
+kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 2**.<br>Fraction of simulated SNPs that is overlapping with a reconstructed ancestral sequence. Column explanation from left to right: <br> **i)** chromosome number<br> **ii)** the total number of simulated variants <br> **iii)** the total number of simulated SNPs (i.e. excluding indels) <br> **iv)** the fraction of simulated SNPs <br> **v)** the fraction of simulated SNPs that are overlapping with a non-gap align recontructed ancestral sequence.")
 
 ```
 
@@ -294,10 +342,22 @@ mutation.plot <-
   ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
   labs(y= "count", x = "chromosome") + 
   scale_fill_manual(name = "mutation type", values=c('#f2c975', '#b96d41', '#928674')) +
-  ggtitle("fractions of mutation types across the simulated variants, with an available ancestral sequence") +
+  ggtitle("Fractions of mutation types across the simulated variants, with an available ancestral sequence") +
   theme_classic()
 
-mutation.plot
+fig_legend <- plot_annotation(
+  caption = "**Figure 4.** <br>
+  Stacked barplot depicting how many of the types of mutations (transitions, transversions, CpGs) across the simulated variants with an aligned non-gap ancestral sequence. Total count of variants is on the Y axis and the chromosome on the X axis. <span style = 'color:#f2c975;'>CpG mutations</span> are shown in <span style = 'color:#f2c975;'>yellow</span>, <span style = 'color:#b96d41;'>transitions</span> are shown in <span style = 'color:#b96d41;'>orange</span>, and <span style = 'color:#928674;'>transversions</span> are shown in <span style = 'color:#928674;'>brown</span>.",
+  theme = theme(
+    plot.caption = element_textbox_simple(
+      size = 14,
+      box.colour = "black",
+      linetype = 2,
+      padding = unit(c(7, 7, 7, 7), "pt"),
+      margin = unit(c(10,10,10,10), "pt"),
+      r = unit(3, "pt"))))
+
+mutation.plot + fig_legend
 ```
 
 
@@ -325,13 +385,13 @@ ANC <-
          "Fraction CpGs" = "D",
          "Fraction non-CpGs (1-CpGs)" = "E")
 
-kable(ANC, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "fractions of mutation types across the simulated variants, with an available ancestral sequence")
+kable(ANC, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 3** <br> Fraction of mutation types across the simulated variants with an available corresponding ancestral sequence. Column explanation, starting from left: <br> **i)** chromosome number <br> **ii)** the total number of SNPs <br> **iii)** the fraction of transitions <br> **iv)** the fraction of transversions <br> **v)** the fraction of CpG site mutations <br> **vi)** the fraction of non-CpG mutations (transitions + transversions)")
 
 ```
 
 ### Validation of simulation parameters
 Number of mutations, fractions, and substitution rates.
-To make sure the simulation was performed as expected, the left side is the calculated number and rates in the parameter files, based on information from the ancestor and reference species. The right side is the (re)calculated numbers and rates based on the simulated variants. 
+To make sure the simulation was performed as expected, the leftmost part is the calculated numbers and rates in the parameter files, including the total number of simulated variants per chromosome, based on information from the ancestor and reference species. The middle part is the (re)calculated numbers and rates based on the total number of simulated variants. The rightmost part is the (re)calculated numbers and rates within the subset with a corresponding non-gap ancestral sequence. The comparison of parameters and simulated variants is to make sure that the simulation has been perform as intended, and the comparison between total set and the subset is to make sure that the distribution is the same even if the variants are forced to be down-sampled due to the lack of an available ancestral sequence.
 
 ```{r subst rates, echo = FALSE}
 options(knitr.kable.NA = '')
