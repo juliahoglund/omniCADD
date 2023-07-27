@@ -9,6 +9,8 @@ configfile: "config/config.yaml"
 SCRIPTS_1 = "workflow/step_1_extract_ancestor/scripts/"
 SCRIPTS_2 = "workflow/step_2_simulate_variants/scripts/"
 SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
+SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
+
 
 all_outputs = []
 
