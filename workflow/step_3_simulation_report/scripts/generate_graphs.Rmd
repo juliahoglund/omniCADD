@@ -6,13 +6,15 @@ output:
 date: "`r Sys.Date()`"
 params: 
   tree: 'None'
-  ideogram: 'None'
+  ideogram: 'data/indexfile.txt'
+  annotation: 'None'
+  bedfile: 'data/Ancestor.bed'
+  coverage: 'None'
   # lower case only!!
-  ingroup: 'None'
+  ingroup: 'sus scrofa'
   # lower case only!!
-  outgroup: 'None'
-  path: 'None'
-
+  outgroup: 'bos taurus'
+  path: '~/'
   
 ---
 
@@ -20,9 +22,8 @@ params:
 
 # https://hgdownload.soe.ucsc.edu/downloads.html 
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
-# https://genome.ucsc.edu/cgi-bin/hgTables group "mapping and sequencing", track "Chromosome Band", table "cytoBand" for ideogram
 
-list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "ggtext")
+list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "ggtext", "RIdeogram", "imager")
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -50,6 +51,8 @@ library(emojifont)
 library(ggpubr)
 library(gtools)
 library(ggtext)
+library(RIdeogram)
+library(imager)
 load.fontawesome()
 
 rm(list = )
@@ -75,7 +78,7 @@ if (params$tree == 'None') {
   phylogenetic.tree <- as.ggplot(grid.arrange(text, code))
   
 } else {
-  tree <- read.tree(params$tree)
+  tree <- read.tree(paste(params$path, params$tree, sep=""))
   tree
   
   for (i in 1:length(tree$tip.label)) {
@@ -175,9 +178,9 @@ if (params$ideogram == 'None') {
 } else {
   # fix data
   
-  sscr_ideoGram <- fread(params$ideogram) %>% 
-    dplyr::rename("Chrom" = "#chrom", "Start" = "chromStart", "End" = "chromEnd") %>%
-    makeGRangesFromDataFrame(.)
+  sscr_ideoGram <- fread(paste(params$path, params$ideogram, sep="")) %>% 
+    dplyr::rename("Chrom" = "V1", "Start" = "V2", "End" = "V3") %>%
+    makeGRangesFromDataFrame(.) 
   
   SimVars <- simulatedSNPs %>%
     dplyr::rename("Chrom" = "CHROM", "Start" = "POS") %>%
@@ -388,6 +391,287 @@ ANC <-
 kable(ANC, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 3** <br> Fraction of mutation types across the simulated variants with an available corresponding ancestral sequence. Column explanation, starting from left: <br> **i)** chromosome number <br> **ii)** the total number of SNPs <br> **iii)** the fraction of transitions <br> **iv)** the fraction of transversions <br> **v)** the fraction of CpG site mutations <br> **vi)** the fraction of non-CpG mutations (transitions + transversions)")
 
 ```
+
+### Visualisation of gene density
+#### and CDS overlap
+```{r gene density, echo = FALSE, warning = FALSE, fig.width = 11, fig.height = 8}
+
+####################################
+######## LOAD KARYOGRAM. ###########
+#### (created in previous step) ####
+####################################
+
+karyogram <- read.table(paste(params$path, params$ideogram, sep=""), header = F)
+karyogram <- 
+  karyogram %>% 
+  # change to desired number of chromosomes
+  dplyr::rename('Chr' = 'V1', 'Start' = 'V2', 'End' = 'V3') %>%
+  dplyr::select(Chr, Start, End) %>%
+  # centromere data, needed even if absent
+  mutate(CE_start = 0, CE_end = 0)
+
+# sort chromosomes (is a hassle)
+karyogram$Chr <- factor(karyogram$Chr, levels = str_sort(factor(unique(karyogram$Chr)), numeric = TRUE))
+karyogram$Chr <- as.character(karyogram$Chr)
+
+####################################
+######  LOAD CDS BED FILE. #########
+## (extracted from genomewide gff) #
+####################################
+
+if (params$annotation == "None") {
+  
+  message("annotation file not available.")
+  
+} else {
+  
+  suppressMessages({
+  genes <- read.table(paste(params$path, params$annotation, sep=""), header=F)
+  n <- 
+    genes %>% 
+    mutate(bins = cut(V2, breaks = 100)) %>% 
+    group_by(V1) %>% 
+    count(bins)
+  
+  range <-
+    genes %>% 
+    mutate(bins = cut(V2, breaks = 100)) %>% 
+    group_by(V1, bins) %>% 
+    summarise(minvalue = min(V2), maxvalue = max(V3)) %>% 
+    dplyr::rename('chrom' = 'V1')
+  })
+  
+  ref_genes <- data.frame(Chr = range$chrom,
+                          Start = range$minvalue,
+                          End = range$maxvalue,
+                          Value = n$n)
+  
+  ref_genes$Chr <- factor(ref_genes$Chr, levels = str_sort(factor(unique(ref_genes$Chr)), numeric = TRUE))
+  ref_genes$Chr <- as.character(ref_genes$Chr)
+
+}
+
+####################################
+####  LOAD ancestor BED FILE. ######
+#### (created with fasta2bed.py) ###
+### concatenated to genome-wide ####
+####################################
+
+suppressMessages({
+  ancestor <- read.table(paste(params$path, params$bedfile, sep=""), header=F)
+  
+  n <- 
+    ancestor %>% 
+    mutate(bins = cut(V2, breaks = 100)) %>% 
+    group_by(V1) %>% 
+    count(bins)
+  
+  range <- 
+    ancestor %>% 
+    mutate(bins = cut(V2, breaks = 100)) %>% 
+    group_by(V1, bins) %>% 
+    summarise(minvalue = min(V2), maxvalue = max(V3)) %>% 
+    dplyr::rename('chrom' = 'V1')
+})
+
+ancestor_seqs <- data.frame(Chr = range$chrom,
+                            Start = range$minvalue,
+                            End = range$maxvalue,
+                            Value = n$n)
+
+ancestor_seqs$Chr <- factor(ancestor_seqs$Chr, levels = str_sort(factor(unique(ancestor_seqs$Chr)), numeric = TRUE))
+ancestor_seqs$Chr <- as.character(ancestor_seqs$Chr)
+
+####################################
+####  CREATE SEQ DENSITY PLOT ######
+####################################
+
+if (params$annotation == "None") {
+  ideogram(karyotype = karyogram,
+           overlaid = ancestor_seqs,
+           colorset1 = c("#fff2ed", "#ffb296", "#ff7f50"),
+           output = paste(params$path, "output/anc-seq.svg", sep=""))
+  
+    svg2png(svg = paste(params$path, "output/anc-seq.svg", sep=""), 
+            file = 'anc-seq',
+            width = 8, height = 8, dpi = 300)
+    
+    system(paste("mv ~/anc-seq.png ", params$path, "output/",  sep=""))
+    
+    myimg <- load.image(paste(params$path, "output/anc-seq.png", sep=""))
+  
+  df <- 
+    as.data.frame(myimg, wide="c") %>% 
+    mutate(rgb.val=rgb(c.1,c.2,c.3))
+  
+  karyo1 <- 
+    ggplot(df, aes(x,y)) + 
+    geom_raster(aes(fill=rgb.val)) + 
+    theme_void() + 
+    scale_fill_identity() + 
+    scale_y_reverse()
+  
+  df <- data.frame(
+      x = 1, y = 1, label = paste( "**Figure 5.** <br>
+    Karyoplot depicting the <span style = 'color:#ff7f50;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the location / density of the reconstructed ancestral sequence(s).<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
+  
+  text <-  
+    ggplot(df) +
+    ggtext::geom_textbox(aes(x = x, y = y, label = label), 
+                         width = unit(700, "pt"), 
+                         box.margin = margin(0,0,0,0, "pt")) +
+    theme_void()
+  
+  layout <- c(
+    area(1,1,3,2),
+    area(3,1,3,2)
+  )
+  
+  karyo1 + text + 
+    plot_layout(design = layout)
+    
+} else {
+  ideogram(karyotype = karyogram, 
+           overlaid = ref_genes, 
+           label = ancestor_seqs, 
+           label_type = "heatmap", 
+           colorset1 = c("#efe5ef", "#a366a3", "#660066"),
+           colorset2 = c("#fff2ed", "#ffb296", "#ff7f50"),
+           output = paste(params$path, "output/anc-seq.svg", sep=""))
+  
+  svg2png(svg = paste(params$path, "output/anc-seq.svg", sep=""), 
+             file = "anc-seq", 
+             width = 8, height = 8, dpi = 300)
+  
+  system(paste("mv ~/anc-seq.png ", params$path, "output/",  sep=""))
+  
+  myimg <- load.image(paste(params$path, "output/anc-seq.png", sep=""))
+  
+  df <- 
+    as.data.frame(myimg, wide="c") %>% 
+    mutate(rgb.val=rgb(c.1,c.2,c.3))
+  
+  karyo1 <- 
+    ggplot(df, aes(x,y)) + 
+    geom_raster(aes(fill=rgb.val)) + 
+    theme_void() + 
+    scale_fill_identity() + 
+    scale_y_reverse()
+  
+  df <- data.frame(
+      x = 1, y = 1, label = paste( "**Figure 5.** <br>
+    Karyoplot depicting the <span style = 'color:#660066;'>gene density</span> and the <span style = 'color:#ff7f50;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the overlap of coding sequences in the reference genome and the location / density of the reconstructed ancestral sequence(s).<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
+  
+  text <-  
+    ggplot(df) +
+    ggtext::geom_textbox(aes(x = x, y = y, label = label), 
+                         width = unit(700, "pt"), 
+                         box.margin = margin(0,0,0,0, "pt")) +
+    theme_void()
+  
+  layout <- c(
+    area(1,1,3,2),
+    area(3,1,3,2)
+  )
+  
+  karyo1 + text + 
+    plot_layout(design = layout)
+
+}
+
+######################################
+#####  LOAD coverage BED FILE. #######
+# (bedtools coverage on genome wide) #
+######################################
+
+if (params$coverage == "None") {
+  
+  message("coverage file not available.")
+  
+} else {
+  
+  suppressMessages({
+    overlap <- read.table(paste(params$path, params$coverage, sep=""), header=F)
+    colnames(overlap) <- c("Chr", "Start", "End", "Depth", "BasesAtSite", "SizeOfA", "Value")
+    overlap <- 
+      overlap %>% 
+      dplyr::select(Chr, Start, End, Value) %>% 
+      # calculate bins based on size of chromosome later
+      mutate(bins = cut(Start, breaks = 1000)) %>% 
+      group_by(bins, Chr) %>% 
+      summarise(minvalue = min(Start), maxvalue = max(End), overlap = mean(Value)) %>% 
+      mutate(Color = "0a2e54") %>% 
+      dplyr::select(Chr, minvalue, maxvalue, overlap, Color) %>% 
+      dplyr::rename('Start' = 'minvalue', 'End' = 'maxvalue', 'Value' = 'overlap') %>% 
+      as.data.frame(.)
+  })
+  
+  overlap$Chr <- factor(overlap$Chr, levels = str_sort(factor(unique(overlap$Chr)), numeric = TRUE))
+  overlap$Chr <- as.character(overlap$Chr)
+  overlap <- overlap %>% arrange(Chr, Start) %>% dplyr::select(-bins)
+  
+}
+
+####################################
+####  CREATE SEQ COVERAGE PLOT #####
+####################################
+
+if (params$coverage == "None") {
+  
+  message("skipped last figure.")
+  
+} else {
+  
+  ideogram(karyotype = karyogram, 
+         overlaid = ref_genes, 
+         label = overlap, 
+         label_type = "polygon", 
+         colorset1 = c("#efe5ef", "#a366a3", "#660066"), 
+         output = paste(params$path, "output/anc-coverage.svg", sep=""))
+  
+  svg2png(svg = paste(params$path, "output/anc-coverage.svg", sep=""), 
+             file = "anc-coverage", 
+             width = 8, height = 8, dpi = 300)
+  
+  system(paste("mv ~/anc-coverage.png ", params$path, "output/",  sep=""))
+  
+  myimg <- load.image(paste(params$path, "output/anc-coverage.png", sep=""))
+  
+  df <- 
+    as.data.frame(myimg, wide="c") %>% 
+    mutate(rgb.val=rgb(c.1,c.2,c.3))
+  
+  karyo2 <- 
+    ggplot(df, aes(x,y)) + 
+    geom_raster(aes(fill=rgb.val)) + 
+    theme_void() + 
+    scale_fill_identity() + 
+    scale_y_reverse()
+  
+  df <- data.frame(
+      x = 1, y = 1, label = paste( "**Figure 6.** <br>
+    Karyoplot depicting the <span style = 'color:#660066;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the ancestral sequence density as bands and  the <span style = 'color:#0A2E54;'>blue</span> polygon data shows the coverage (in bins) of reconstructed ancestral sequences that is overlapping with coding sequences in the reference genome.<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
+  
+  text <-  
+    ggplot(df) +
+    ggtext::geom_textbox(aes(x = x, y = y, label = label), 
+                         width = unit(700, "pt"), 
+                         box.margin = margin(0,0,0,0, "pt")) +
+    theme_void()
+  
+  layout <- c(
+    area(1,1,3,2),
+    area(3,1,3,2)
+  )
+  
+  karyo2 + text + 
+    plot_layout(design = layout)
+  
+}
+
+
+```
+
 
 ### Validation of simulation parameters
 Number of mutations, fractions, and substitution rates.
