@@ -19,22 +19,33 @@ Rscript generate_summary_info.R \
 -i ./data/indels_simVariants.vcf \
 -t ./data/snps_simVariants_filtered.vcf \
 -j ./data/indels_simVariants_filtered.vcf \
--r ./data/Sus_scrofa_ref.fai \
--c 20 \
--a ./extracted_ancestor/ \
+-r ./extracted_ancestor/ \
+-a ./data/logfiles/ \
 -p ./data/parameters.log \
 -u ./data/simVariants.log \
 -f ./data/snps_simVariants_filtered.log
 ```
 
-2. render the R markdown creating an html with the stats report
+2. create the last chuck of data for visualisation
+```bash
+gunzip Sus_scrofa.Sscrofa11.1.109.chr.gff3.gz
+grep "CDS" Sus_scrofa.Sscrofa11.1.109.chr* | cut -f1,4,5 > CDS.sus_scrofa.bed
+workflow/fasta2bed.py output/Ancestor.fa > Ancestor.bed
+bedtools coverage -a Ancestor.bed -b CDS.regions.bed > coverage.CDS.bed
+touch 'output/finished_create_input.txt'
+```
+
+3. render the R markdown creating an html with the stats report
 ```bash
 Rscript -e "rmarkdown::render('generate_graphs.Rmd', \
 params = list( \
- tree = '/Users/juliahoglund/Documents/omniCADD/data/43_eutherian_mammals_EPO_default.nh', \
- ideogram = '/Users/juliahoglund/Documents/omniCADD/data/sus_scrofa_ideo', \
- ingroup = 'Sus scrofa', \
- outgroup = 'Bos taurus', \
+ tree = 'data/43_eutherian_mammals_EPO_default.nh', \
+ ideogram = 'data/indexfile.txt', \
+ annotation: 'data/CDS.regions.bed', \
+ bedfile: 'data/Ancestor.bed', \
+ coverage: 'data/coverage.CDS.bed', \
+ ingroup = 'sus scrofa', \
+ outgroup = 'bos taurus', \
  path = '/Users/juliahoglund/Documents/localCADD/' \
  ))"
 ```
