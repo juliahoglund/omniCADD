@@ -12,7 +12,7 @@
 
 This script splits the vcf file into two; one containing SNPs only
 And one with indels only
-As the pipeline currently cannot handle indel scoring, 
+As the pipeline currently cannot handle indel scoring,
 this file is only used for statistics
 
 :Usage: python <python file> -p <path to vcf file> -i <name of vcf file>
@@ -28,11 +28,11 @@ from optparse import OptionParser
 
 # OptionParser for the previously generated derived variants files (vcf)
 parser = OptionParser()
-parser.add_option("-i", "--input", dest="input", help="Path to derived variants.", default='simVariants.vcf') 
-parser.add_option("-p", "--path", dest="path", help="path to folder with vcf files.", default= "./") 
+parser.add_option("-i", "--input", dest="input", help="Path to derived variants.", default='simVariants.vcf')
+parser.add_option("-p", "--path", dest="path", help="path to folder with vcf files.", default= "./")
 (options, args) = parser.parse_args()
 
-# Checking if the path ends with '/' 
+# Checking if the path ends with '/'
 if (not options.path.endswith('/')):
 	options.path = options.path+'/'
 
@@ -48,13 +48,12 @@ outfile2.write('##fileformat=VCFv4.1\n')
 outfile2.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\n')
 
 # Loop through the lines in vcf file
-variants = []
 for lines in infile:
-		
+
 	# Skips header
 	if lines.startswith('#'):
 		continue
-	
+
 	line = lines.split('\t')
 	if len(line[3]) > 1 or len(line[4]) > 1:
 		outfile2.write(lines)
@@ -65,5 +64,3 @@ for lines in infile:
 indication = open('finished_vcf_splitting.txt', 'x')
 indication.close()
 os.rename('./finished_vcf_splitting.txt', './output/finished_vcf_splitting.txt')
-
-
