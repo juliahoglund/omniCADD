@@ -1,5 +1,5 @@
 # README
-This is the collection of scripts that together simulate variants based on statistics calculated from the comparion of the species of interest and the extracted reconstructed ancestor. It makes use of the genome fasta (and index) file(s) but also chromosome-wide fasta files that are split in the pipeline.
+This is the collection of scripts that together simulate variants based on statistics calculated from the comparison of the species of interest and the extracted reconstructed ancestor. It makes use of the genome fasta (and index) file(s) but also chromosome-wide fasta files that are split in the pipeline.
 
 Python dependencies:
 - biopython
@@ -31,7 +31,7 @@ Then some post-processing:
 
 5. `check_substitution_rates.py`
   Usage: `python <script.py> -i <name and path sim. variants> -l <path to logfiles> -f <name and path filtered variants>`
-  This script checks the substitution rates generated in the create parameter files, that are then used when simulating variant. This is to make sure that the variants follow the same distribution and simulation has been performed as intended. 
+  This script checks the substitution rates generated in the create parameter files, that are then used when simulating variant. This is to make sure that the variants follow the same distribution and simulation has been performed as intended.
 
   These scripts are all wrapped with a pipeline Snakemake file and can be run like this:
   `snakemake -c4 --snakefile Snakemake_simulate.sn`

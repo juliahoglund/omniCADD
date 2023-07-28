@@ -44,7 +44,7 @@ The third part renders the output by knitting an Rmd file:
         params = list( \
          tree = '<newick tree file>', \
          ideogram = '<ideogram file (from step 1)>', \
-         annotation = '<CDS annotation file (if available)>'', \
+         annotation = '<CDS annotation file (if available)>', \
          bedfile = '<ancestor bedfile (from step 2)>', \
          coverage = '<ancestor CDS coverage file (if available)>', \
          ingroup = '<scientific name of ref species>', \
