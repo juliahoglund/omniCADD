@@ -1,0 +1,213 @@
+'''
+ The snakemake file goes through the variant deriving. It makes use of the same reference genome from the previous steps
+ as well as the extracted ancestral sequence, and compares the genomes to find out what nucleotide positions differs, 
+ i.e. have been derived from the ancestral state. To filter for nearly-fixed variants, i.e. the ones that have been allowed
+ to incerase in frequency in the reference, to near fixation, it makes use of a (self-provided) individual level vcf file,
+ including genotype data, from which the allele frequencies are calculated. 
+ The scripts directory contains all the used scripts by the snakemake file. 
+
+ :Author: Seyan Hu
+ :Date: 14-10-2022
+ :Extension and modification: Julia Höglund
+ :Date: 01-08-2023
+ :Usage: snakemake -p --cores <number of cores> --snakefile <snakefile script>
+ Params can be adjusted for any given species of interest. 
+'''
+
+## Targets
+# Code collecting output files from this part of the pipeline
+all_outputs.append('output/start_step4.txt')
+all_outputs.append('output/.txt')
+all_outputs.append('output/.txt')
+all_outputs.append('output/.txt')
+
+## rules
+rule simulation:
+    input: 
+        SCRIPTS_4 + 'generate_frequencies.py'
+    output: 
+        'output/start_step4.txt'
+    shell:
+        '''
+        touch output/start_step4.txt
+        '''
+
+
+
+
+
+### Start of Derived variants generation.
+	
+'''	
+ Generates frequency files form the population variants (vcf files).
+ Population frequency files are used for the generation of the derived variants, 
+ since the genome is only constructed with one organism in mind and there may be some variations varying between different individuals. 
+ Manual input:	
+				'input', 		compressed vcf containing variants from the whole population. 
+ 				'chr_list', 	list of chromosomes from the given species of interest. 
+'''
+rule freq_files:
+	input:
+		'data/vcf_data/mgp_REL2021_snps.vcf.gz'
+	params:
+		script = 'scripts/gen_freq.py',
+		chr_list = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X','Y'"
+	output:
+		'output/finished_gen_freq.txt'
+	run:
+		shell("python {params.script} {input} {params.chr_list}")
+		shell('mkdir output/dir_freq_f')
+		shell('mv *.out output/dir_freq_f')
+		shell('touch output/finished_gen_freq.txt')
+
+
+'''
+ Generates the derived variants by looking at all data sources (ancestral seq, genome, freq files) simultaneously.
+ Manual input:	
+				'chr_list', 	list of chromosomes from the given species of interest.
+'''
+rule gen_derived:
+	input:
+		'output/finished_gen_freq.txt'
+	params:
+		script = 'scripts/wrapper_derived_gen.py',
+		chr_list = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X','Y'",
+		anc_path = '../generate_ancestral_seq/output/dir_generated_ancestor_seq/',
+		genome_path = '../generate_ancestral_seq/data/genome/',
+		freq_path = 'output/dir_freq_f/'
+	output:
+		'output/finished_gen_derived.txt'
+	run:
+		shell('python {params.script} {params.chr_list} {params.anc_path} {params.genome_path} {params.freq_path}')
+		shell('mkdir output/dir_gen_derived')
+		shell('mv derived_var_chr_* output/dir_gen_derived')
+
+
+'''
+ Filters the derived variants for SNPs and indels.
+'''
+rule snp_filter:
+	input:
+		'output/finished_gen_derived.txt'
+	params:
+		script = 'scripts/filter_derived_for_snps.py',
+		inp_path = 'output/dir_gen_derived/',
+		identifier = 'derived_var_chr_'
+	output:
+		'output/finished_snp_filtering.txt'
+	run:
+		shell('python {params.script} {params.inp_path} {params.identifier}')
+		shell('mkdir output/dir_filter_derived_snp')
+		shell('mv output/dir_gen_derived/snps_* output/dir_filter_derived_snp')
+		shell('mv output/dir_gen_derived/indels_* output/dir_filter_derived_snp')
+
+
+
+
+### Start of Simulated variants generation. 
+
+'''
+ Obtains parameters for the generations of simulated variants. 
+ Manual input:
+				'chr',			List of chromosomes from the ancestral genome. 
+'''
+rule substitution_calc:
+	input:
+		'output/finished_snp_filtering.txt'
+	params:
+		script = 'scripts/wrapper_substitution_calc.py',
+		anc_f = '../generate_ancestral_seq/output/dir_generated_ancestor_seq/',
+		ref_f = '../generate_ancestral_seq/data/genome/',
+		chr = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X'"
+	output:
+		'output/finished_substitution_calc.txt'
+	run:
+		shell("python {params.script} -a {params.anc_f} -r {params.ref_f} -c {params.chr}")
+		shell('mkdir output/dir_nt_substitution')
+		shell('mv *.txt output/dir_nt_substitution')
+
+
+'''
+ It happens that the chr in the index file is given a uncommon name, this script will fix it. 
+ Manual input:
+				'chr',			List of chromosomes from the ancestral genome. 
+'''
+rule fix_chr_index:
+	input:
+		'output/finished_substitution_calc.txt'
+	params:
+		script = 'scripts/fix_chr_fai.py',
+		chr = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X'",
+		ind_f = '../generate_ancestral_seq/data/genome/'
+	output:
+		'output/finished_fix_chr_index.txt'
+	run:
+		shell('python {params.script} -c {params.chr} -i {params.ind_f}')
+
+
+'''
+ Generates the simulated variants using the nt substitution rates and the chromosomes of the genome of the desired species (reference).
+ Creates per chr of desired species a vcf file containing the simulated variants. 
+ Manual input:
+				'num_simu',			The number of simulation events.
+									(Increase this, if number of derived variants is higher than simulated variants.)
+									(Note that you want the number of derived variants to be equal to simulated variants, but if the simulated variants becomes higher it will be adjusted in the last script.)
+									(Next step should also be included in this evaluation.)
+				'chr_list',			List of chromosomes from the ancestral genome. 
+'''
+rule gen_simulated:
+	input:
+		'output/finished_fix_chr_index.txt'
+	params:
+		script = 'scripts/wrapper_simulated_gen.py',
+		num_simu = '20000000',
+		chr_list = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X'",
+		params_f = 'output/dir_nt_substitution/',
+		ref_f_list = '../generate_ancestral_seq/data/genome/',
+		outp_name = 'simulated_variants_chr'
+	output:
+		'output/finished_gen_simulated.txt'
+	run:
+		shell('python {params.script} -n {params.num_simu} -c {params.chr_list} -p {params.params_f} -i {params.ref_f_list} -o {params.outp_name}')
+		shell('mkdir output/dir_gen_simulated')
+		shell('mv *.vcf output/dir_gen_simulated')
+
+
+'''
+ Filters the simulated variants for variants that are generated on the ancestral sequence (and not on gaps).
+'''
+rule filter_for_anc_site:
+	input:
+		'output/finished_gen_simulated.txt'
+	params:
+		script = 'scripts/filtering_simulated_for_ancestor_site.py',
+		p_anc = '../generate_ancestral_seq/output/dir_generated_ancestor_seq/',
+		p_simu = 'output/dir_gen_simulated/'
+	output:
+		'output/finished_filter_for_anc_site.txt'
+	run:
+		shell('python {params.script} -i {params.p_simu} -a {params.p_anc}')
+		shell('mkdir output/dir_gen_simulated_variants_anc_site_filtered')
+		shell('mv *.csv output/dir_gen_simulated_variants_anc_site_filtered')
+
+
+'''
+ Trims lines in simulated vcf file to match with the number of lines in the derived vcf files.
+'''
+rule trim_vcf:
+	input:
+		'output/finished_filter_for_anc_site.txt'
+	params:
+		script = 'scripts/trim_simulated_varV2.py',
+		path_simu = 'output/dir_gen_simulated_variants_anc_site_filtered/',
+		path_derived = 'output/dir_filter_derived_snp/',
+	output:
+		'output/finished_simulated_vcf_trimming.txt'
+	run:
+		shell('python {params.script} -s {params.path_simu} -d {params.path_derived}')
+		shell('mkdir output/dir_trimmed_simulated_variants')
+		shell('mv trimmed_* output/dir_trimmed_simulated_variants')
+
+
+
+
