@@ -5,16 +5,16 @@ output:
     df_print: paged
 date: "`r Sys.Date()`"
 params: 
-  tree: 'None'
+  tree: 'data/step_3/43_eutherian_mammals_EPO_default.nh'
   ideogram: 'data/indexfile.txt'
-  annotation: 'None'
-  bedfile: 'data/Ancestor.bed'
-  coverage: 'None'
+  annotation: 'data/step_3/CDS.regions.bed'
+  bedfile: 'data/step_3/Ancestor.bed'
+  coverage: 'data/step_3/coverage.CDS.bed'
   # lower case only!!
   ingroup: 'sus scrofa'
   # lower case only!!
   outgroup: 'bos taurus'
-  path: '~/'
+  path: '~/Documents/localCADD/'
   
 ---
 
@@ -248,7 +248,7 @@ if (params$ideogram == 'None') {
 COVER <- 
   data.frame(Chromosome = stats$chromosome,
              A = stats$srcSize,
-             B = stats$size.ancestror,
+             B = stats$size.ancestor,
              C = stats$frac.covered
              ) %>% 
     arrange_all() %>% 
@@ -412,6 +412,7 @@ karyogram <-
 
 # sort chromosomes (is a hassle)
 karyogram$Chr <- factor(karyogram$Chr, levels = str_sort(factor(unique(karyogram$Chr)), numeric = TRUE))
+karyogram <- karyogram[order(karyogram$Chr),]
 karyogram$Chr <- as.character(karyogram$Chr)
 
 ####################################
@@ -447,6 +448,7 @@ if (params$annotation == "None") {
                           Value = n$n)
   
   ref_genes$Chr <- factor(ref_genes$Chr, levels = str_sort(factor(unique(ref_genes$Chr)), numeric = TRUE))
+  ref_genes <- ref_genes[order(ref_genes$Chr),]
   ref_genes$Chr <- as.character(ref_genes$Chr)
 
 }
@@ -480,6 +482,7 @@ ancestor_seqs <- data.frame(Chr = range$chrom,
                             Value = n$n)
 
 ancestor_seqs$Chr <- factor(ancestor_seqs$Chr, levels = str_sort(factor(unique(ancestor_seqs$Chr)), numeric = TRUE))
+ancestor_seqs <- ref_genes[order(ancestor_seqs$Chr),]
 ancestor_seqs$Chr <- as.character(ancestor_seqs$Chr)
 
 ####################################
