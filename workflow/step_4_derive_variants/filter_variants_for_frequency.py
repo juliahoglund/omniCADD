@@ -64,9 +64,11 @@ for simu_fn in simu_file_list:
 	# Write simulated lines to output, 
 	# Removes headers and RANDOM sample varaints to new file (should have same number of variants as derived).
 	os.system("sed -i.bak '/#/d' " + options.simu + simu_fn)
-	os.system('shuf -n '+str(d_lines_count)+' '+options.simu + simu_fn+' > '+'trimmed_temp_' + simu_fn)
+	os.system('gshuf -n '+str(d_lines_count)+' '+options.simu + simu_fn+' > '+'trimmed_temp_' + simu_fn)
 	## sh: shuf: command not found
-	
+	## brew install coreutils
+
+
 	# Add headers to file and sort on position. 
 	#os.system('echo "##fileformat=VCFv4.1" > '+'trimmed_t2_' + simu_fn)
 	os.system('echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT" > '+'trimmed_t2_' + simu_fn)
