@@ -22,6 +22,7 @@ params:
 
 # https://hgdownload.soe.ucsc.edu/downloads.html 
 # ftp://hgdownload.soe.ucsc.edu/goldenPath
+# https://genome.ucsc.edu/cgi-bin/hgTables
 
 list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "ggtext", "RIdeogram", "imager")
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
