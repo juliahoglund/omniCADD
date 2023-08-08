@@ -52,19 +52,69 @@ from optparse import OptionParser
 import time
 import pysam
 from pysam import VariantFile
+import natsort
+
+# OptionParser for input.
+parser = OptionParser()
+parser.add_option("-c", "--chromosome", dest = "chromosome", help = "list of chromosomes from which the variants are going to be derived", default = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X")
+parser.add_option("-a", "--ancestor", dest = "ancestor", help = "path to the folder with the extracted ancestor", default = "data/extracted_ancestor/")
+parser.add_option("-g", "--genome", dest = "genome", help = "path to the reference genome folder", default = "data/genome/")
+parser.add_option("-f", "--frequency", dest = "frequency", help = "path to folder with frequency files ", default  = 'data/frequencies/')
+parser.add_option("-s", "--start", dest = "start", help = "start position of the region", default = "0")
 
 
-# change all this to options parser
-# Assigns variables to input
-chromosome_num = sys.argv[1]		# 1
-ancestor_seq_path = sys.argv[2]		# 'extracted_ancestor/'
-genome_path = sys.argv[3]			# 'step_1/'
-freq_path = sys.argv[4]				# 'step_4/'
-# make failsaife with last slash
+(options, args) = parser.parse_args()
+
+# Checking if the path ends with '/'
+if (not options.ancestor.endswith('/')):
+	options.ancestor = options.ancestor+'/'
+
+if (not options.genome.endswith('/')):
+	options.genome = options.genome+'/'
+
+if (not options.frequency.endswith('/')):
+	options.frequency = options.frequency+'/'
+
+# Checks whenever a input was given for OptionParser.
+if len(options.chromosome) == 0:
+	sys.exit('No chromosome(s) specified, Program closed prematurely.')
+if len(options.start) == 0:
+	sys.exit('No start position specified, Program closed prematurely.')
 
 
-# Check if the nt are written in upper or lower case, 
+# Create list for ancestor input
+anc_list = []
+for fn in os.listdir(options.ancestor):
+	if fn.endswith('fa'): 
+		anc_list.append(fn)
+anc_list = natsort.natsorted(anc_list)
+
+# Create list for ancestor input
+ref_list = []
+for fn in os.listdir(options.genome):
+	if fn.endswith('fa'): 
+		ref_list.append(fn)
+ref_list = natsort.natsorted(ref_list)
+
+# Create list for ancestor input
+freq_hi_list = []
+freq_lo_list = []
+for fn in os.listdir(options.frequency):
+	if fn.endswith('out') and "reversed" not in fn: 
+		freq_hi_list.append(fn)
+	elif fn.endswith('out') and "reversed" in fn:
+		freq_lo_list.append(fn)
+
+freq_hi_list = natsort.natsorted(freq_hi_list)
+freq_lo_list = natsort.natsorted(freq_lo_list)
+
+
+# Creates a list for the chromosomes
+chr_list = options.chromosome.split(',')
+
+# Check if the nt are written in upper (unmasked) or lower case (masked), 
 # depending on this, the script writes it in one of the two output files.
+# change this later as well maybe or move it down
 def write_line(chrom, pos, reference, an, output_low, output_high):
 	if (reference in 'ACGTacgt') and (an in 'ACGTacgt'):
 		if an.islower():
@@ -73,123 +123,129 @@ def write_line(chrom, pos, reference, an, output_low, output_high):
 			output_high.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
 
 
-# OptionParser for the chr number and start position. 
-parser = OptionParser()
-parser.add_option("-c", "--chromosome", dest= "chrom", help= "investigated Chromosome", default= chromosome_num)
-parser.add_option("-s", "--start", dest= "start", help= "start position of the region", default= "0")
-(options, args) = parser.parse_args()
+for chromosome in chr_list:
+	print(chromosome)
 
+	ancestor_file = [x for x in anc_list if chromosome in x][0]
+	print(ancestor_file)
+	reference_file = [x for x in ref_list if chromosome in x][0]
+	print(reference_file)
+	frequency_file = [x for x in freq_hi_list if chromosome in x][0]
+	print(frequency_file)
 
-# Checks whenever a input was given for OptionParser.
-if len(options.chrom) == 0:
-	sys.exit('No Chromosome specified, Program closed prematurely.')
-if len(options.start) == 0:
-	sys.exit('No Startposition specified, Program closed prematurely.')
+	# Define input files for the ancestral sequence and the reference. 
+	ancestor_fasta = pysam.Fastafile(options.ancestor + ancestor_file)
+	ref_fasta = pysam.Fastafile(options.genome + reference_file)
 
+	# Open population frequency files
+	# Note: frequency files are not vcf files
+	input_snps = open(options.frequency + frequency_file, 'r')
 
-## can i do a list files and extract chromosomes all from file list here as before+?? 
-# Define input files for the Ancestral sequence and the reference. 
-#ancestor_fasta = pysam.Fastafile("../../../generate_ancestral_seq/output/dir_generated_ancestor_seq/Ancestor_Mouse_Rat_%s.fa" %options.chrom)
-ancestor_fasta = pysam.Fastafile(ancestor_seq_path + "Ancestor_Pig_Cow." + str(options.chrom) + '_chr' + str(options.chrom) + '.fa') # change to insert full name in script
-ref_fasta = pysam.Fastafile(genome_path + 'Sus_scrofa_ref_' + str(options.chrom) + '.fa') # change to insert full name of file or something, like prefix
-
-
-# Open population frequency files
-# Note: frequency files are not vcf files
-input_snps = open(freq_path + "%s_freq.out"%options.chrom, 'r')
-
-
-# Check if the ancestor seq is of same length as the reference
-# am i not missing some indents??
-if ancestor_fasta.nreferences != 1:
-	sys.exit('There are more than 1 record in the fasta file.')
-else:
-	ancestor_record = ancestor_fasta.references[0]
-	#print(ancestor_record)
-	#print('.%s'%options.chrom)
-	if '.%s'%options.chrom in ancestor_record:
-		anc_length = ancestor_fasta.get_reference_length(ancestor_fasta.references[0])
-	elif 'chr%s'%options.chrom in ancestor_record:
-		anc_length = ancestor_fasta.get_reference_length(ancestor_fasta.references[0])
+	# Check if the ancestor seq is of same length as the reference
+	if ancestor_fasta.nreferences != 1:
+		sys.exit('There are more than 1 record in the fasta file.')
 	else:
-		sys.exit('The requested chromosome cannot be found in the record of the ancestor fasta\n%s\n%s'%('.%s:'%options.chrom, ancestor_record))
+		ancestor_record = ancestor_fasta.references[0]
+		if chromosome in ancestor_record:
+			anc_length = ancestor_fasta.get_reference_length(ancestor_fasta.references[0])
+		elif 'chr' + chromosome in ancestor_record:
+			anc_length = ancestor_fasta.get_reference_length(ancestor_fasta.references[0])
+		else:
+			sys.exit('The requested chromosome cannot be found in the record of the ancestor fasta\n%s\n%s'%('%s:'%chromosome, ancestor_record))
 
-if anc_length != ref_fasta.get_reference_length(ref_fasta.references[0]):
-	sys.exit('Ancestor fasta and ref fasta have not the same length, Chromosome: %s'%('%s'%options.chrom))
+	if anc_length != ref_fasta.get_reference_length(ref_fasta.references[0]):
+		sys.exit('Ancestor fasta and ref fasta have not the same length, Chromosome: %s'%('%s'%chromosome))
+	else:
+		print('Ancestor sequence control: chr ' + str(chromosome) +', sequence is good')
 
-print('Ancestor sequence control: Chr' + str(chromosome_num) +', sequence is good')
+	# Create output files for upper and lower case variants.
+	output_high = open("derived_variants_chr%s_case_upper.vcf" %chromosome, 'w')
+	output_low = open("derived_variants_chr%s_case_lower.vcf" %chromosome, 'w')
+	output_low.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+	output_high.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
+	# Split the ancestor and reference sequences in chunks of 350000.
+	# Done so that the script reads this in chunks. 
+	index_outer = (int(options.start), int(options.start) + 350000)
+	snp_line = input_snps.readline()
+	snp_line = input_snps.readline()
+	snp_pos = int(snp_line.strip().split('\t')[1])
 
-
-# Create output files for upper and lower case variants.
-output_high = open("derived_var_chr_%s_case_upper.vcf" %options.chrom, 'w')
-output_low = open("derived_var_chr_%s_case_lower.vcf" %options.chrom, 'w')
-output_low.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
-output_high.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
-
-
-# Split the ancestor and reference sequences in chunks of 350000.
-# Done so that the script reads this in chunks. 
-index_outer = (int(options.start), int(options.start) + 350000)
-snp_line = input_snps.readline()
-snp_line = input_snps.readline()
-snp_pos = int(snp_line.strip().split('\t')[1])
-
-
-while index_outer[0] <= anc_length:
-	# Fetch the reference and ancestral sequence.
-	ref_seq = ref_fasta.fetch(ref_fasta.references[0], index_outer[0], index_outer[1])
-	anc_seq = ancestor_fasta.fetch(ancestor_record, index_outer[0], index_outer[1])
-	
-	# Itterate over the ancestral sequence position. 
-	for i, anc in enumerate(anc_seq):
-		
-		# Enumerate sets i always to 0, therefore i needs to be summed with the starting position of index_outer
-		# Checking if current position in the sequences is equal to the snp position in the frequency files
-		if i + index_outer[0] == (snp_pos-1):
-			snp_allele = snp_line.strip().split('\t')[5].split(':')[0]
+	while index_outer[0] <= anc_length:
+		# Fetch the reference and ancestral sequence.
+		ref_seq = ref_fasta.fetch(ref_fasta.references[0], index_outer[0], index_outer[1])
+		anc_seq = ancestor_fasta.fetch(ancestor_record, index_outer[0], index_outer[1])
 			
-			# Checking if Case 1 derived snp is given
-			if (anc == ref_seq[i]) and (anc != snp_allele) and (anc != '-') and (anc != '.'):
-				# Case 1 write out
-				write_line(options.chrom, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
-				#print i+index_outer[0],anc,ref_seq[i],snp_allele
-				# 'Try' is used, to avoid error when the end of snp file is reached but not yet the end of the sequence. 
-				try: 
-					snp_line = input_snps.readline()
-					snp_pos = int(snp_line.strip().split('\t')[1])
-				except:
-					pass
-			
-			# Checking if case 3 (or 2) derived snp is given
-			elif (anc != ref_seq[i]) and (anc != snp_allele) and (anc != '-'):
-				# Case 3 write out
-				write_line(options.chrom, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
-				#print i+index_outer[0],ref_seq[i],snp_allele
-				try: 
-					snp_line = input_snps.readline()
-					snp_pos = int(snp_line.strip().split('\t')[1])
-				except: 
-					pass
-			
-			# Only take next line in snp file
-			else: 
-				try:
-					snp_line = input_snps.readline()
-					snp_pos = int(snp_line.strip().split('\t')[1])
-				except: 
-					pass
-					
-		elif anc != '-' :
-
-			# Checking if case 5 (or 3) derived variant
-			if (anc != ref_seq[i]):
-				# Case 5 write out
-				#print i+index_outer[0],anc
-				write_line(options.chrom, i + index_outer[0], ref_seq[i], anc, output_low, output_high)
+		# Itterate over the ancestral sequence position. 
+		for i, anc in enumerate(anc_seq):
 				
-	index_outer = (index_outer[1], index_outer[1] + 350000)
+			# Enumerate sets i always to 0, therefore it needs to be summed with the starting position of index_outer
+			# Checking if current position in the sequences is equal to the snp position in the frequency files
+			if i + index_outer[0] == (snp_pos-1):
+				snp_allele = snp_line.strip().split('\t')[5].split(':')[0]
+					
+				# Checking if Case 2 is true, i.e. ancestor and reference are same, but there is a different allele in pop at >90%. 
+				if (anc == ref_seq[i]) and (anc != snp_allele) and (anc != '-') and (anc != '.'):
+					# Case 2 write out
+					write_line(chromosome, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
+					# 'Try' is used, to avoid error when the end of snp file is reached but not yet the end of the sequence. 
+					try: 
+						snp_line = input_snps.readline()
+						snp_pos = int(snp_line.strip().split('\t')[1])
+					except:
+						pass
+ 
+				# Only take next line in snp file
+				# so just continue to next if it does not match anything else?
+				else: 
+					try:
+						snp_line = input_snps.readline()
+						snp_pos = int(snp_line.strip().split('\t')[1])
+					except: 
+						pass
 
+			elif anc != '-' :
+
+				# Checking if Case 1 is true: i.e. ancestor and reference are different. 
+				if (anc != ref_seq[i]):
+					# Case 1 write out
+					write_line(chromosome, i + index_outer[0], ref_seq[i], anc, output_low, output_high)
+					# Open population frequency files
+
+		index_outer = (index_outer[1], index_outer[1] + 350000)
+
+	# Go through the list of SNPs in the other file where the alternative is the ancestral
+	# and the reference is >90% i.e. where case 3 is true. 
+	frequency_file = [x for x in freq_lo_list if chromosome in x][0]
+	print(frequency_file)
+
+	# Note: frequency files are not vcf files
+	input_snps = open(options.frequency + frequency_file, 'r')
+
+	# Split the ancestor and reference sequences in chunks of 350000.
+	# Done so that the script reads this in chunks. 
+	index_outer = (int(options.start), int(options.start) + 350000)
+	snp_line = input_snps.readline()
+	snp_line = input_snps.readline()
+	snp_pos = int(snp_line.strip().split('\t')[1])
+
+	while index_outer[0] <= anc_length:
+		# Fetch the reference and ancestral sequence.
+		ref_seq = ref_fasta.fetch(ref_fasta.references[0], index_outer[0], index_outer[1])
+		anc_seq = ancestor_fasta.fetch(ancestor_record, index_outer[0], index_outer[1])
+
+		# Checking if case 3 is true
+		if (anc != ref_seq[i]) and (anc == snp_allele) and (anc != '-') and (anc != '.'):
+			# Case 3 write out
+			write_line(chromosome, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
+			try: 
+				snp_line = input_snps.readline()
+				snp_pos = int(snp_line.strip().split('\t')[1])
+			except: 
+				pass
+				
+		index_outer = (index_outer[1], index_outer[1] + 350000)		
+				
 output_high.close()
 output_low.close()
 
