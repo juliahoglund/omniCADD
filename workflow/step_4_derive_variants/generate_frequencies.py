@@ -27,7 +27,8 @@ chr_list = options.chromosomes.split(',')
 
 # Loop through list of chr and perform vcftools
 for chr_num in chr_list:
-	os.system('vcftools --gzvcf ' + options.vcf + ' --chr ' + chr_num + ' --remove-indels --non-ref-af 0.9 --max-non-ref-af 1.0 --stdout --freq > ' + chr_num + '_freq.out')
+	os.system('vcftools --gzvcf ' + options.vcf + ' --chr ' + chr_num + ' --remove-indels --non-ref-af 0.9 --max-non-ref-af 1.0 --stdout --freq > freq_' + chr_num + '.out')
+	os.system('vcftools --gzvcf ' + options.vcf + ' --chr ' + chr_num + ' --remove-indels --non-ref-af 0.0 --max-non-ref-af 0.1 --stdout --freq > freq_reversed_' + chr_num + '.out')
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_generate_frequencies.txt', 'x')
