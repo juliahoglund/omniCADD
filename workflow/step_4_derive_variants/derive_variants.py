@@ -34,14 +34,12 @@ Case 4: The reference genome and ancestor are different, but there is no data on
 
 :Edited by: Seyan Hu
 :Date: 19-10-2022
-:Usage: python derived_var_gen.py <chr num> <path to ancestor seq> <path to genome> <path to frequency files>
+:Extension and modification: Julia Höglund
+:Date: 2023-08-08
+:Usage: python derive_variants.py.py -c <chr num> -a <path to ancestor seq> -g <path to genome> -f <path to frequency files> -s <start position of region>
 
 :Example:
-python derived_var_gen.py 19 ./ ../../../generate_ancestral_seq/data/genome/ ../../output/dir_freq_f/
-
-Note:
-Since this script only performs the generation of derived variants for one chromosome, 
-a wrapper is needed to iterate over all chromosomes. 
+python derive_variants.py -c 1,2,3,4,5 -a data/extracted_ancestor -g data/genome -f data/frequencies -s 0
 """
 
 
@@ -243,7 +241,7 @@ for chromosome in chr_list:
 				snp_pos = int(snp_line.strip().split('\t')[1])
 			except: 
 				pass
-				
+
 		index_outer = (index_outer[1], index_outer[1] + 350000)		
 				
 output_high.close()
