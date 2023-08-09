@@ -26,7 +26,7 @@ from optparse import OptionParser
 
 # OptionParser for inputs. 
 parser = OptionParser()
-parser.add_option("-i", "--indels", dest="indels", help="name of simulated indel variants.", default='./indels_simVariants.vcf')
+parser.add_option("-i", "--indels", dest="indels", help="name of simulated indel variants.", default='indels_simVariants.vcf')
 parser.add_option("-s", "--snps", dest="snps", help="name of simulated SNP variants.", default='snps_simVariants.vcf')
 parser.add_option("-a", "--ancestor", dest="ancestor", help="path to ancestor genome files.", default='./output/extracted_ancestor')
 (options, args) = parser.parse_args()
