@@ -12,6 +12,7 @@ python scripts/generate_frequencies.py -v data/sus_scrofa.vcf.gz -c '1,2,3,4,5,6
 
 # Import dependencies
 import sys, os
+from optparse import OptionParser
 
 # OptionParser for the directories of the input 
 parser = OptionParser()
