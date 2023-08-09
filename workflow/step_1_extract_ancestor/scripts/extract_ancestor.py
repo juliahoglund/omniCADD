@@ -8,7 +8,7 @@ the ancestor sequence of interest and returns per .maf file (per chromosome) the
 
 :Edited by: Seyan Hu
 :Date: 29-9-2022
-:Modified by: Julia Höglund
+:Modified by: Julia Höglund and Julia Beets
 :Date 22-3-2023
 
 :Usage: python extract_ancestor.py <file> <Ancestor identifier> <scientific name> <fai file>
