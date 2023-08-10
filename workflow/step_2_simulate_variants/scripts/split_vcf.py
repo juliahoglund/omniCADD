@@ -28,7 +28,7 @@ from optparse import OptionParser
 
 # OptionParser for the previously generated derived variants files (vcf)
 parser = OptionParser()
-parser.add_option("-i", "--input", dest="input", help="Path to derived variants.", default='simVariants.vcf')
+parser.add_option("-i", "--input", dest="input", help="Path to simulated variants.", default='simVariants.vcf')
 parser.add_option("-p", "--path", dest="path", help="path to folder with vcf files.", default= "./")
 (options, args) = parser.parse_args()
 
