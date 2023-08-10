@@ -34,9 +34,6 @@ option_list = list(
   make_option(c("-r", "--reference"), type="character", default="data/indexfile.txt",
               help="reference genome fasta index", metavar="character"),
   
-  make_option(c("-c", "--chromosome"), type="integer", default=20,
-              help="number of chromosomes to extract from fasta index files (i.e. to exclude scaffolds)", metavar="integer"),
-  
   make_option(c("-a", "--ancestor"), type="character", default="extracted_ancestor/",
               help="path to ancestor fasta files", metavar="character"),
   
