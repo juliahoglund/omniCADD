@@ -2,7 +2,9 @@
 '''
 :Author: Seyan Hu
 :Date: 14-10-2022
-:Usage: python <script.py> <vcf.gz file> <chr list>
+:Extension and modification: Julia Höglund
+:Date 2022-08-10
+:Usage: python <script.py> -v <vcf.gz file> -c <chr list>
 
 Creates a frequency file per chromosome (of interest) from a vcf file.
 
@@ -29,7 +31,6 @@ chr_list = options.chromosomes.split(',')
 # Loop through list of chr and perform vcftools
 for chr_num in chr_list:
 	os.system('vcftools --gzvcf ' + options.vcf + ' --chr ' + chr_num + ' --remove-indels --non-ref-af 0.9 --max-non-ref-af 1.0 --stdout --freq > freq_' + chr_num + '.out')
-	os.system('vcftools --gzvcf ' + options.vcf + ' --chr ' + chr_num + ' --remove-indels --non-ref-af 0.0 --max-non-ref-af 0.1 --stdout --freq > freq_reversed_' + chr_num + '.out')
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_generate_frequencies.txt', 'x')
