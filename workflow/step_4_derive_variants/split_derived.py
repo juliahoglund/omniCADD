@@ -3,9 +3,8 @@
 :Contact: cgross@tudelft.nl
 :Date: 01-08-2018
 
-This script takes the vcf file with derived mouse single variations 
-and removes variants which are in a sequence of positions and therefore might be longer variants than just SNPs.
-
+This script takes the vcf file with derived variants and splits it into
+one file containing SNPs and one with indels
 
 :Edited by: Seyan Hu
 :Date: 20-10-2022
