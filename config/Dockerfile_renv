@@ -5,7 +5,7 @@ RUN export COMPOSE_DOCKER_CLI_BUILD=0
 
 RUN apt-get update && \
    apt-get -y --no-install-recommends install --fix-missing \
-   wget curl git build-essential libcurl4-openssl-dev
+   wget curl git build-essential libcurl4-openssl-dev libssl-dev libxml++2.6-dev librsvg2-dev
 
 RUN R -e "install.packages('renv')"
 
