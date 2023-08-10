@@ -8,3 +8,6 @@ config/.DS_Store
 workflow/.DS_Store
 workflow/step_1_extract_ancestor/scripts/.DS_Store
 notes
+dag.pdf
+omniCADD_Graph.png
+output/
