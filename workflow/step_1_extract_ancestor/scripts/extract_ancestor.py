@@ -3,7 +3,7 @@
 :Contact: cgross@tudelft.nl
 :Date: 01.02.2018
 
-This script takes as input the preporcessed maf files, 
+This script takes as input the preprocessed maf files, 
 the ancestor sequence of interest and returns per .maf file (per chromosome) the ancestor sequence in fasta format.
 
 :Edited by: Seyan Hu
