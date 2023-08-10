@@ -32,55 +32,81 @@ rule simulation:
         touch output/start_step4.txt
         '''
 
-
-
-
-
-### Start of Derived variants generation.
 	
 '''	
- Generates frequency files form the population variants (vcf files).
- Population frequency files are used for the generation of the derived variants, 
- since the genome is only constructed with one organism in mind and there may be some variations varying between different individuals. 
+ Generates frequency files from the population variants (vcf files).
+ Population frequency files are used for the generation of the derived variants,
+ in the step where the nearly-fixed variants are extracted from all the differing
+ variants between ancestror and reference species.
+
  Manual input:	
-				'input', 		compressed vcf containing variants from the whole population. 
- 				'chr_list', 	list of chromosomes from the given species of interest. 
+				'vcf', 		    compressed (!) vcf containing variants from the whole population. 
+ 				'chromosomes', 	list of chromosomes from the given species of interest. 
+
 '''
 rule freq_files:
 	input:
-		'data/vcf_data/mgp_REL2021_snps.vcf.gz'
+		'output/start_step4.txt'
 	params:
-		script = 'scripts/gen_freq.py',
-		chr_list = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X','Y'"
+		script = SCRIPTS_4 + 'generate_frequencies.py'
+		vcf = 
+		chromosome = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X'
 	output:
-		'output/finished_gen_freq.txt'
-	run:
-		shell("python {params.script} {input} {params.chr_list}")
-		shell('mkdir output/dir_freq_f')
-		shell('mv *.out output/dir_freq_f')
-		shell('touch output/finished_gen_freq.txt')
+		'output/finished_generating_frequencies.txt'
+	shell:
+		'''
+		python {params.script} \
+		-v {params.vcf} \
+		-c  {params.chromosome}
+
+		mkdir output/frequencies
+		mv *.out output/frequencies
+		'''
 
 
 '''
  Generates the derived variants by looking at all data sources (ancestral seq, genome, freq files) simultaneously.
  Manual input:	
-				'chr_list', 	list of chromosomes from the given species of interest.
+				'chromosome'	list of chromosomes from which the variants are going to be derived
+				'ancestor', 	path to the folder with the extracted ancestor
+				'genome'		path to the reference genome folder
+				'frequency'		path to folder with frequency files
+				'start'			start position of the region
 '''
-rule gen_derived:
+rule generate_derived:
 	input:
-		'output/finished_gen_freq.txt'
+		'output/finished_generating_frequencies.txt'
 	params:
-		script = 'scripts/wrapper_derived_gen.py',
-		chr_list = "'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','X','Y'",
-		anc_path = '../generate_ancestral_seq/output/dir_generated_ancestor_seq/',
-		genome_path = '../generate_ancestral_seq/data/genome/',
-		freq_path = 'output/dir_freq_f/'
+		script = SCRIPTS_4 + 'derive_variants.py',
+		chromosome = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
+		ancestor = 'output/extracted_ancestor/',
+		genome = 'genome/',
+		frequency = 'output/frequencies/'
+		start = '0'
 	output:
-		'output/finished_gen_derived.txt'
-	run:
-		shell('python {params.script} {params.chr_list} {params.anc_path} {params.genome_path} {params.freq_path}')
-		shell('mkdir output/dir_gen_derived')
-		shell('mv derived_var_chr_* output/dir_gen_derived')
+		'output/finished_generate_derived.txt'
+	shell:
+		'''
+		python {params.script} \
+		-c {params.chromosome} \
+		-a {params.ancestor} \
+		-g {params.genome} \
+		-f {params.frequency} \
+		-s {params.start}
+
+		mkdir output/derived
+		mv derived_* output/derived/
+		'''
+
+
+
+
+
+
+
+
+ 
+
 
 
 '''
