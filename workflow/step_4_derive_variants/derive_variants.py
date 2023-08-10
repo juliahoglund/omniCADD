@@ -176,72 +176,55 @@ for chromosome in chr_list:
 			
 		# Itterate over the ancestral sequence position. 
 		for i, anc in enumerate(anc_seq):
-				
-			# Enumerate sets i always to 0, therefore it needs to be summed with the starting position of index_outer
+			
+			# Enumerate sets i always to 0, therefore i needs to be summed with the starting position of index_outer
 			# Checking if current position in the sequences is equal to the snp position in the frequency files
 			if i + index_outer[0] == (snp_pos-1):
 				snp_allele = snp_line.strip().split('\t')[5].split(':')[0]
-					
-				# Checking if Case 2 is true, i.e. ancestor and reference are same, but there is a different allele in pop at >90%. 
+				
+				# Checking if Case 1 derived snp is given
 				if (anc == ref_seq[i]) and (anc != snp_allele) and (anc != '-') and (anc != '.'):
-					# Case 2 write out
-					write_line(chromosome, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
+					# Case 1 write out
+					print("case1")
+					write_line(options.chrom, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
+					#print i+index_outer[0],anc,ref_seq[i],snp_allele
 					# 'Try' is used, to avoid error when the end of snp file is reached but not yet the end of the sequence. 
 					try: 
 						snp_line = input_snps.readline()
 						snp_pos = int(snp_line.strip().split('\t')[1])
 					except:
 						pass
- 
+				
+				# Checking if case 3 (or 2) derived snp is given
+				elif (anc != ref_seq[i]) and (anc != snp_allele) and (anc != '-'):
+					print("case2,3")
+					# Case 3 write out
+					write_line(options.chrom, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
+					#print i+index_outer[0],ref_seq[i],snp_allele
+					try: 
+						snp_line = input_snps.readline()
+						snp_pos = int(snp_line.strip().split('\t')[1])
+					except: 
+						pass
+				
 				# Only take next line in snp file
-				# so just continue to next if it does not match anything else?
 				else: 
+					print("here") 
 					try:
 						snp_line = input_snps.readline()
 						snp_pos = int(snp_line.strip().split('\t')[1])
 					except: 
 						pass
-
+						
 			elif anc != '-' :
-
-				# Checking if Case 1 is true: i.e. ancestor and reference are different. 
+				print("anc is ref if not followed by ref is not")
+				# Checking if case 5 (or 3) derived variant
 				if (anc != ref_seq[i]):
-					# Case 1 write out
-					write_line(chromosome, i + index_outer[0], ref_seq[i], anc, output_low, output_high)
-					# Open population frequency files
-
-		index_outer = (index_outer[1], index_outer[1] + 350000)
-
-	# Go through the list of SNPs in the other file where the alternative is the ancestral
-	# and the reference is >90% i.e. where case 3 is true. 
-	frequency_file = [x for x in freq_lo_list if chromosome in x][0]
-	print(frequency_file)
-
-	# Note: frequency files are not vcf files
-	input_snps = open(options.frequency + frequency_file, 'r')
-
-	# Split the ancestor and reference sequences in chunks of 350000.
-	# Done so that the script reads this in chunks. 
-	index_outer = (int(options.start), int(options.start) + 350000)
-	snp_line = input_snps.readline()
-	snp_line = input_snps.readline()
-	snp_pos = int(snp_line.strip().split('\t')[1])
-
-	while index_outer[0] <= anc_length:
-		# Fetch the reference and ancestral sequence.
-		ref_seq = ref_fasta.fetch(ref_fasta.references[0], index_outer[0], index_outer[1])
-		anc_seq = ancestor_fasta.fetch(ancestor_record, index_outer[0], index_outer[1])
-
-		# Checking if case 3 is true
-		if (anc != ref_seq[i]) and (anc == snp_allele) and (anc != '-') and (anc != '.'):
-			# Case 3 write out
-			write_line(chromosome, i + index_outer[0], ref_seq[i], snp_allele, output_low, output_high)
-			try: 
-				snp_line = input_snps.readline()
-				snp_pos = int(snp_line.strip().split('\t')[1])
-			except: 
-				pass
-
+					print("ref is not anc:"+ref_seq[i]+anc)
+					# Case 5 write out
+					#print i+index_outer[0],anc
+					write_line(options.chrom, i + index_outer[0], ref_seq[i], anc, output_low, output_high)
+					
 		index_outer = (index_outer[1], index_outer[1] + 350000)		
 				
 output_high.close()
