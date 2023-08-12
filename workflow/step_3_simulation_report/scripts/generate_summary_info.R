@@ -80,7 +80,7 @@ colnames(simulatedAncestorINDELs) <-
 
 message("Reading files for the reference genome ...")
 
-reference.fai <- read.table(opt$reference, nrows = opt$chromosome)
+reference.fai <- read.table(opt$reference, header=F)
 reference.fai <- reference.fai %>%
   dplyr::select(V1, V3) %>%
   dplyr::rename("chromosome" = "V1", "size" = "V3")
@@ -294,9 +294,22 @@ simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'T') & (simulatedSNPs$ALT == 'C
 simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'C') & (simulatedSNPs$ALT == 'T'))] <- "transition"
 simulatedSNPs$FILTER[which(simulatedSNPs$INFO == 'CpG')] <- "CpG"
 
-simulatedAncestorSNPs$FORMAT = "overlapping"
-simulatedSNPs <- merge(simulatedSNPs[, 1:8], simulatedAncestorSNPs[, c("CHROM", "POS", "FORMAT")], all.x =T, by = c("CHROM", "POS"))
-simulatedSNPs$FORMAT[which(is.na(simulatedSNPs$FORMAT))] <- "non-overlapping"
+simulatedSNPs <- 
+  simulatedSNPs %>% 
+    group_by(CHROM) %>% 
+    group_split()
+
+simulatedAncestorSNPs <- 
+  simulatedAncestorSNPs %>% 
+  group_by(CHROM) %>% 
+  group_split()
+
+matchPos <- function(a, b) {
+  list(mutate(a, check = ifelse(a$POS %in% b$POS, "overlapping", "non-overlapping")))
+}
+
+simulatedSNPs <- mapply(matchPos, simulatedSNPs, simulatedAncestorSNPs)
+simulatedSNPs <- bind_rows(simulatedSNPs)
 
 #########################
 
