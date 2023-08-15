@@ -1,7 +1,7 @@
 workflow/step_1_extract_ancestor/HOWTO1.md
 workflow/step_2_simulate_variants/HOWTO2.md
 workflow/step_3_simulation_report/HOWTO3.md
-workflow/step_3_simulation_report/HOWTO4.md
+workflow/step_4_derive_variants/HOWTO4.md
 config/mafTools.sif
 .DS_Store
 config/.DS_Store
