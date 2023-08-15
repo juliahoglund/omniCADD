@@ -1,0 +1,270 @@
+'''
+ The snakemake file should be run with three other directories in the same directory as the snakemake file. 
+ These are data, output and scripts.
+ The data directory for the generation of the annotations should contain a 'variants' directory containing all generated variants (should be performed automatically in the part for the generation of VEP scores). 
+ And directories for the features of PhastCons, PhyloP and repeats (obtainable from the UCSC database) should be in the 'phastCons', 'phyloP' and 'repeats' directories respectively. 
+ 
+ The output directory should be empty, since here comes the outputs that the scripts generate.
+ The scripts directory contains all the used scripts by the snakemake file. 
+ !Since the part for the generation of VEP annotation is performed in offline mode a VEP annotation library was first installed in the home directory.  
+ !More features can be added by appending the new data to the merged DataFrame. 
+ 
+ :Author: Seyan Hu
+ :Date: 14-11-2022
+ :Usage: snakemake -p --cores <number of cores> --snakefile <snakefile script>
+ Params can be adjusted for any given species of interest. 
+'''
+
+rule all:
+	input:
+		'output/finished_merge_vep_gerp.txt'
+
+
+
+
+### Start with the generation of VEP annotations for the previously generated derived and simulated variants.
+
+
+'''
+ Performs VEP on the derived and simulated variants. 
+ These variants needs to be in the same directory. 
+ The script iterates over the files and performs VEP using a commandline.
+ Before performing the script it gathers the input data (generated variants). 
+ Manual input:
+				'species',		Species of interest. 
+'''
+rule vep_generation:
+	input:
+		'../generate_variants/output/dir_trimmed_simulated_variants/trimmed_simulated_variants_filtered_for_anc_site_1.csv'
+	params:
+		script = 'scripts/vep_wrapper.py',
+		path_i = 'data/variants/',
+		species = 'mus_musculus'
+	output:
+		'output/finished_VEP.txt'
+	run:
+		shell('mkdir data/variants')
+		shell('cp ../generate_variants/output/dir_trimmed_simulated_variants/trimmed_* data/variants')
+		shell('cp ../generate_variants/output/dir_filter_derived_snp/snps_derived_*_case_upper.vcf data/variants')
+		
+		shell('python {params.script} -i {params.path_i} -s {params.species}')
+		shell('mkdir output/dir_vep_output')
+		shell('mv *VEP-annotated.vcf output/dir_vep_output')
+		
+		
+'''
+ Process the vcf files (the ones that are used for VEP annotation) with bgzip and tabix.
+ This is performed so that the next script could reformat the VEP output and add extra annotations. 
+'''
+rule bgzip_and_tabix:
+	input:
+		'output/finished_VEP.txt'
+	output:
+		'output/finished_bgzip_tabix.txt'
+	run:
+		shell('mkdir output/dir_bgzip_tabix')
+		shell('cp data/variants/* output/dir_bgzip_tabix/')
+		shell("for i in output/dir_bgzip_tabix/*; do bgzip -c $i  > ${i}.gz; tabix -p vcf ${i}.gz; done")
+		shell('rm output/dir_bgzip_tabix/*.vcf')
+		shell('rm output/dir_bgzip_tabix/*.csv')
+		
+		shell('touch output/finished_bgzip_tabix.txt')
+		
+		
+'''
+ Processes the VEP annotation file and returns a tab delimited, encoded file with additional basic annotations.
+'''
+rule VEP_processing:
+	input:
+		'output/finished_bgzip_tabix.txt'
+	params:
+		script = 'scripts/vep_output_processing_wrapper.py',
+		path_vcf = 'output/dir_bgzip_tabix/',
+		path_ref = '../generate_ancestral_seq/data/genome/',
+		path_vep = 'output/dir_vep_output/',
+		grantham_f = 'data/grantham_matrix/grantham_matrix_formatted_correct.tsv'
+	output:
+		'output/finished_VEP_processing.txt'
+	run:
+		shell('python {params.script}  -s {params.path_vcf} -r {params.path_ref} -v {params.path_vep} -g {params.grantham_f}')
+		shell('mkdir output/dir_vep_processing')
+		shell('mv *.vcf output/dir_vep_processing/')
+
+
+
+### Start with Gerp conservation scores and Gerp element conservation scores.
+
+'''
+ The script calls up the gerpelem.pl and getgerp.pl and prints out all Gerp scores for the requested chromosome. 
+ Manual input:
+				'species',		Species of interest. 
+'''
+rule gather_Gerp_scores:
+	input:
+		'output/finished_bgzip_tabix.txt'
+	params:
+		script_emelemt = 'scripts/Ensembl_API_Gerp_element_query.py',
+		script_conservation = 'scripts/Ensembl_API_Gerp_conservation_query.py',
+		script_both = 'scripts/Ensembl_API_Gerp_query.py',
+		path_to_ref = '../generate_ancestral_seq/data/genome/',
+		species = "'Mus musculus'"
+	output:
+		'output/finished_GERP.txt'
+	run:
+		shell('mkdir output/dir_gerp_annotation')
+		shell('python {params.script_emelemt} -f {params.path_to_ref} -s {params.species} -o output/dir_gerp_annotation/')
+		shell('python {params.script_conservation} -f {params.path_to_ref} -s {params.species}')
+		shell('mv *.tsv output/dir_gerp_annotation/')
+
+
+
+
+'''
+ Formats the GerpElem file so that it is easier to merge without the use of dicts.
+ (previously converted to a dict before merging, but uses too much memory)
+'''
+rule format_gerp:
+	input:
+		'output/finished_GERP.txt'
+	params:
+		script = 'scripts/format_GerpElem.py', 
+		path_gerpElem = 'output/dir_gerp_annotation/'
+	output:
+		'output/finished_format_GERPElem.txt'
+	run:
+		shell('python {params.script} -g {params.path_gerpElem}')
+		shell('mkdir output/dir_format_GerpElem')
+		shell('mv *GerpElem.tsv output/dir_format_GerpElem')
+		
+
+
+
+### PhastCons & PhyloP conservation scores
+
+'''
+ These PhastCons & PhyloP scores should be downloaded from the UCSC Genome Browser database for the species of interest (bigwig format). 
+ And should be put in the 'data/phastCons/' and 'data/phyloP/' directory.  
+ The script reformats these scores so that it is easier to parse to the processed VEP output.
+ It outputs two files containing the chromosome number, position and score.
+ Manual input:		'pC_file', 		Path to phastCons bw file.
+					'pP_file', 		Path to PhyloP bw file.
+'''
+rule format_pC_pP_scores:
+	input:
+		'output/finished_format_GERPElem.txt'
+	params:
+		pC_file = 'data/phastCons/mm39.phastCons35way.bw',
+		pP_file = 'data/phyloP/mm39.phyloP35way.bw',
+		script = 'scripts/format_pC_pP_wig.py'
+	output:
+		'output/finished_format_wig.txt'
+	run:
+		shell('bigWigToWig {params.pC_file} phastCons_out.wig')
+		shell('bigWigToWig {params.pP_file} phyloP_out.wig')
+		shell('mkdir output/dir_toWig')
+		shell('mv *.wig output/dir_toWig/')
+		
+		shell('python {params.script} -w output/dir_toWig/')
+		shell('mkdir output/dir_format_pC_pP')
+		shell('mv *_scores.txt output/dir_format_pC_pP/')
+
+
+
+
+'''
+ Splits the reformatted PhastCons & PhyloP scores per chromosome, so it would be easier to load when merging.
+ Manual input:		'chr', 		The to be considered chromosomes. 
+'''
+rule split_formatted_pC_pP:
+	input:
+		'output/finished_format_wig.txt'
+	params:
+		script = 'scripts/split_pC_pP_scores.py',
+		pC_path = 'output/dir_format_pC_pP/phastCons_scores.txt',
+		pP_path = 'output/dir_format_pC_pP/phyloP_scores.txt',
+		chr = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,X'
+	output:
+		'output/finished_split_pCpP.txt'
+	run:
+		shell('python {params.script} -f {params.pC_path} -c {params.chr}')
+		shell('python {params.script} -f {params.pP_path} -c {params.chr}')
+		shell('mkdir output/dir_split_pC_pP')
+		shell('mv *_phastCons.tsv output/dir_split_pC_pP')
+		shell('mv *_phyloP.tsv output/dir_split_pC_pP')
+		shell('touch output/finished_split_pCpP.txt')
+
+
+
+### Repeats positions. 
+
+'''
+ These fasta files containing repeats should be downloaded from the UCSC Genome Browser database for the species of interest. 
+ And should be put in the 'data/repeats/' directory. 
+ UCSC should have masked fasta files (repeats are in lower case) per chromosome for the species of interest. 
+ These files should be decompressed. 
+ The script creates per chromosome a output file containing a list of the position of its repeats. 
+ Manual input:		'path_rep', 		Path to masked fasta files (default = 'data/repeats/'). 
+'''
+rule get_repeat_position:
+	input:
+		'output/finished_format_wig.txt'
+	params:
+		script = 'scripts/get_position_repeats.py',
+		path_rep = 'data/repeats/'
+	output:
+		'output/finished_get_repeat_position.txt'
+	run:
+		shell('python {params.script} -r {params.path_rep}')
+		shell('mkdir output/dir_repeats')
+		shell('mv list_repeats_chr* output/dir_repeats/')
+
+
+
+
+### Join annotations
+
+'''
+ Adds the y (label) to the processed VEP files and adds for every variant the correct Gerp, phastCons, phyloP scores and repeat position. 
+ This script can be expanded for more annotations (features). 
+				
+'''
+rule merge_features:
+	input:
+		'output/finished_get_repeat_position.txt'
+	params:
+		script = 'scripts/merge_all_annotationsV3.py',
+		path_vep = 'output/dir_vep_processing/',
+		path_gerp = 'output/dir_gerp_annotation/',
+		path_gerpE = 'output/dir_format_GerpElem/',
+		path_pC_pP = 'output/dir_split_pC_pP/',
+		path_repeats = 'output/dir_repeats/'
+	output:
+		'output/finished_merging.txt'
+	run:
+		shell('python {params.script} -v {params.path_vep} -g {params.path_gerp} -e {params.path_gerpE} -p {params.path_pC_pP} -r {params.path_repeats}')
+		shell('mkdir output/dir_merged_annotations')
+		shell('mv *merged_features.tsv output/dir_merged_annotations')
+
+
+
+
+'''
+ It takes fully annotated variant files for simulated and derived variants respectively. 
+ It handles missing values with imputation (based on the mean in simulated variants)
+ and categorical featues with one-hot encoding. 
+'''
+rule handle_encoding_mv:
+	input:
+		'output/finished_merging.txt'
+	params:
+		script = 'scripts/encoding_mv_wrapper.py', 
+		path_merged_f = 'output/dir_merged_annotations/'
+	output:
+		'output/finished_encoding_mv.txt'
+	run:
+		shell('python {params.script} -i {params.path_merged_f}')
+		shell('mkdir output/dir_complete_dataset')
+		shell('mv *_enc_mv.csv output/dir_complete_dataset')
+
+
+
