@@ -20,7 +20,7 @@
 all_outputs.append('output/start_step4.txt')
 all_outputs.append('output/finished_generating_frequencies.txt')
 all_outputs.append('output/finished_generate_derived.txt')
-#all_outputs.append('output/.txt')
+all_outputs.append('output/finished_simulated_vcf_trimming.txt')
 
 ## rules
 rule frequencies:
@@ -51,7 +51,7 @@ rule freq_files:
 		'output/start_step4.txt'
 	params:
 		script = SCRIPTS_4 + 'generate_frequencies.py',
-		vcf = config['15_vcf'],
+		vcf = config['16_vcf'],
 		chromosome = config['16_chromosome']
 	output:
 		'output/finished_generating_frequencies.txt'
@@ -130,21 +130,21 @@ rule trim_vcf:
 		-p {params.prefixSimulated} \
 		-q {params.prefixDerived}
 
-		trimmedFile=trimmed_{{params.prefixSimulated}}filtered.vcf
-		cat $trimmedFile | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > tmp
+		trimmedFile=trimmed_{params.prefixSimulated}filtered.vcf
+		cat $trimmedFile | awk '$1 ~ /^#/ {{print $0;next}} {{print $0 | "sort -k1,1 -k2,2n"}}' > tmp
 		mv tmp $trimmedFile
 
 		# CHOP SIMULATED VARIANTS TO CHROMOSOMES
-        # FORMAT should only be there if there actually are some sample columns after it. 
-        # (The message is misleading in this context — what it's looking for is \tFORMAT\t)
+		# FORMAT should only be there if there actually are some sample columns after it. 
+		# (The message is misleading in this context — what it's looking for is \tFORMAT\t)
 
-        bgzip $trimmedFile
-        tabix $trimmedFile.gz
+		bgzip $trimmedFile
+		tabix $trimmedFile.gz
 
-        in=$trimmedFile.gz
+		in=$trimmedFile.gz
 		out=simSNPs
 
-		for i in {1..22} X; do bcftools view ${in} --regions ${i} -o ${out}_${i}.vcf.gz -Oz; done
+		for i in {{1..18}} X; do bcftools view $in --regions $i -o $out_$i.vcf.gz -Oz; done
 		gunzip simSNPs_*
 
 		mkdir output/simulated
