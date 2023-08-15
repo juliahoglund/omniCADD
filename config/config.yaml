@@ -295,10 +295,10 @@ species: 'sus_scrofa'
 #        'frequency'   path to folder with frequency files
 #        'start'       start position of the region
 
-17_chromosome: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
-17_ancestor: 'output/extracted_ancestor/',
-17_genome: 'genome/',
-17_frequency: 'output/frequencies/',
+17_chromosome: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X'
+17_ancestor: 'output/extracted_ancestor/'
+17_genome: 'genome/'
+17_frequency: 'output/frequencies/'
 17_start: '0'
 
 ### RULE TRIM SIMULATED VARIANTS ###
@@ -307,7 +307,7 @@ species: 'sus_scrofa'
 #        'simulated',   path to folder containing the vcf with simulated variants. 
 #        'derived',     path to folder containing the vcfs with derived variants. 
 
-18_simulated: 'output/',
-18_derived: 'output/derived/',
-18_prefixSimulated: 'snps_simVariants_',
+18_simulated: 'output/'
+18_derived: 'output/derived/'
+18_prefixSimulated: 'snps_simVariants_'
 18_prefixDerived: 'derived_variants_'
