@@ -100,40 +100,42 @@ rule generate_derived:
 		'''
 
 
-## START CLEANING HERE
-
-'''
- Filters the derived variants for SNPs and indels.
-'''
-rule snp_filter:
-	input:
-		'output/finished_generate_derived.txt'
-	params:
-		script = 'scripts/filter_derived_for_snps.py',
-		inp_path = 'output/dir_gen_derived/',
-		identifier = 'derived_var_chr_'
-	output:
-		'output/finished_snp_filtering.txt'
-	run:
-		shell('python {params.script} {params.inp_path} {params.identifier}')
-		shell('mkdir output/dir_filter_derived_snp')
-		shell('mv output/dir_gen_derived/snps_* output/dir_filter_derived_snp')
-		shell('mv output/dir_gen_derived/indels_* output/dir_filter_derived_snp')
-
-
 '''
  Trims lines in simulated vcf file to match with the number of lines in the derived vcf files.
+  Manual input:	
+				'vcf', 		    compressed (!) vcf containing variants from the whole population (one per chromosome). 
+ 				'chromosomes', 	list of chromosomes from the given species of interest. 
+
 '''
 rule trim_vcf:
 	input:
-		'output/finished_snp_filtering.txt'
+		'output/finished_generate_derived.txt'
 	params:
-		script = 'scripts/trim_simulated_varV2.py',
-		path_simu = 'output/dir_gen_simulated_variants_anc_site_filtered/',
-		path_derived = 'output/dir_filter_derived_snp/',
+		script = SCRIPTS_4 + 'trim_variants.py',
+		simulated = 'output/dir_gen_simulated_variants_anc_site_filtered/',
+		derived = 'output/dir_filter_derived_snp/',
 	output:
 		'output/finished_simulated_vcf_trimming.txt'
+	shell:
+		'''
+		## FORTSÄTT HÄR
+		'''
 	run:
 		shell('python {params.script} -s {params.path_simu} -d {params.path_derived}')
 		shell('mkdir output/dir_trimmed_simulated_variants')
 		shell('mv trimmed_* output/dir_trimmed_simulated_variants')
+
+		cat trimmed_snps_simVariants_filtered.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > tmp
+		mv tmp trimmed_snps_simVariants_filtered.vcf
+
+        # CHOP SIMULATED VARIANTS TO CHROMOSOMES
+        # FORMAT should only be there if there actually are some sample columns after it. 
+        # (The message is misleading in this context — what it's looking for is \tFORMAT\t)
+
+        bgzip trimmed_snps_simVariants_filtered.vcf
+        tabix trimmed_snps_simVariants_filtered.vcf.gz
+        in=trimmed_snps_simVariants_filtered.vcf.gz
+		out=simSNPs
+
+		for i in {1..22} X; do bcftools view ${in} --regions ${i} -o ${out}_${i}.vcf.gz -Oz; done
+		gunzip simSNPs_*
