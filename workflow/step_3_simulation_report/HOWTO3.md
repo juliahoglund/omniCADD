@@ -8,6 +8,17 @@ module load bioinfo-tools mafTools conda snakemake R_packages samtools
 source conda_init.sh
 conda deactivate # (base)
 conda activate cadd
+
+## if docker is needed this is how it was created
+# create repo at docker with chosen name
+make Dockerfile
+# (now Dockerfile_renv)
+# then build it from omniCADD where renv.lock is
+docker build -f config/Dockerfile_renv -t report-renv:latest .
+# then tag it
+tag report-renv:latest juliahoglund/report-renv
+# then push!!
+docker push juliahoglund/report-renv:latest
 ```
 
 1. create an R dump with all files needed in the report
