@@ -3,12 +3,15 @@
 :Author: Seyan Hu
 :Date: 10-11-2022
 :Usage: python <script.py> -s <path to simulated variants> -d <path to derived variants>
-## add julia and me and change the example and usage etc etc
 
-Trims the vcf file of simulated variants to the same amount of derived variants. 
+:Edited by: Julia Beets
+:Extension and modification: Julia Höglund
+:Date: 2023-08-14
+
+This script trims the vcf file of simulated variants to the same amount of derived variants. 
 
 :Example:
-python trim_simulated_var.py -s ./ -d ./
+python trim_variants.py -s ./ -d ./
 '''
 
 # Import dependencies.
@@ -19,8 +22,10 @@ from optparse import OptionParser
 # OptionParser for input. 
 parser = OptionParser()
 parser.add_option("-s", "--simulated", dest = "simulated", help = "path to simulated variants", default = "output/")
+parser.add_option("-p", "--preSim", dest = "preSim", help = "prefix to simulated variant file(s)", default = "snps_simVariants_")
 parser.add_option("-d", "--derived", dest="derived", help="path to derived variants", default = "output/")
-#where do they end up and i only want snps right so filtered takes indels as well?
+parser.add_option("-q", "--preDer", dest = "preDer", help = "prefix to simulated variant file(s)", default = "derived_variants_")
+
 
 (options, args) = parser.parse_args()
 
@@ -28,13 +33,11 @@ parser.add_option("-d", "--derived", dest="derived", help="path to derived varia
 simu_file_list = []
 derived_file_list = []
 for fn in os.listdir(options.simulated):
-    ## fix with prefix?
-    if fn.startswith('snps_simVariants_') and fn.endswith('_filtered.vcf'):
+    if fn.startswith(option.preSim) and fn.endswith('_filtered.vcf'):
         simu_file_list.append(fn)
 
-## fix with prefix?
 for fn in os.listdir(options.derived):
-    if fn.startswith('derived_variants_') and fn.endswith('_upper.vcf'):
+    if fn.startswith(option.preDer) and fn.endswith('_upper.vcf'):
         derived_file_list.append(fn)
 
 simu_file_list = sorted(simu_file_list)
