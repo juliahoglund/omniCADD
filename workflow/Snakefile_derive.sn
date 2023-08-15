@@ -23,7 +23,7 @@ all_outputs.append('output/finished_generate_derived.txt')
 all_outputs.append('output/finished_simulated_vcf_trimming.txt')
 
 ## rules
-rule frequencies:
+rule derive:
     input: 
         SCRIPTS_4 + 'generate_frequencies.py'
     output: 
