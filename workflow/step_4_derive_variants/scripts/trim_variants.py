@@ -2,7 +2,7 @@
 '''
 :Author: Seyan Hu
 :Date: 10-11-2022
-:Usage: python <script.py> -s <path to simulated variants> -d <path to derived variants>
+:Usage: python <script.py> -s <path to simulated variants> -d <path to derived variants> -p <prefix of simulated variant file(s)> -q <prefix of derived variant file(s)>
 
 :Edited by: Julia Beets
 :Extension and modification: Julia Höglund
@@ -11,7 +11,7 @@
 This script trims the vcf file of simulated variants to the same amount of derived variants. 
 
 :Example:
-python trim_variants.py -s ./ -d ./
+python trim_variants.py -s ./ -d ./ -p snps_simVariants_ -q derived_variants_
 '''
 
 # Import dependencies.
