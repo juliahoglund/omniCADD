@@ -66,3 +66,27 @@ snakemake --use-singularity [rest of commands]
 ```
 
 A third alternative if one does not want to deal with symbolic links, is of course to build it and point to the local path in the rule.
+
+### R dependent rules
+The summary (html) report is fully created in R, using a handful packages and dependencies. If the user does not want to install them all on their local computer or do not have easy access to them at ther cluster, the R-dependent rules can be run in a container, which includes all packages and dependencies needed within an renv (R environment)
+It can be added like so:
+```bash
+# in the rules that uses R, add:
+container:
+
+# like so:
+rule NAME:
+    input:
+        "input.txt"
+    output:
+        "output.txt"
+    container:
+        "docker://juliahoglund/report-renv"
+    script:
+        '''
+        scripts
+        '''
+# and then when running the pipeline, run it like so:
+snakemake --use-singularity [rest of commands]
+
+```
