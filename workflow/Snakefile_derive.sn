@@ -11,6 +11,7 @@
  :Extension and modification: Julia Höglund
  :Date: 01-08-2023
  :Usage: snakemake -p --cores <number of cores> --snakefile <snakefile script>
+
  Params can be adjusted for any given species of interest. 
 '''
 
@@ -41,6 +42,7 @@ rule frequencies:
 
  Manual input:	
 				'vcf', 		    compressed (!) vcf containing variants from the whole population (one per chromosome). 
+								including a wildcard ($i) instead of the name of the chromosome
  				'chromosomes', 	list of chromosomes from the given species of interest. 
 
 '''
@@ -49,8 +51,8 @@ rule freq_files:
 		'output/start_step4.txt'
 	params:
 		script = SCRIPTS_4 + 'generate_frequencies.py',
-		vcf = 'Multisample_VCFs_Sscrofa11.1/Sscrofa11.1_Chr$i.vcf.gz',
-		chromosome = '1,2,3,4,5,6,7,8,9,10,11,12,12,13,14,15,16,17,18,X'
+		vcf = config['15_vcf'],
+		chromosome = config['16_chromosome']
 	output:
 		'output/finished_generating_frequencies.txt'
 	shell:
@@ -79,11 +81,11 @@ rule generate_derived:
 		'output/finished_generating_frequencies.txt'
 	params:
 		script = SCRIPTS_4 + 'derive_variants.py',
-		chromosome = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
-		ancestor = 'output/extracted_ancestor/',
-		genome = 'genome/',
-		frequency = 'output/frequencies/',
-		start = '0'
+		chromosome = config['17_chromosome'],
+		ancestor = config['17_ancestor'],
+		genome = config['17_genome'],
+		frequency = config['17_frequency'],
+		start = config['17_start']
 	output:
 		'output/finished_generate_derived.txt'
 	shell:
@@ -103,8 +105,10 @@ rule generate_derived:
 '''
  Trims lines in simulated vcf file to match with the number of lines in the derived vcf files.
   Manual input:	
-				'vcf', 		    compressed (!) vcf containing variants from the whole population (one per chromosome). 
- 				'chromosomes', 	list of chromosomes from the given species of interest. 
+				'simulated', 	path to folder containing the vcf with simulated variants. 
+ 				'derived', 	    path to folder containing the vcfs with derived variants. 
+ 				'prefixSimulated' path to derived variants.
+				'prefixDerived' prefix to simulated variant file(s).
 
 '''
 rule trim_vcf:
@@ -112,30 +116,38 @@ rule trim_vcf:
 		'output/finished_generate_derived.txt'
 	params:
 		script = SCRIPTS_4 + 'trim_variants.py',
-		simulated = 'output/dir_gen_simulated_variants_anc_site_filtered/',
-		derived = 'output/dir_filter_derived_snp/',
+		simulated = config['18_simulated'],
+		derived = config['18_simulated'],
+		prefixSimulated = config['18_prefixSimulated'],
+		prefixDerived = config['18_prefixDerived']
 	output:
 		'output/finished_simulated_vcf_trimming.txt'
 	shell:
 		'''
-		## FORTSÄTT HÄR
-		'''
-	run:
-		shell('python {params.script} -s {params.path_simu} -d {params.path_derived}')
-		shell('mkdir output/dir_trimmed_simulated_variants')
-		shell('mv trimmed_* output/dir_trimmed_simulated_variants')
+		python {params.script} \
+		-s {params.simulated} \
+		-d {params.derived} \
+		-p {params.prefixSimulated} \
+		-q {params.prefixDerived}
 
-		cat trimmed_snps_simVariants_filtered.vcf | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > tmp
-		mv tmp trimmed_snps_simVariants_filtered.vcf
+		trimmedFile=trimmed_{{params.prefixSimulated}}filtered.vcf
+		cat $trimmedFile | awk '$1 ~ /^#/ {print $0;next} {print $0 | "sort -k1,1 -k2,2n"}' > tmp
+		mv tmp $trimmedFile
 
-        # CHOP SIMULATED VARIANTS TO CHROMOSOMES
+		# CHOP SIMULATED VARIANTS TO CHROMOSOMES
         # FORMAT should only be there if there actually are some sample columns after it. 
         # (The message is misleading in this context — what it's looking for is \tFORMAT\t)
 
-        bgzip trimmed_snps_simVariants_filtered.vcf
-        tabix trimmed_snps_simVariants_filtered.vcf.gz
-        in=trimmed_snps_simVariants_filtered.vcf.gz
+        bgzip $trimmedFile
+        tabix $trimmedFile.gz
+
+        in=$trimmedFile.gz
 		out=simSNPs
 
 		for i in {1..22} X; do bcftools view ${in} --regions ${i} -o ${out}_${i}.vcf.gz -Oz; done
 		gunzip simSNPs_*
+
+		mkdir output/simulated
+		mv simSNPs_* output/simulated
+
+		'''

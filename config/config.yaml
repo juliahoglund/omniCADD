@@ -266,3 +266,48 @@ species: 'sus_scrofa'
 15_annotation: 'CDS.regions.bed'
 15_bedfile: 'Ancestor.bed'
 15_coverage: 'coverage_CDS.bed'
+
+
+####################
+#### Step four #####
+####################
+
+### RULE FREQUENCY FILES ###
+# Generates frequency files from the population variants (vcf files).
+# Population frequency files are used for the generation of the derived variants,
+# in the step where the nearly-fixed variants are extracted from all the differing
+# variants between ancestror and reference species.
+#
+# Manual input:  
+#        'vcf',          compressed (!) vcf containing variants from the whole population (one per chromosome). 
+#                        including a wildcard ($i) instead of the name of the chromosome
+#        'chromosomes',  list of chromosomes from the given species of interest. 
+
+16_vcf: 'Multisample_VCFs_Sscrofa11.1/Sscrofa11.1_Chr$i.vcf.gz'
+16_chromosome: '1,2,3,4,5,6,7,8,9,10,11,12,12,13,14,15,16,17,18,X'
+
+### RULE GENERATE DERIVED VARIANTS ###
+# Generates the derived variants by looking at all data sources (ancestral seq, genome, freq files) simultaneously.
+# Manual input:  
+#        'chromosome'  list of chromosomes from which the variants are going to be derived
+#        'ancestor',   path to the folder with the extracted ancestor
+#        'genome'      path to the reference genome folder
+#        'frequency'   path to folder with frequency files
+#        'start'       start position of the region
+
+17_chromosome: '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
+17_ancestor: 'output/extracted_ancestor/',
+17_genome: 'genome/',
+17_frequency: 'output/frequencies/',
+17_start: '0'
+
+### RULE TRIM SIMULATED VARIANTS ###
+# Trims lines in simulated vcf file to match with the number of lines in the derived vcf files.
+#  Manual input: 
+#        'simulated',   path to folder containing the vcf with simulated variants. 
+#        'derived',     path to folder containing the vcfs with derived variants. 
+
+18_simulated: 'output/',
+18_derived: 'output/derived/',
+18_prefixSimulated: 'snps_simVariants_',
+18_prefixDerived: 'derived_variants_'
