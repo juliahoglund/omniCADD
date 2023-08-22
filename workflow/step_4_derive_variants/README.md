@@ -2,9 +2,8 @@
 This is the collection of scripts that derives variants in the reference species based on the extracted ancestral sequence. First, individual level vcf files (provided by the user) is used to calculate population frequencies, where the alternative allele has a frequency above 90%. Then this information is used in the deriving of variants. Then, the simulated variants are downsampled (randomly) to match the number of derived variants.
 
 The identification is based on five criteria:
-|||||||
+|Cases|1|2|3|4|5|
 |:--|:--|:--|:--|:--|:--|
-|**Cases**| **1** | **2** | **3**	| **4**	| **5** |
 |*Ancestor* | C | C	| C	| C	| C |
 |*Reference* | C | A>0.9 | A | A>0.9 | A |
 |*Alternative* | A>0.9 | G | G>0.9 | C | A |
