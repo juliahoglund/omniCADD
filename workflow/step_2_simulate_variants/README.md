@@ -11,7 +11,7 @@ Python-specific dependencies are all exported in the conda environment `cadd.yml
 This first part is subdivided into _2_ steps:
 1. `wrapper_create_parameters.py`
   Usage:
-  `python wrapper_create_parameters.py -a <ancestor seq folder> -r <reference seq folder> -c <chromosome number> -p <ancestor seq file prefix> -r <ref seq file prefix> -s <ref species name>`
+  `python wrapper_create_parameters.py -a <ancestor seq folder> -r <reference seq folder> -c <chromosome number> -p <ancestor seq file prefix> -r <ref seq file prefix> -s <ref species name> -g <path to create_parameters file>`
   This script wraps the script `create_parameters.py` which in turn computes the number of substitutions and other data, in one file per chromosome.
 
 2. `apply_parameters.py`

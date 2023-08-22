@@ -29,6 +29,7 @@ parser.add_option("-c", "--chromosomes", dest="chr", help="List of chromosomes (
 parser.add_option("-p", "--prefix", dest="prefix", help="prefix of ancestral files", default= "Ancestor_")
 parser.add_option("-s", "--species", dest="species", help="name of species of interest",default= 'homo_sapiens')
 parser.add_option("-r", "--reference", dest="reference", help="prefix of reference species files", default= "Sus_scrofa_ref_")
+parser.add_option("-g", "--generate", dest="generate", help="path to where the 'create_parameters.py' script is located", default='scripts/')
 
 
 (options, args) = parser.parse_args()
@@ -39,7 +40,7 @@ chr_list = options.chr.split(',')
 
 # Loops through each chromosome and performs the commandline
 for chr_number in chr_list:
-	os.system('python scripts/create_parameters.py -a ' + options.an_p + options.prefix + chr_number + '_chr' + chr_number + '.fa' + ' -r ' + options.r_p + options.reference + chr_number + '.fa' + ' -c ' + chr_number + ' -o ' + options.species + '_chr' + chr_number + '.log')
+	os.system('python' + options.generate + 'create_parameters.py -a ' + options.an_p + options.prefix + chr_number + '_chr' + chr_number + '.fa' + ' -r ' + options.r_p + options.reference + chr_number + '.fa' + ' -c ' + chr_number + ' -o ' + options.species + '_chr' + chr_number + '.log')
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_substitution_calc.txt', 'x')
