@@ -1,0 +1,56 @@
+FROM bioperl/bioperl:latest
+
+ENV  LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV  PATH=/opt/src:$PATH
+ENV  LC_ALL=C
+
+WORKDIR /opt/src/
+
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get clean && \
+    apt-get -y --no-install-recommends install --fix-missing \
+    wget curl git build-essential libz-dev valgrind libatlas-base-dev \
+    perl cpanminus unzip libdbd-mysql-perl libmysqlclient-dev mysql-server
+
+# set perl environment variables
+ENV PERL_PATH=/opt/src/perl/
+ENV PERL5LIB=$PERL_PATH:$PERL_PATH/lib/perl5:$PERL5LIB
+ENV PERL_MM_OPT="INSTALL_BASE=$PERL_PATH"
+ENV PERL_MB_OPT="--install_base $PERL_PATH"
+ENV PATH="$PERL_PATH/bin:$PATH"
+
+WORKDIR /opt/src/
+
+ADD https://github.com/bioperl/bioperl-live/archive/bioperl-release-1-2-3.zip .
+
+RUN unzip bioperl-release-1-2-3.zip
+RUN mv bioperl-live-bioperl-release-1-2-3 bioperl-1.2.3
+
+RUN git config --global http.sslverify false
+RUN git clone https://github.com/Ensembl/ensembl.git
+RUN git clone https://github.com/Ensembl/ensembl-variation.git
+RUN git clone https://github.com/Ensembl/ensembl-compara.git
+RUN git clone https://github.com/Ensembl/ensembl-funcgen.git
+RUN git clone https://github.com/Ensembl/ensembl-tools.git
+
+# RUN wget ftp://ftp.ensembl.org/pub/ensembl-api.tar.gz
+# RUN tar -zxf ensembl-api.tar.gz
+
+ENV PERL5LIB=${PERL5LIB}:/opt/src/bioperl-1.2.3
+ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl/modules
+ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-variation/modules
+ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-compara/modules
+ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-funcgen/modules
+ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-tools/modules
+
+RUN cpanm --force -l $PERL_PATH \
+    Archive::Extract \
+    Archive::Tar \
+    Archive::Zip \
+    DBI \
+    DBD \
+    DBD::mysql
+
+WORKDIR /opt/src/ensembl/misc-scripts
+RUN ./ping_ensembl.pl
