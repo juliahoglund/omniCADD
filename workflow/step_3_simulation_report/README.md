@@ -2,6 +2,9 @@
 This is the collection of R scripts that together creates a summary statistics report for the simulated variants and the extracted ancestor from the two previous steps. The final output is an html file with the report that can be opened in any browser. Among other things, it gives information about the number of mutations, the type of mutations, a phylogenetic tree of the chosen nodes and species (if data is available).
 This part is fully in R.
 
+*!!!*
+*Note: depending on the amount of simulated variants in total, this step might need quite a lot of RAM to be able to create the R clump later used for visualisation*
+
 R dependencies:
 - R
 - knitr
