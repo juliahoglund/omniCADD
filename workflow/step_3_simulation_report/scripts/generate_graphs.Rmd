@@ -57,7 +57,7 @@ library(imager)
 load.fontawesome()
 
 rm(list = )
-load(paste(params$path, "graphs.RData", sep = ""))
+load(paste(params$path, "data/graphs.RData", sep = ""))
 ```
 
 # Variant simulator; report
@@ -167,6 +167,7 @@ If there is no forced sub-sampling due to lack of ancestral sequence, the distri
 
 ```{r genome distribution, echo = FALSE, include = FALSE}
 
+#### BLOBBY HERE
 if (params$ideogram == 'None') {
 
   text <- text_grob("[no ideogram information available]", face = "bold", color = "grey55", just = "bottom", size = 30)
@@ -269,22 +270,21 @@ kable(COVER, format = "pipe", align = 'r', format.args = list(big.mark = " "), c
 
 
 ```{r snp fractions, echo=FALSE, fig.width = 11, fig.height = 8, fig.align = 'center'}
-fraction.used <- 
-  simulatedSNPs %>% 
-  count(CHROM, FORMAT) %>%
-  group_by(CHROM) %>%
-  mutate(pct=n/sum(n))
-
-fraction.used$CHROM <- factor(fraction.used$CHROM, levels = str_sort(factor(unique(fraction.used$CHROM)), numeric = TRUE))
 
 fraction.plot <- 
-  ggplot(data = fraction.used, aes(CHROM, n, fill=FORMAT)) +
-  geom_bar(stat="identity") +
-  labs(y= "count", x = "chromosome") +
-  scale_fill_manual(name = "overlap", values=c('#d3bcc0', '#8f7a8a')) +
-  ggtitle("fraction of simulated variants with a corresponding non-gap position in ancestral sequence") +
-  ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
-  theme_classic()
+  stats %>% 
+    dplyr::select(chromosome, frac.covered) %>% 
+    mutate(frac.not.covered = 1-frac.covered) %>% 
+    dplyr::rename('non-overlapping' = frac.not.covered, 'overlapping' = frac.covered) %>% 
+    pivot_longer(!chromosome, names_to = "coverage", values_to = "fraction") %>%
+    mutate(coverage = factor(fct_relevel(coverage, "non-overlapping", "overlapping"))) %>% 
+    ggplot(aes(chromosome, fraction)) +
+    geom_col(aes(fill = coverage)) +
+    labs(y= "count", x = "chromosome") +
+    scale_fill_manual(name = "overlap", values=c('#d3bcc0', '#8f7a8a')) +
+    ggtitle("fraction of simulated variants with a corresponding non-gap position in ancestral sequence") +
+    ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", fraction*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
+    theme_classic()
 
 fig_legend <- plot_annotation(
   caption = "**Figure 3.** <br>
@@ -331,23 +331,23 @@ kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), ca
 ### Types of simulated mutations
 
 
-```{r variant fractions, echo = FALSE, fig.width = 11, fig.height = 8}
-mutation.types <- 
-  simulatedAncestorSNPs %>% 
-  count(CHROM, FILTER) %>%
-  group_by(CHROM) %>%
-  mutate(pct=n/sum(n))
+```{r variant fractions, echo = FALSE, fig.width = 11, fig.height = 8, warning = FALSE}
 
-mutation.types$CHROM <- factor(mutation.types$CHROM, levels = str_sort(factor(unique(mutation.types$CHROM)), numeric = TRUE))
-
-mutation.plot <-             
-  ggplot(data = mutation.types, aes(CHROM, n, fill=FILTER)) +
-  geom_bar(stat="identity") +
-  ggfittext::geom_bar_text(aes(label=paste0(sprintf("%1.1f", pct*100),"%")), color = "#333e3d", position = "stack", reflow = TRUE) +
-  labs(y= "count", x = "chromosome") + 
-  scale_fill_manual(name = "mutation type", values=c('#f2c975', '#b96d41', '#928674')) +
-  ggtitle("Fractions of mutation types across the simulated variants, with an available ancestral sequence") +
-  theme_classic()
+## here change to fullset ancestorset and the one that takes the count table directly
+mutation.plot <- 
+  ancestorset %>% 
+    dplyr::select(chromosome, frac.transitions, frac.transversions, frac.CpGs) %>% 
+    dplyr::rename('transition' = frac.transitions, 'transversion' = frac.transversions, 'CpG' = frac.CpGs) %>% 
+    pivot_longer(!chromosome, names_to = "mutations", values_to = "fraction") %>%
+    mutate(mutations = factor(fct_relevel(mutations, "transition", "transversion", "CpG"))) %>%
+    group_by(chromosome) %>% 
+    ggplot(aes(chromosome, fraction)) +
+    geom_col(aes(fill = mutations)) +
+    geom_text(aes(label=paste0(sprintf("%1.1f", fraction*100),"%"), fill = mutations), color = "#333e3d", position = position_stack(vjust = 0.1)) +
+    labs(y= "count", x = "chromosome") +
+    scale_fill_manual(name = "mutation type", values=c('#f2c975', '#b96d41', '#928674')) +
+    ggtitle("Fractions of mutation types across the simulated variants, with an available ancestral sequence") +
+    theme_classic()
 
 fig_legend <- plot_annotation(
   caption = "**Figure 4.** <br>
@@ -483,7 +483,7 @@ ancestor_seqs <- data.frame(Chr = range$chrom,
                             Value = n$n)
 
 ancestor_seqs$Chr <- factor(ancestor_seqs$Chr, levels = str_sort(factor(unique(ancestor_seqs$Chr)), numeric = TRUE))
-ancestor_seqs <- ref_genes[order(ancestor_seqs$Chr),]
+ancestor_seqs <- ancestor_seqs[order(ancestor_seqs$Chr),]
 ancestor_seqs$Chr <- as.character(ancestor_seqs$Chr)
 
 ####################################
