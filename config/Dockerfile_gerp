@@ -1,17 +1,54 @@
 FROM bioperl/bioperl:latest
 
+# this builfile builds an image with the Ensembl perl API
+# together with python3 and pip3.
+# this file corresponds to the tag 'python'
+# for a workung container for Ensembl perl API without python,
+# see gerp-annot:latest
+
 ENV  LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV  PATH=/opt/src:$PATH
 ENV  LC_ALL=C
 
 WORKDIR /opt/src/
 
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get clean && \
-    apt-get -y --no-install-recommends install --fix-missing \
-    wget curl git build-essential libz-dev valgrind libatlas-base-dev \
-    perl cpanminus unzip libdbd-mysql-perl libmysqlclient-dev mysql-server
+RUN apt-get update
+RUN apt-get -y upgrade
+RUN apt-get clean
+
+# RUN apt-get -y --no-install-recommends install --fix-missing \
+# gcc
+
+RUN apt-get -y install \
+    	build-essential \
+      libatlas-base-dev \
+      wget \
+    	curl \
+    	git \
+      unzip \
+      libz-dev \
+    	libbz2-dev \
+    	libcurl4-openssl-dev \
+    	libgsl0-dev \
+    	liblzma-dev \
+    	libncurses5-dev \
+      libmysqlclient-dev \
+    	libperl-dev \
+      libdbd-mysql-perl \
+    	libssl-dev \
+    	zlib1g-dev \
+      perl \
+      cpanminus  \
+      mysql-server \
+      python3-dev \
+      python3 \
+      python3-pip \
+        && rm -rf /var/lib/apt/lists/*
+
+# install python dependencies
+RUN pip3 install optparse-pretty
+RUN pip3 install pysam
+RUN pip3 install typing
 
 # set perl environment variables
 ENV PERL_PATH=/opt/src/perl/
