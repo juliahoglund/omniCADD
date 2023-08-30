@@ -184,22 +184,31 @@ if (params$ideogram == 'None') {
     dplyr::rename("Chrom" = "V1", "Start" = "V2", "End" = "V3") %>%
     makeGRangesFromDataFrame(.) 
   
-  SimVars <- simulatedSNPs %>%
-    dplyr::rename("Chrom" = "CHROM", "Start" = "POS") %>%
-    dplyr::select(Chrom, Start, ALT) %>%
-    mutate(End = Start) %>% 
-    relocate(ALT, .after = End)
+  plotData <- 
+    merge(SimVars, OverlapVars, by = c("CHROM", "Start"), all = T) %>% 
+    dplyr::select(CHROM, Start, n.x, n.y) %>% 
+    dplyr::rename('pos' = Start, 'chrom' = CHROM, 'non-overlap' = n.x, 'overlap' = n.y) %>% 
+    group_by(chrom) %>% 
+    mutate(bins = cut(pos, breaks = seq(from=0, to=max(pos), by=100000))) %>% 
+    group_by(chrom, bins) %>% 
+    mutate(`non-overlap` = replace_na(`non-overlap`, 0), overlap = replace_na(overlap, 0)) %>% 
+    reframe(pos = min(pos), `non-overlap` = sum(`non-overlap`), overlap = sum(overlap)) %>% 
+    distinct()
   
-  OverlapVars <- simulatedAncestorSNPs %>%
-    dplyr::rename("Chrom" = "CHROM", "Start" = "POS") %>%
-    dplyr::select(Chrom, Start, ALT) %>%
-    mutate(End = Start) %>% 
-    relocate(ALT, .after = End)
+  plotData$chrom <- factor(plotData$chrom, levels = str_sort(factor(unique(plotData$chrom)), numeric = TRUE))
+  plotData <- plotData[order(plotData$chrom),]
+  
+  # making the data frame for karyotype visualisation
+  blobby <- data.frame(chrom = info.fai$chromosome, # keep the factors, one for each chrom
+                       pos = info.fai$srcSize,
+                       name = info.fai$chromosome,
+                       value = info.fai$srcSize,
+                       low = - (min(df2$pos)*500))
 }
 
 ```
 
-```{r plot distribution, fig.width = 13, fig.height = 14, echo = FALSE}
+```{r plot distribution, fig.width = 13, fig.height = 14, echo = FALSE, warning=FALSE}
 # plot data
 # Here's a nice function for suppressing output from cat() by Hadley Wickham:
 
@@ -211,18 +220,23 @@ quiet <- function(x) {
 
 if (params$ideogram == 'None') {
   chromPLOT
+  
 } else {
   
-  quiet(
-  chromPlot(bands = sscr_ideoGram, 
-            figCols = 4, 
-            annot1 = SimVars,
-            annot2 = OverlapVars,
-            colAnnot1 = "#bababa",
-            colAnnot2 = "tomato",
-            # bin = base on genome size!
-            chr = stats$chromosome)
-  )
+  ggplot(blobby, aes(y = low, yend = low, x = pos, xend = 0)) +
+    geom_col(data = plotData, aes(x = pos, y = `non-overlap`, fill = '#bababa'), inherit.aes = FALSE, width = 100000) +
+    geom_col(data = plotData, aes(x = pos, y = overlap, fill = 'tomato'), inherit.aes = FALSE, width = 150000) +
+    scale_fill_manual('overlap', values = c('#bababa', 'tomato'), label = c('non-overlap', 'overlap')) +
+    geom_segment(linewidth = 5, color = "lightsteelblue4", lineend = "round") +
+    geom_segment(linewidth = 5, color = "lightsteelblue1") +
+    facet_wrap(.~chrom) +
+    geom_hline(yintercept = 0) +
+    labs(x = 'position (bp)', y = "count") +
+    coord_flip() +
+    theme_classic() +
+    theme(axis.line=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank())
   }
 
 ```

@@ -80,7 +80,7 @@ colnames(simulatedAncestorINDELs) <-
 
 message("Reading files for the reference genome ...")
 
-reference.fai <- read.table(opt$reference, header=F)
+reference.fai <- read.table(opt$reference, header = F)
 reference.fai <- reference.fai %>%
   dplyr::select(V1, V3) %>%
   dplyr::rename("chromosome" = "V1", "size" = "V3")
@@ -217,10 +217,6 @@ for (i in 1:nrow(mutations)) {
 fullset$chromosome <- factor(fullset$chromosome, levels = str_sort(factor(fullset$chromosome), numeric = TRUE))
 
 
-##########################
-
-message("Making output pretty ..")
-
 ancestorset <- data.frame(
   chromosome = ancestor.fai$chromosome,
   no.SNPs = c(rep(0, nrow(ancestor.fai))),
@@ -279,37 +275,63 @@ for (i in 1:nrow(mutations)) {
 
 ancestorset$chromosome <- factor(ancestorset$chromosome, levels = str_sort(factor(ancestorset$chromosome), numeric = TRUE))
 
-colnames(simulatedAncestorSNPs)
-simulatedAncestorSNPs$FILTER <- "transversion"
-simulatedAncestorSNPs$FILTER[which((simulatedAncestorSNPs$REF == 'A') & (simulatedAncestorSNPs$ALT == 'G'))] <- "transition"
-simulatedAncestorSNPs$FILTER[which((simulatedAncestorSNPs$REF == 'G') & (simulatedAncestorSNPs$ALT == 'A'))] <- "transition"
-simulatedAncestorSNPs$FILTER[which((simulatedAncestorSNPs$REF == 'T') & (simulatedAncestorSNPs$ALT == 'C'))] <- "transition"
-simulatedAncestorSNPs$FILTER[which((simulatedAncestorSNPs$REF == 'C') & (simulatedAncestorSNPs$ALT == 'T'))] <- "transition"
-simulatedAncestorSNPs$FILTER[which(simulatedAncestorSNPs$INFO == 'CpG')] <- "CpG"
 
-simulatedSNPs$FILTER <- "transversion"
-simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'A') & (simulatedSNPs$ALT == 'G'))] <- "transition"
-simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'G') & (simulatedSNPs$ALT == 'A'))] <- "transition"
-simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'T') & (simulatedSNPs$ALT == 'C'))] <- "transition"
-simulatedSNPs$FILTER[which((simulatedSNPs$REF == 'C') & (simulatedSNPs$ALT == 'T'))] <- "transition"
-simulatedSNPs$FILTER[which(simulatedSNPs$INFO == 'CpG')] <- "CpG"
+###################################
+#### TRANSFORM DATA FOR GRAPHS ####
+###################################
+message("Making output pretty ..")
 
+# ## stacked bargraphs
 simulatedSNPs <- 
-  simulatedSNPs %>% 
-    group_by(CHROM) %>% 
-    group_split()
+  simulatedSNPs %>%
+  group_by(CHROM) %>%
+  dplyr::select(POS, CHROM, ALT) %>%
+  mutate(overlap = 'non-overlapping') %>% 
+  group_split()
 
 simulatedAncestorSNPs <- 
-  simulatedAncestorSNPs %>% 
-  group_by(CHROM) %>% 
+  simulatedAncestorSNPs %>%
+  group_by(CHROM) %>%
+  dplyr::select(POS, CHROM, ALT) %>%
+  mutate(overlap = 'overlapping') %>% 
   group_split()
 
 matchPos <- function(a, b) {
-  list(mutate(a, check = ifelse(a$POS %in% b$POS, "overlapping", "non-overlapping")))
+  list(
+    mutate(a, check = ifelse(a$POS %in% b$POS, "overlap", "non-overlapping")
+           )
+    )
 }
 
-simulatedSNPs <- mapply(matchPos, simulatedSNPs, simulatedAncestorSNPs)
-simulatedSNPs <- bind_rows(simulatedSNPs)
+simulatedOVERLAP <-
+  mapply(matchPos, simulatedSNPs, simulatedAncestorSNPs) %>%
+  bind_rows() %>%
+  # how many bns are enough.. 1000? 10 000?
+  mutate(bins = cut(POS, breaks = 1000)) %>%
+  group_by(bins, CHROM) %>%
+  reframe(overlaps = sum(check=='overlap'), nonOverlaps = sum(check=='non-overlapping'),
+          Start = min(POS), End = max(POS)) %>%
+  relocate(CHROM, Start, End, overlaps, nonOverlaps, bins)
+
+SimVars <- 
+  simulatedSNPs %>% 
+  lapply(. %>% mutate(bins = cut(POS, breaks = seq(from=0, to=max(POS), by=100000)))) %>% 
+  lapply(. %>% mutate(ALT = 1)) %>% 
+  lapply(. %>% group_by(CHROM,bins)) %>% 
+  lapply(. %>% mutate(n = sum(ALT))) %>%
+  lapply(. %>% reframe(Start = min(POS), End = max(POS), n = n)) %>% 
+  lapply(. %>% distinct()) %>% 
+  bind_rows()
+
+OverlapVars <-
+  simulatedAncestorSNPs %>% 
+  lapply(. %>% mutate(bins = cut(POS, breaks = seq(from=0, to=max(POS), by=100000)))) %>% 
+  lapply(. %>% mutate(ALT = 1)) %>% 
+  lapply(. %>% group_by(CHROM,bins)) %>% 
+  lapply(. %>% mutate(n = sum(ALT))) %>%
+  lapply(. %>% reframe(Start = min(POS), End = max(POS), n = n)) %>% 
+  lapply(. %>% distinct()) %>% 
+  bind_rows()
 
 #########################
 
@@ -337,6 +359,6 @@ substitutions[] <- lapply(substitutions, str_replace_all, "(\\d+\\.\\d+)", repla
 ## SAVE
 message("Creating data clump ...")
 
-save(substitutions, simulatedSNPs, simulatedAncestorSNPs, stats, data, info, fullset, ancestorset, info.fai, file ="graphs.RData")
+save(substitutions, simulatedOVERLAP, SimVars, OverlapVars, stats, data, info, fullset, ancestorset, info.fai, file ="graphs.RData")
 
 
