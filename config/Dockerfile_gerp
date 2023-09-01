@@ -1,14 +1,5 @@
 FROM bioperl/bioperl:latest
 
-# this builfile builds an image with the Ensembl perl API
-# together with python3 and pip3.
-# this file corresponds to the tag 'python'
-# for a working container for Ensembl perl API without python,
-# see gerp-annot:latest
-# NOTE!! as BioPerl has not been updated after python3.4,
-# scripts have to be run with 'python3.11 <script>' explicitly
-# to access the latest python version.
-
 ### ENVIRONMENT ###
 ENV  LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV  PATH=/opt/src:$PATH
@@ -22,8 +13,6 @@ RUN apt-get update
 RUN apt-get -y upgrade
 RUN apt-get clean
 
-# RUN apt-get -y --no-install-recommends install --fix-missing \
-
 RUN apt-get -y install \
     	build-essential \
       libatlas-base-dev \
@@ -31,24 +20,26 @@ RUN apt-get -y install \
     	curl \
     	git \
       unzip \
-      libz-dev \
+      libbz2-dev \
       libc6-dev \
-    	libbz2-dev \
-      libnss3-dev \
-      libgdbm-dev \
-      libffi-dev \
-      libsqlite3-dev \
-    	libcurl4-openssl-dev \
-    	libgsl0-dev \
-      libreadline-dev \
-    	liblzma-dev \
-    	libncurses5-dev \
-      libncursesw5-dev \
-      libmysqlclient-dev \
-    	libperl-dev \
+      libcurl4-openssl-dev \
       libdbd-mysql-perl \
-    	libssl-dev \
-    	zlib1g-dev \
+      libffi-dev \
+      libgdbm-dev \
+      libgsl0-dev \
+      liblzma-dev \
+      libmysqlclient-dev \
+      libncurses5-dev \
+      libncursesw5-dev \
+      libnss3-dev \
+      libpcap-dev \
+      libperl-dev \
+      libreadline-dev \
+      libsqlite3-dev \
+      libtk8.6 \
+      libz-dev \
+      openssl \
+      zlib1g-dev \
       tk-dev \
       perl \
       cpanminus  \
@@ -65,11 +56,6 @@ ENV PATH="$PERL_PATH/bin:$PATH"
 
 WORKDIR /opt/src/
 
-ADD https://github.com/bioperl/bioperl-live/archive/bioperl-release-1-2-3.zip .
-
-RUN unzip bioperl-release-1-2-3.zip
-RUN mv bioperl-live-bioperl-release-1-2-3 bioperl-1.2.3
-
 RUN git config --global http.sslverify false
 RUN git clone https://github.com/Ensembl/ensembl.git
 RUN git clone https://github.com/Ensembl/ensembl-variation.git
@@ -80,7 +66,6 @@ RUN git clone https://github.com/Ensembl/ensembl-tools.git
 # RUN wget ftp://ftp.ensembl.org/pub/ensembl-api.tar.gz
 # RUN tar -zxf ensembl-api.tar.gz
 
-ENV PERL5LIB=${PERL5LIB}:/opt/src/bioperl-1.2.3
 ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl/modules
 ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-variation/modules
 ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-compara/modules
@@ -95,25 +80,27 @@ RUN cpanm --force -l $PERL_PATH \
     DBD \
     DBD::mysql
 
-### PYTHON 3.11 ###
+### PYTHON 3.9 ###
 RUN apt-get update && \
-    apt-get install -y software-properties-common
+    apt-get install -y software-properties-common \
+    libssl-dev
 
 WORKDIR /opt/src/
 
-RUN wget https://www.python.org/ftp/python/3.11.1/Python-3.11.1.tar.xz && \
-    tar -xf Python-3.11.1.tar.xz
+RUN wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tar.xz && \
+    tar -xf Python-3.9.0.tar.xz
 
-WORKDIR /opt/src/Python-3.11.1/
+WORKDIR /opt/src/Python-3.9.0/
 
 RUN ./configure && \
     make altinstall
 
-    # install python dependencies
-    RUN apt-get -y install python3-pip
-    RUN pip3 install optparse-pretty
-    RUN pip3 install pysam
-    RUN pip3 install typing
+# install python dependencies
+RUN pip3.9 install --upgrade pip
+RUN pip3.9 install optparse pysam \
+      --trusted-host pypi.python.org \
+      --trusted-host files.pythonhosted.org \
+      --trusted-host pypi.org
 
 ### ping to test ###
 WORKDIR /opt/src/ensembl/misc-scripts
