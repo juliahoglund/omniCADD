@@ -15,6 +15,7 @@ RUN apt-get clean
 
 RUN apt-get -y install \
     	build-essential \
+      software-properties-common \
       libatlas-base-dev \
       wget \
     	curl \
@@ -81,26 +82,28 @@ RUN cpanm --force -l $PERL_PATH \
     DBD::mysql
 
 ### PYTHON 3.9 ###
-RUN apt-get update && \
-    apt-get install -y software-properties-common \
-    libssl-dev
-
 WORKDIR /opt/src/
+
+RUN wget --no-check-certificate https://www.openssl.org/source/openssl-1.1.1v.tar.gz && \
+    tar -xf openssl-1.1.1v.tar.gz && \
+    cd openssl-1.1.1v && \
+    ./config && \
+    make && \
+    make install
 
 RUN wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tar.xz && \
     tar -xf Python-3.9.0.tar.xz
 
 WORKDIR /opt/src/Python-3.9.0/
 
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 RUN ./configure && \
+    make && \
     make altinstall
 
 # install python dependencies
 RUN pip3.9 install --upgrade pip
-RUN pip3.9 install optparse pysam \
-      --trusted-host pypi.python.org \
-      --trusted-host files.pythonhosted.org \
-      --trusted-host pypi.org
+RUN pip3.9 install pysam 
 
 ### ping to test ###
 WORKDIR /opt/src/ensembl/misc-scripts
