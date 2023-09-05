@@ -17,7 +17,7 @@ all start positions are requested immediately per chromosome.
 :Date: 14-11-2022
 :Extension and modification: Julia Höglund
 :Date: 2023-08-24
-:Usage: python <script.py> -o <Outputfile location> -f <Reference chromosome> -s <Species of interest>
+:Usage: python <script.py> -o <Outputfile location> -f <Reference chromosome directory> -s <Species of interest>
 
 """
 
