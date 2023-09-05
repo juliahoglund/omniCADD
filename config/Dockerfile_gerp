@@ -1,4 +1,5 @@
-FROM bioperl/bioperl:latest
+# FROM bioperl/bioperl:latest
+FROM ubuntu:jammy
 
 ### ENVIRONMENT ###
 ENV  LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -15,6 +16,7 @@ RUN apt-get clean
 
 RUN apt-get -y install \
     	build-essential \
+      software-properties-common \
       libatlas-base-dev \
       wget \
     	curl \
@@ -44,6 +46,8 @@ RUN apt-get -y install \
       perl \
       cpanminus  \
       mysql-server \
+      python3 \
+      pip \
         && rm -rf /var/lib/apt/lists/*
 
 ### PERL & ENSEMBL API ###
@@ -55,6 +59,9 @@ ENV PERL_MB_OPT="--install_base $PERL_PATH"
 ENV PATH="$PERL_PATH/bin:$PATH"
 
 WORKDIR /opt/src/
+RUN wget https://github.com/bioperl/bioperl-live/archive/refs/tags/release-1-7-2.zip
+RUN unzip release-1-7-2.zip
+RUN mv bioperl-live-release-1-7-2 bioperl-1.7.2
 
 RUN git config --global http.sslverify false
 RUN git clone https://github.com/Ensembl/ensembl.git
@@ -66,6 +73,7 @@ RUN git clone https://github.com/Ensembl/ensembl-tools.git
 # RUN wget ftp://ftp.ensembl.org/pub/ensembl-api.tar.gz
 # RUN tar -zxf ensembl-api.tar.gz
 
+ENV PERL5LIB ${PERL5LIB}:/opt/src/bioperl-1.7.2
 ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl/modules
 ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-variation/modules
 ENV PERL5LIB=${PERL5LIB}:/opt/src/ensembl-compara/modules
@@ -80,27 +88,9 @@ RUN cpanm --force -l $PERL_PATH \
     DBD \
     DBD::mysql
 
-### PYTHON 3.9 ###
-RUN apt-get update && \
-    apt-get install -y software-properties-common \
-    libssl-dev
-
-WORKDIR /opt/src/
-
-RUN wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tar.xz && \
-    tar -xf Python-3.9.0.tar.xz
-
-WORKDIR /opt/src/Python-3.9.0/
-
-RUN ./configure && \
-    make altinstall
-
 # install python dependencies
-RUN pip3.9 install --upgrade pip
-RUN pip3.9 install optparse pysam \
-      --trusted-host pypi.python.org \
-      --trusted-host files.pythonhosted.org \
-      --trusted-host pypi.org
+RUN pip3 install --upgrade pip
+RUN pip3 install pysam
 
 ### ping to test ###
 WORKDIR /opt/src/ensembl/misc-scripts
