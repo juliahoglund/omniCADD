@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 # -*- coding: ASCII -*-
 
 """
@@ -24,7 +24,7 @@ from optparse import OptionParser
 parser = OptionParser()
 parser.add_option("-p","--phylo", dest="phylo", help="path to formatted file containing phyloP scores",default="./phyloP_scores.txt")
 parser.add_option("-f","--phast", dest="phast", help="path to formatted file containing phastCons scores",default="./phastCons_scores.txt")
-parser.add_option("-n","--chromosome", dest="chromosome", help="list of considered chromosomes",default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X")
+parser.add_option("-n","--chromosomes", dest="chromosome", help="list of considered chromosomes",default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X")
 parser.add_option("-c","--clean", dest="clean", help="remove original genomewide files? [yes/no]; default: no",default="no")
 
 
@@ -32,7 +32,7 @@ parser.add_option("-c","--clean", dest="clean", help="remove original genomewide
 
 
 # Iterate over the chromosomes.  
-for chr_num in options.chr.split(','):
+for chr_num in options.chromosomes.split(','):
 	
 	# Create output.
 	if 'phastCons' in options.phast:
