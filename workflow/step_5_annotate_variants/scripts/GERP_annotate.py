@@ -19,6 +19,8 @@ all start positions are requested immediately per chromosome.
 :Date: 2023-08-24
 :Usage: python <script.py> -o <Outputfile location> -f <Reference chromosome directory> -s <Species of interest>
 
+# note!
+# not used in current version of pipeline
 """
 
 

@@ -63,7 +63,7 @@ RUN wget https://github.com/bioperl/bioperl-live/archive/refs/tags/release-1-7-2
 RUN unzip release-1-7-2.zip
 RUN mv bioperl-live-release-1-7-2 bioperl-1.7.2
 
-### Ensembk API
+### Ensembl API
 RUN git config --global http.sslverify false
 RUN git clone https://github.com/Ensembl/ensembl.git
 RUN git clone https://github.com/Ensembl/ensembl-variation.git

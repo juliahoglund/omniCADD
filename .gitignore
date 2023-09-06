@@ -15,3 +15,4 @@ workflow/step_3_simulation_report/HOWTO3.md
 workflow/step_5_annotate_variants/HOWTO5.md
 workflow/step_5_annotate_variants/HOWTO5.md
 config/ensemblAPI.yml
+workflow/step_5_annotate_variants/scripts/getelem.pl
