@@ -94,18 +94,13 @@ for fn in os.listdir(options.genome):
 		ref_list.append(fn)
 ref_list = natsort.natsorted(ref_list)
 
+freq_list = []
 # Create list for ancestor input
-freq_hi_list = []
-freq_lo_list = []
 for fn in os.listdir(options.frequency):
-	if fn.endswith('out') and "reversed" not in fn: 
-		freq_hi_list.append(fn)
-	elif fn.endswith('out') and "reversed" in fn:
-		freq_lo_list.append(fn)
+	if fn.endswith('out'): 
+		freq_list.append(fn)
 
-freq_hi_list = natsort.natsorted(freq_hi_list)
-freq_lo_list = natsort.natsorted(freq_lo_list)
-
+freq_list = natsort.natsorted(freq_list)
 
 # Creates a list for the chromosomes
 chr_list = options.chromosome.split(',')
@@ -113,12 +108,12 @@ chr_list = options.chromosome.split(',')
 # Check if the nt are written in upper (unmasked) or lower case (masked), 
 # depending on this, the script writes it in one of the two output files.
 # change this later as well maybe or move it down
-def write_line(chrom, pos, reference, an, output_low, output_high):
+def write_line(chrom, pos, reference, an, output):
 	if (reference in 'ACGTacgt') and (an in 'ACGTacgt'):
 		if an.islower():
-			output_low.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
+			output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an.upper()))
 		else:
-			output_high.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
+			output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
 
 
 for chromosome in chr_list:
@@ -128,7 +123,7 @@ for chromosome in chr_list:
 	print(ancestor_file)
 	reference_file = [x for x in ref_list if chromosome in x][0]
 	print(reference_file)
-	frequency_file = [x for x in freq_hi_list if chromosome in x][0]
+	frequency_file = [x for x in freq_list if chromosome in x][0]
 	print(frequency_file)
 
 	# Define input files for the ancestral sequence and the reference. 
@@ -157,10 +152,8 @@ for chromosome in chr_list:
 		print('Ancestor sequence control: chr ' + str(chromosome) +', sequence is good')
 
 	# Create output files for upper and lower case variants.
-	output_high = open("derived_variants_chr%s_case_upper.vcf" %chromosome, 'w')
-	output_low = open("derived_variants_chr%s_case_lower.vcf" %chromosome, 'w')
-	output_low.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
-	output_high.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+	output = open("derived_variants_chr%s.vcf" %chromosome, 'w')
+	output.write("##fileformat=VCFv4.0\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
 
 	# Split the ancestor and reference sequences in chunks of 350000.
 	# Done so that the script reads this in chunks. 
@@ -227,7 +220,6 @@ for chromosome in chr_list:
 					
 		index_outer = (index_outer[1], index_outer[1] + 350000)		
 				
-output_high.close()
-output_low.close()
+output.close()
 
 
