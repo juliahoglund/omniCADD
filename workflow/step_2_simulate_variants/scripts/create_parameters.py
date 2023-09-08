@@ -55,12 +55,12 @@ parser.add_option("-o", "--outfile", dest="outfile", help="name of output file",
 anc_open = open(options.ancestor)
 anc_open.readline() # empty
 anc_open.readline() # header
-anc_str = anc_open.readline().replace('\n', '') # sequence
+anc_str = anc_open.readline().replace('\n', '').upper() # sequence
 
 ref_open = open(options.reference)
 ref_open.readline() # empty
 ref_open.readline() # header
-ref_str = ref_open.readline().replace('\n', '') # sequence
+ref_str = ref_open.readline().replace('\n', '').upper() # sequence
 
 # Function for turning seq into string and then to list per nt.
 def stringTOlist(seq):
