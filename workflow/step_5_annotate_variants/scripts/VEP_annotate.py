@@ -34,8 +34,7 @@ simulated_list = sorted(simulated_list)
 
 derived_list = []
 for fn in os.listdir(options.derived):
-	if 'upper' in fn: 
-		derived_list.append(fn)
+	derived_list.append(fn)
 derived_list = sorted(derived_list)
 
 # Iterate over sorted list.
@@ -58,7 +57,7 @@ for fn in derived_list:
 		
 	# Determine chr number. 
 	chr_num_d = fn.split('chr')[-1]
-	chr_num_d = chr_num_d.replace('_case_upper.vcf', '')
+	chr_num_d = chr_num_d.replace('.vcf', '')
 		
 	# Perform commandline.
 	os.system('vep --input_file '+ options.derived + fn +' --quiet --cache --dir $VEP_CACHE --buffer 1000 --no_stats --species '+ options.species +' --format vcf --regulatory --sift b --per_gene --ccds --domains --numbers --canonical --total_length --force_overwrite --output_file temp.vcf')
