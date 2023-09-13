@@ -143,8 +143,8 @@ species: 'sus_scrofa'
 # use full path
 8_ancGenome: 'Ancestor_Pig_Cow.$i\_chr$i'
 # use $i as it will be a placeholder for chr. numbers in a loop
-8_ancX: 'Ancestor_Pig_Cow.X_chrX.fa'
-# full name of X file. remove full line if only autosomals are used
+8_nChromosomes: '18'
+# number of chromosomes to format, X is hardcoded
 
 #### RULE APPLY PARAMETERS ###
 # Applies the parameters from the previous step and simulates genetic variant based on those parameters. It creates on genome-wide vcf-file.
