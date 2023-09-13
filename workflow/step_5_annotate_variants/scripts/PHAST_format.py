@@ -19,8 +19,6 @@ python PHAST_format.py -w ./ -c no
 # https://genome.ucsc.edu/cgi-bin/hgTables
 # https://hgdownload.soe.ucsc.edu/downloads.html
 # http://hgdownload.cse.ucsc.edu/goldenpath/hg19/
-
-
 """
 
 # Import dependencies.
@@ -28,7 +26,6 @@ import sys, os
 from os import listdir
 from optparse import OptionParser
 import json
-
 
 # OptionParser for input. 
 parser = OptionParser()
@@ -44,7 +41,7 @@ for fn in os.listdir(options.wig):
 	if fn.startswith('phastCons'):
 		pC_fn = fn
 	elif fn.startswith('phyloP'):
-		pP_fn = fn
+		pP_fn = fn		
 		
 # Function for creating a dict for the scores in the files.
 # Input: Opened phastCons or phyloP wig file with its output name. 
@@ -78,25 +75,24 @@ def scoresToDict(open_f, outn):
 			score = line.replace('\n', '')
 			outp.write(str(chr_num)+'\t'+str(start)+'\t'+str(score)+'\n')
 			start += step
-			
-	return None
 
+	return None
 
 # Open files.
 open_pC = open(options.wig + pC_fn, 'r')
 open_pP = open(options.wig + pP_fn, 'r')
 
-
 # Perform function 'scoresToDict'.
 print('Working on ' + pC_fn)
 pC_out_dict = scoresToDict(open_pC, "phastCons_scores.txt")
+os.system('gzip phastCons_scores.txt')
 print('Working on ' + pP_fn)
 pP_out_dict = scoresToDict(open_pP, "phyloP_scores.txt")
+os.system('gzip phyloP_scores.txt')
 
 if options.clean=='yes':
 	os.system('rm ' + str(options.wig) + 'phastCons*')
 	os.system('rm ' + str(options.wig) + 'phyloP*')
-
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_format_wig.txt', 'x')
