@@ -30,7 +30,7 @@ import json
 
 # OptionParser for input. 
 parser = OptionParser()
-parser.add_option("-p","--phast", dest="phast", help="Path to formatted PHAST files", default="./")
+parser.add_option("-p","--phast", dest="phast", help="Path to formatted PHAST files", default="annotations/")
 parser.add_option("-l","--liftover", dest="liftover", help="Path (and name of) lift-over file", default="annotations/hg38ToSusScr11.over.chain.gz")
 parser.add_option("-t","--tidy", dest="clean", help="Remove wig files after reformatting? [yes/no]; default: no", default="no")
 
@@ -40,18 +40,19 @@ parser.add_option("-t","--tidy", dest="clean", help="Remove wig files after refo
 # 2 liftover
 # 3 zip
 # 4. remove if yes 
-filenames = [x for x in os.listdir(options.phast) if x.endswith('scores.txt.gz')]
+filenames = [x for x in os.listdir(options.phast) if x.endswith('scores.bed.gz')]
 
 for file in filenames:
+	print('working on ' + str(options.phast) + str(file))
 	os.system('gunzip ' + str(options.phast) + str(file))
 	file = file.replace('.gz', '')
-	os.system('liftOver ' + file + ' ' + options.liftover + ' ' + str(file.replace('.txt', '_lifted.tsv')) + ' unMapped_' + str(file))
-	os.system('gzip ' + str(file.replace('.txt', '_lifted.tsv')))
+	os.system('liftOver ' + str(options.phast) + str(file) + ' ' + str(options.liftover) + ' ' + str(file.replace('.bed', '_lifted.bed')) + ' unMapped_' + str(file))
+	os.system('gzip ' + str(file.replace('.bed', '_lifted.bed')))
 	os.system('gzip ' + str(options.phast) + str(file))
 
-if options.tidy=='yes':
-	os.system('rm ' + str(options.phast) + '*phastCons_scores.txt.gz')
-	os.system('rm ' + str(options.phast) + '*phyloP_scores.txt.gz')
+if options.clean=='yes':
+	os.system('rm ' + str(options.phast) + '*phastCons_scores.bed.gz')
+	os.system('rm ' + str(options.phast) + '*phyloP_scores.bed.gz')
 
 # Create a txt file indicating that this process is finished (for snakemake)
 indication = open('finished_phast_lifover.txt', 'x')
