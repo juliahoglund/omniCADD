@@ -48,7 +48,7 @@ rule create_parameters:
 
         refGenome = config['8_reference'],
         ancGenome = config['8_ancGenome'],
-        ancX = config['8_ancX']
+        nChromosomes = config['8_nChromosomes']
 
     output:
         'output/finished_substitution_calc.txt'
@@ -59,14 +59,10 @@ rule create_parameters:
         awk '/^>/ {{ gsub(">","",$1); FILE={params.refGenome}$1".fa"; print ">" $1 >> FILE; next}}; {{ print >> FILE }}' {params.refGenome}.fa && rm {params.refGenome}AEMK*.fa && rm {params.refGenome}FPKY*.fa
 
         # MULTILINE REF GENOME TO SINGLE LINE
-        for i in {{1..18}}; do echo "Reference sequences:" && echo "Formatting multiline fasta to single line fasta ($i of 18)..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.refGenome}$i.fa > tmp && mv tmp {params.refGenome}$i.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"; done
-
-        echo "Formatting multiline fasta to single line fasta ..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.refGenome}X.fa > tmp && mv tmp {params.refGenome}X.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"
+        for i in {{1..{params.nChromosomes}}} X; do echo "Reference sequences:" && echo "Formatting multiline fasta to single line fasta ($i of 18)..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.refGenome}$i.fa > tmp && mv tmp {params.refGenome}$i.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"; done
 
         # MULTILINE ANCESTOR TO SINGLE LINE
-        for i in {{1..18}}; do echo "Ancestral sequences:" && echo "Formatting multiline fasta to single line fasta ($i of 18)..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.ancGenome}.fa > tmp && mv tmp {params.ancGenome}.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"; done
-
-        echo "Formatting multiline fasta to single line fasta ..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.ancX} > tmp && mv tmp {params.ancX} && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"
+        for i in {{1..{params.nChromosomes}}} X; do echo "Ancestral sequences:" && echo "Formatting multiline fasta to single line fasta ($i of 18)..." && start=$(date +%s) && awk '/^>/ {{printf("\n%s\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\n");}}' {params.ancGenome}.fa > tmp && mv tmp {params.ancGenome}.fa && end=$(date +%s) && echo "Elapsed time: $(($end-$start)) seconds"; done
 
         python {params.script} \
         -a {params.ancestor} \
