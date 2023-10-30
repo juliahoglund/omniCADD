@@ -45,14 +45,20 @@ for fn in file_list:
 	fn = fn.replace('.gz', '')
 
 	# Perform commandline.
+
 	# server with cache dir: add --dir $VEP_CACHE remove --offline
-	os.system('vep --input_file '+ options.vcf + fn +' --quiet --cache --dir $VEP_CACHE --buffer 1000 --no_stats --species '+ options.species +' --format vcf --regulatory --sift b --per_gene --ccds --domains --numbers --canonical --total_length --force_overwrite --output_file temp.vcf')
-	os.system('''cat temp.vcf | awk 'BEGIN{ FS="\t"; OFS="\t"; }{ if ($1 ~ /^#/) { if ($1 ~ /^#Up/) { sub("#","",$1); print "#Chrom","Start","End",$0 } else { print } } else { split($2,a,":"); split(a[2],b,"-"); if (length(b) == 2) { print a[1],b[1],b[2],$0 } else { print a[1],b[1],b[1],$0 } }}' >> allVars_chr'''+ chr_num +'''_VEP-annotated.vcf''')
 	
+	# change $vcffile to temp.vcf for original
+	os.system('vep --input_file '+ options.vcf + fn +' --quiet --cache --dir $VEP_CACHE --buffer 1000 --no_stats --species '+ options.species +' --format vcf --regulatory --sift b --per_gene --ccds --domains --numbers --canonical --total_length --force_overwrite --output_file allVars_chr'+ chr_num +'_VEP-annotated.vcf')
 	# zip vcf back
 	os.system('gzip ' + options.vcf + fn)
+
+	os.system('''gawk -i inplace 'BEGIN{ FS="\t"; OFS="\t"; }{ if ($1 ~ /^#/) { if ($1 ~ /^#Up/) { sub("#","",$1); print "#Chrom","Start","End",$0 } else { print } } else { split($2,a,":"); split(a[2],b,"-"); if (length(b) == 2) { print a[1],b[1],b[2],$0 } else { print a[1],b[1],b[1],$0 } }}' allVars_chr'''+ chr_num +'''_VEP-annotated.vcf''')
+	# os.system('''cat temp.vcf | awk 'BEGIN{ FS="\t"; OFS="\t"; }{ if ($1 ~ /^#/) { if ($1 ~ /^#Up/) { sub("#","",$1); print "#Chrom","Start","End",$0 } else { print } } else { split($2,a,":"); split(a[2],b,"-"); if (length(b) == 2) { print a[1],b[1],b[2],$0 } else { print a[1],b[1],b[1],$0 } }}' >> allVars_chr'''+ chr_num +'''_VEP-annotated.vcf''')
+	
+
 	# zip created output (is bgzip better already here?)
-	os.system('gzip allVars_chr' + chr_num + '_VEP-annotated.vcf')
+	os.system('gzip allVars_chr $vcffile')
 
 
 # Create a txt file indicating that this process is finished (for snakemake)
