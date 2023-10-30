@@ -21,7 +21,7 @@ include: "workflow/Snakefile_ancestor.sn"		# step one
 include: "workflow/Snakefile_simulate.sn"		# step two
 include: "workflow/Snakefile_stats.sn"			# step three
 include: "workflow/Snakefile_derive.sn"			# step four
-include: "workflow/Snakefile_annotate.sn" 		# step five
+include: "workflow/Snakefile_annotations.sn" 	# step five
 
 ############################# PSEUDORULE #################################
 
