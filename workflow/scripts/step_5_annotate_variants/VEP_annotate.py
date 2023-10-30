@@ -48,7 +48,7 @@ for fn in simulated_list:
 
 	# Perform commandline.
 	# server with cache dir: add --dir $VEP_CACHE remove --offline
-	os.system('vep --input_file '+ options.simulated + fn +' --quiet --cache --dir $VEP_CACHE --buffer 1000 --no_stats --species '+ options.species +' --format vcf --regulatory --sift b --per_gene --ccds --domains --numbers --canonical --total_length --force_overwrite --output_file temp.vcf')
+	os.system('vep --input_file '+ options.simulated + fn +' --quiet --cache --dir $VEP_CACHE --buffer 1000 --no_stats --species '+ options.species +' --format vcf --regulatory --sift b --per_gene --ccds --domains --numbers --canonical --total_length --force_overwrite --stats_file' + fn +'.html --output_file temp.vcf')
 	os.system('''cat temp.vcf | awk 'BEGIN{ FS="\t"; OFS="\t"; }{ if ($1 ~ /^#/) { if ($1 ~ /^#Up/) { sub("#","",$1); print "#Chrom","Start","End",$0 } else { print } } else { split($2,a,":"); split(a[2],b,"-"); if (length(b) == 2) { print a[1],b[1],b[2],$0 } else { print a[1],b[1],b[1],$0 } }}' >> simulated_chr'''+ chr_num_s +'''_VEP-annotated.vcf''')
 	
 

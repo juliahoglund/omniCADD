@@ -13,3 +13,8 @@ This is the collection of scripts that annotated the simulate dand derived varia
 |**R**|Regulatory_Region|**U5**|5Prime_UTR;|
 |**U3**|3Prime_UTR;|**I**|Intronic;|
 |**O**| Unknown|
+
+GERP scores the quesries from the ensemble API is now coded / implemented towards mammals (sätt referenser här till wllcome trust och embl?)
+the scripts for the api here (`getgerp.pl` and `getelem.pl`) copyrighted by wellcome trust and embl, and licensed under the apache license version 2.0¨
+
+dependencies conda snakemake perl internet??? bigwig something?
