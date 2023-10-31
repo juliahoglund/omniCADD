@@ -11,13 +11,16 @@ if available.
 When finished all alignments with the sequence of interest are in the relevant
 chromosome output file.
 
-:Edited by: Job van Schipstal :Date: 26-9-2023
+:Edited by: Job van Schipstal 
+ :Date: 26-9-2023
 :Example: python chr_sorting.py --species mm39 -i file1 ... file_n -o file...
 - Removed redundant code, reformatted according to PEP8 guidelines.
 - Accepts gzipped or lz4 compressed input or output files.
 - Expects list of input and output files via argparse,
 instead of searching for files in a given folder.
 
+:Extension and modification: Julia Höglund
+:Date: 31-10-2023
 """
 # Import dependencies
 import gzip
@@ -27,24 +30,24 @@ import sys
 from argparse import ArgumentParser
 import lz4.frame
 
-PARSER = ArgumentParser(description=__doc__)
+PARSER = ArgumentParser(description = __doc__)
 PARSER.add_argument("-i", "--input",
-                    help="maf alignment file(s) which are to be sorted by "
-                         "chromosome", type=str, required=True, nargs="+")
+                    help = "maf alignment file(s) which are to be sorted by "
+                         "chromosome", type = str, required = True, nargs = "+")
 PARSER.add_argument("-o", "--output",
-                    help="Output alignment file(s), one per chr, has to end "
+                    help = "Output alignment file(s), one per chr, has to end "
                          "with chr[chr].maf(.gz|.lz4) ",
-                    type=str, required=True, nargs="+")
+                    type = str, required = True, nargs = "+")
 PARSER.add_argument("-s", "--species",
-                    help="name/label of the species by which the alignments "
+                    help = "name/label of the species by which the alignments "
                          "should be sorted, expected to be first in the "
-                         "sequence, ignored if not", type=str, required=True)
+                         "sequence, ignored if not", type = str, required = True)
 PARSER.add_argument("-l", "--logfile",
-                    help="logfile (default chr_sorting_log.txt)", type=str,
-                    default="chr_sorting_log.txt")
+                    help = "logfile (default chr_sorting_log.txt)", type = str,
+                    default = "chr_sorting_log.txt")
 PARSER.add_argument("-p", "--prefix",
-                    help="prefix for chr in sequence label e.g. chr for "
-                         "mm39.chr19 (default None)", type=str, default="None")
+                    help = "prefix for chr in sequence label e.g. chr for "
+                         "mm39.chr19 (default None)", type = str, default = "None")
 
 
 def create_outfile_dict(out_files: list) -> [dict, list]:
@@ -53,22 +56,21 @@ def create_outfile_dict(out_files: list) -> [dict, list]:
     :param out_files: list of str, file(path/name) to open
     :return: dict of key chrom, value output file handle, list of chromosomes
     """
-    outfile_dict = {}
+    outfile_dict = {} 
     chroms = []
     for outfile in out_files:
         match = re.search(r"chr([a-zA-Z\d]+).maf(?:|.gz|.lz4)$", outfile)
         if not match:
-            sys.exit(f"Invalid output file {outfile}, expected to end with "
-                     f"chr[1].maf(.gz)")
+            sys.exit(f"Invalid output file {outfile}, expected to end with chr[1].maf(.gz)")
         chrom = match.groups()[0]
         chroms.append(chrom)
         if outfile.endswith(".gz"):
             outfile_dict[chrom] = gzip.open(outfile, "wt")
         elif outfile.endswith(".lz4"):
-            outfile_dict[chrom] = lz4.frame.open(outfile, mode="wt")
+            outfile_dict[chrom] = lz4.frame.open(outfile, mode = "wt")
         else:
             outfile_dict[chrom] = open(outfile, "w")
-        outfile_dict[chrom].write("##maf version=1\n\n")
+        outfile_dict[chrom].write("##maf version=1\n")
     return outfile_dict, chroms
 
 
@@ -108,14 +110,14 @@ if __name__ == '__main__':
 
     with open(ARGS.logfile, "w") as log_f:
         log_f.write(f"Input files:\n{ARGS.input}\n"
-                    f"Output Files:\n{OUTFILE_DICT}\n")
+                    f"Output files:\n{OUTFILE_DICT}\n")
 
     # Iterating over all files and opening them
     for infile in ARGS.input:
         if infile.endswith(".gz"):
             in_f = gzip.open(infile, "rt")
         elif infile.endswith(".lz4"):
-            in_f = lz4.frame.open(infile, mode="rt")
+            in_f = lz4.frame.open(infile, mode = "rt")
         else:
             in_f = open(infile, "w")
         # Iterating over the content of each file
