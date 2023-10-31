@@ -266,6 +266,27 @@ rule maf_sorter:
          "lz4 -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}."
          " | gzip > {output}; fi"
 #################
+###### NEW ######
+"""
+ Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
+ and outputs per chromosome a fasta file of the ancestral sequence. 
+"""
+rule gen_ancestor_seq:
+    input:
+         maf=f"results/alignment/sorted/{config['derive_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
+         script=workflow.source_path(ALIGNMENT_P + 'gen_ancestor_seq.py')
+    params:
+          species_name=config["alignments"][
+              config['derive_ancestor']['ancestral_alignment']][
+              "name_species_interest"]
+    conda:
+         "../envs/biopython.yml"
+    output:
+          "results/ancestral_seq/{ancestor}/chr{chr}.fa"
+    shell:
+         "python3 {input.script} -i {input.maf} -o {output}"
+         " -a {wildcards.ancestor} -n {params.species_name}"
+#################
 
 if config['option'] == 'ancestor':
 
