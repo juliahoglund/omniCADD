@@ -1,19 +1,22 @@
 # -*- snakemake -*-
 
 '''
- The snakemake file goes through part 1 of extracting an ancestral sequence from a msa. 
+ The snakemake file goes through part 1 of extracting an ancestral sequence from a multiple alignment. 
  This file can/will be called from the snakefile, but can be run separately as shown below.
- The data directory should contain the msa files of the species of interest and a 'genome' folder containing the genome of the species of interest.
- The output directory should be empty, since here comes the outputs that the scripts generates.
  The scripts directory contains all the used scripts by the snakemake file.
- This pipeline takes in maf files. If the user has another file format, these whould be converter before, either with the emf2maf.pl script of with the msaconverter. The pipeline can be rune either with extracting a reconstructed ancestor, or by using an outgroup (i.e. related species with available data), with changing the config option.
+ This pipeline takes in maf files. 
+ If the user has another file format, these should be converted before, 
+ either with the emf2maf.pl script of with the msaconverter. 
+ The pipeline can be run either with extracting a reconstructed ancestor, 
+ or by using an outgroup (i.e. related species with available data), by changing the config option.
 
  :Author: Seyan Hu
  :Date: 30-9-2022
+
  :Exttension and modification: Julia Höglund
  :Date: 1-4-2023
  :Usage: snakemake -p --snakefile <snakefile script> --config option='ancestor|outgroup'
- Params can be adjusted for any givenen species of interest. 
+ Params can be adjusted for any giveen species of interest. 
 '''
 
 ## Targets
@@ -26,19 +29,10 @@ all_outputs.append('output/finished_removing_unwanted_species.txt')
 all_outputs.append('output/finished_remove_opposite_strand.txt')
 all_outputs.append('output/finished_extract_ancestor.txt')
     
+###############################
+###### FIXED NOT CHECKED ######    
+###############################
 
-## rules
-rule ancestor:
-	input: 
-		SCRIPTS_1 + 'mark_ancestor.py'
-	output: 
-		'output/start_step1.txt'
-	shell:
-		'''
-		touch output/start_step1.txt
-		'''
-
-###### NEW ######
 """
  Parse MAF file and removes ambiguous nucleotides from the alignment.
  All 11 ambiguous symbols are converted to N.
@@ -48,17 +42,18 @@ rule ancestor:
 rule clean_ambiguous:
 	input:
 		maf = lambda wildcards:
-		# what does this mean
 		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
-		# how does this work
-		script = workflow.source_path(ALIGNMENT_P + 'clean_maf.py')
+		# how does this work with f, and check the "part"
+		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
 	conda:
-		"../envs/biopython.yml"
+		"../environment.yml"  # need to update and fix conda cadd environment later!
 	output:
 		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
-		# check this later
+		# create temporary files and dirs
     shell:
          "python3 {input.script} -i {input.maf} -o {output}"
+         # doublecheck if this rules makes all mafs of one maf and if one, how put input in script?
+
 #################
 ###### NEW ######
 """

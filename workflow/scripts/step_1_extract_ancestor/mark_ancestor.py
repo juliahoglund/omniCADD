@@ -54,12 +54,12 @@ parser.add_argument('-l', '--logfile',
                     default = "marking_ancestor.log")
 parser.add_argument('--sp1-label',
                     help = 'alignment label/name of the species of interest e.g.'
-                         'mus_musculus', required = True)
+                         'sus_scrofa', required = True)
 parser.add_argument('--sp1-ab',
                     help = 'abbrevation of species of interest as in the tree '
-                         'e.g. Mmus', required = True)
+                         'e.g. Sscr', required = True)
 parser.add_argument('--sp2-ab',
-                    help = 'abbrevation of species 2 as in the tree e.g. Rnor',
+                    help = 'abbrevation of species 2 as in the tree e.g. Btau',
                     required = True)
 
 def hierarchy(found_clades, args):
@@ -109,7 +109,7 @@ def main(args):
 		if args.output.endswith('.gz') else open(args.output, "w")
 
 	log_s = open(args.logfile, 'w')
-	log_s.write(f"Logfile from marking_ancestor.py\nScript arguments:\n{args}\n")
+	log_s.write(f"Logfile from mark_ancestor.py\nScript arguments:\n{args}\n")
 
 	ancestor_id = ''
 	i = 0
