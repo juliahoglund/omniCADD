@@ -2,12 +2,27 @@
 ##### Step one: #####
 #####################
 
+# Which chromosomes should the model be trained on and for which should all variants be scored?
+# - Train must be equal or a subset of score, it cannot contain unique chromosomes
+# - Chromosomes are expected to be in order: 1-n, X, Y, MT
+# e.g. it is possible to train on autosomal+X and then only include Y in the CADD score generation.
 chromosomes:
-	number: [ '19' ]
-	karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
+  number: [ '18' ]
+  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
 
-maf:
-  46_amniotes_epo:
-    path: '.././fulldata/'
-    type: 'maf.gz'
-    clean_maf: 'False'
+alignments:
+  path: 'test/'
+  type: 'maf.gz'
+  clean_maf: 'False'
+  filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+  exclude_patterns: [ "scaffold", "epo.Y", "epo.X" ] # Excluding unmapped alignments, scaffolds and the Y chromsome. Files including these strings will not be processed
+  name_species_interest: "sus_scrofa"
+  chrom_prefix: "chr" # prefix of chromosome in sequence label: mm39.chr[CHR]
+  ancestor: "True"
+
+mark_ancestor:
+  ancestral_alignment: "21_murinae.epo" # Must the one of the alignments defined above
+  # so take away wildcards above and then fix this one further up?
+  name_ancestor: 'Pig_Cow'
+  sp1_tree_ab: 'Sscr'
+  sp2_tree_ab: 'Btau'
