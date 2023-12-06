@@ -32,6 +32,7 @@ Formatted file to satisfy pylint.
 :Example:
 python mark_ancestor.py -p ./ -a Pig_Cow_Sheep -i 43_mammals.epo -s Pig,Cow -c Sscr,Btau -f sus_scrofa
 """
+
 # Import dependencies
 from argparse import ArgumentParser
 import gzip
@@ -41,66 +42,66 @@ from sh import gunzip
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument('-i', '--input',
-                    help = 'Alignment file to mark ancestral sequence in, '
-                         'can be gzip compressed', required = True)
+	help = 'Alignment file to mark ancestral sequence in, can be gzip compressed', 
+	required = True)
 parser.add_argument('-o', '--output',
-                    help = 'Output file, will be compressed if ending in .gz',
-                    required = True)
+	help = 'NAme of output file, will be compressed if ending in .gz',
+	required = True)
 parser.add_argument('-a', '--ancestor',
-                    help = 'The name used to mark the ancestral sequence',
-                    required = True)
+	help = 'The name used to mark the ancestral sequence, eg. Pig_Cow',
+	required = True)
 parser.add_argument('-l', '--logfile',
-                    help = 'Log file (default: marking_ancestor.log)',
-                    default = "marking_ancestor.log")
+	help = 'Log file (default: mark_ancestor.log)',
+	default = "mark_ancestor.log")
 parser.add_argument('--sp1-label',
-                    help = 'alignment label/name of the species of interest e.g.'
-                         'sus_scrofa', required = True)
+	help = 'alignment label/name of the species of interest e.g. sus_scrofa', 
+	required = True)
 parser.add_argument('--sp1-ab',
-                    help = 'abbrevation of species of interest as in the tree '
-                         'e.g. Sscr', required = True)
+	help = 'abbrevation of species of interest as in the tree e.g. Sscr', 
+	required = True)
 parser.add_argument('--sp2-ab',
-                    help = 'abbrevation of species 2 as in the tree e.g. Btau',
-                    required = True)
+	help = 'abbrevation of species 2 as in the tree e.g. Btau',
+	required = True)
 
 def hierarchy(found_clades, args):
-    """
-    This function takes in a list of Bio.Phylo.BaseTree.Clade objects ,
-    which represent the terminal taxa of the investigated tree. The function
-    iterates over these taxa to identify if the given species is available and
-    returns the taxa which should be used for the identification of the last
-    common ancestor of the given species.
-    """
-    # Abbreviation of the scientific name of species 1 and 2 with '_' at end
-    ab_sp1 = args.sp1_ab + '_'
-    ab_sp2 = args.sp2_ab + '_'
-    sp1 = None
-    sp2 = None
+	"""
+	This function takes in a list of Bio.Phylo.BaseTree.Clade objects ,
+	which represent the terminal taxa of the investigated tree. The function
+	iterates over these taxa to identify if the given species is available and
+	returns the taxa which should be used for the identification of the last
+	common ancestor of the given species.
+	"""
+	# Abbreviation of the scientific name of species 1 and 2 with '_' at end
+	ab_sp1 = args.sp1_ab + '_'
+	ab_sp2 = args.sp2_ab + '_'
+	sp1 = None
+	sp2 = None
 
-    for f_clade in found_clades:
-        if (ab_sp1 in f_clade.name) and (not ab_sp1 + '_AEMK' in f_clade.name):
-            sp1 = f_clade.name
-        elif ab_sp2 in f_clade.name:
-            sp2 = f_clade.name
+	for f_clade in found_clades:
+		if (ab_sp1 in f_clade.name) and (not ab_sp1 + '_AEMK' in f_clade.name):
+			sp1 = f_clade.name
+		elif ab_sp2 in f_clade.name:
+			sp2 = f_clade.name
 
-    if sp1 and sp2:
-        return [sp1, sp2]
-    return []
+	if sp1 and sp2:
+		return [sp1, sp2]
+	return []
 
 # print('Marking ancestor in file: {}'.format(file))
 
 def main(args):
-    """
-    Main function. Opens relevant file. Iterates through lines in maf file.
-    Iterate until I hit '# tree:' and read in the newick string and identify
-    if there is a common anecestor If yes, write out the ancestral
-    identifier and the information to which chromosome it was aligned,
-    to save the ancestral sequence according to the chromosome it belongs,
-    this will ease the aligning effort ,since it will only have to align to
-    the chromosome it belongs to and will not have to take all chromosomes
-    into account.
-    :param args: argparse parameters
-    :return: None
-    """
+	"""
+	Main function. Opens relevant file. Iterates through lines in maf file.
+	Iterate until I hit '# tree:' and read in the newick string and identify
+	if there is a common anecestor If yes, write out the ancestral
+	identifier and the information to which chromosome it was aligned,
+	to save the ancestral sequence according to the chromosome it belongs,
+	this will ease the aligning effort ,since it will only have to align to
+	the chromosome it belongs to and will not have to take all chromosomes
+	into account.
+	:param args: argparse parameters
+	:return: None
+	"""
 
 	alignment_file = gzip.open(args.input, "rt") \
 		if args.input.endswith('.gz') else open(args.input, "r")
@@ -123,7 +124,7 @@ def main(args):
 			ancestor_seq = None
 			elem = None
 			i += 1
-            lines = lines.strip() # added
+			lines = lines.strip() # added
 			to_write = False
 
 			# Processing the tree to idenfy the ID of the last common ancestor
@@ -147,8 +148,8 @@ def main(args):
 
 		# Write renamed/annotated ancestral alignment if fields found.
 		if ancestor_seq and elem:
-			outfile.write('s ' + args.ancestor + '.' +
-                elem[1].split('.')[1] + '\t' + '\t'.join(elem[2:]) + '\t' + lines.strip().split()[-1] + '\n')
+			outfile.write('s ' + args.ancestor + '.' +	
+				elem[1].split('.')[1] + '\t' + '\t'.join(elem[2:]) + '\t' + lines.strip().split()[-1] + '\n')
 			ancestor_seq, elem = None, None
 
 		# Write original line if not tree or ancestral sequence
@@ -160,4 +161,4 @@ def main(args):
 	log_s.close()
 
 if __name__ == '__main__':
-    main(parser.parse_args())
+	main(parser.parse_args())
