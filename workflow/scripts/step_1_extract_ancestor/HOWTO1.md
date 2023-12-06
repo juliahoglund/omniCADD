@@ -3,12 +3,13 @@
 ----
 0. prerequisites
 ```bash
-cd /proj/snic2022-22-894/nobackup/43_amniotes/
-module load bioinfo-tools mafTools conda snakemake
+cd /proj/snic2022-22-894/nobackup/omniCADD/
+module load bioinfo-tools conda snakemake
 source conda_init.sh
 conda deactivate # (base)
 conda activate cadd
 ### (only once) ###
+
 # mkdir output
 wget https://ftp.ensembl.org/pub/release-108/fasta/sus_scrofa/dna/Sus_scrofa.Sscrofa11.1.dna.toplevel.fa.gz
 gunzip Sus_scrofa.Sscrofa11.1.dna.toplevel.fa.gz
@@ -16,11 +17,20 @@ module load samtools
 samtools faidx Sus_scrofa.Sscrofa11.1.dna.toplevel.fa
 mv Sus_scrofa.Sscrofa11.1.dna.toplevel.fa Sus_scrofa_ref.fa
 mv Sus_scrofa.Sscrofa11.1.dna.toplevel.fa.fai Sus_scrofa_ref.fai
+
+# GET MAFs
+wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.{1..18}_{1..30}.maf.gz
+
+wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.X_{1..30}.maf.gz
+
+wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.Y_{1..30}.maf.gz
+
+wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.other_{1..856}.maf.gz
 ```
 
 1. mark ancestor
 ```bash
-python scripts/mark_ancestor.py -p ./data -a Pig_Cow -i 43_mammals.epo -s Pig,Cow -c Sscr,Btau -f sus_scrofa
+./mark_ancestor.py -i 43_mammals.epo.1_1.maf.gz -o marked_1_1.maf.gz -a Pig_Cow -l mark_ancestor.log --sp1-label sus_scrofa --sp1-ab Sscr --sp2-ab Btau
 ```
 
 2. apply mafTools
