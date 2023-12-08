@@ -32,23 +32,17 @@ include: "ancestor.smk"		# step one
 # include: "workflow/Snakefile_derive.sn"		# step four
 # include: "workflow/Snakefile_annotations.sn" 	# step five
 
-##### gather files ######
-DIR_MAF = config['alignments']['path']
-EXT = config['alignments']['type']
+##### get target dirs #####
+def getTargetFiles():
+    targets = list()
+    for r in config["refs"]:
+        targets.append("data/"+config["refs"][r]+".fna.sa")
 
-def list_samples(DIR_MAF):
-	FILES=[]
-	for file in glob.glob(DIR_MAF + '*' + EXT):
-		base = os.path.basename(file)
-		sample = (base.replace(EXT, ''))
-		FILES.append(sample)
-	return(FILES)
-
-part = list_samples(DIR_MAF)
+    return targets
 
 ##### target rules #####
 rule all:
 	input:
-		expand("{path}{files}{type}", files=part, path=config["alignments"]["path"], type=config["alignments"]["type"])
-		
-		
+		expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
+			ancestor = config["mark_ancestor"]["ancestral_alignment"], 
+			chr = config["chromosomes"]["number"], allow_missing=True)
