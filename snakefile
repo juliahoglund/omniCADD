@@ -1,30 +1,54 @@
 from snakemake.utils import min_version
+import glob
+import os
 
-min_version("6.0")
+##### pipeline version ######
 omniCADD_version = "0.0.1"
 
-configfile: "config/config.yaml"
+##### set minimum snakemake version #####
+min_version("7.21.0")
 
-############################# PARAMS #####################################
-SCRIPTS_1 = "workflow/step_1_extract_ancestor/scripts/"
-SCRIPTS_2 = "workflow/step_2_simulate_variants/scripts/"
-SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
-SCRIPTS_4 = "workflow/step_4_derive_variants/scripts/"
-SCRIPTS_5 = "workflow/step_5_annotate_variants/scripts/"
+##### Load config #####
+configfile: "config.yml"
+
+##### setup report #####
+report: "report/workflow.rst"
+
+
+##### PARAMS #####
+SCRIPTS_1 = "scripts/"
+# SCRIPTS_2 = "workflow/step_2_simulate_variants/scripts/"
+# SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
+# SCRIPTS_4 = "workflow/step_4_derive_variants/scripts/"
+# SCRIPTS_5 = "workflow/step_5_annotate_variants/scripts/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
 
+##### load modules  #####
+include: "common.smk"
+include: "ancestor.smk"		# step one
+# include: "workflow/Snakefile_simulate.sn"		# step two
+# include: "workflow/Snakefile_stats.sn"		# step three
+# include: "workflow/Snakefile_derive.sn"		# step four
+# include: "workflow/Snakefile_annotations.sn" 	# step five
 
-all_outputs = []
+##### gather files ######
+DIR_MAF = config['alignments']['path']
+EXT = config['alignments']['type']
 
-include: "workflow/Snakefile_ancestor.sn"		# step one
-include: "workflow/Snakefile_simulate.sn"		# step two
-include: "workflow/Snakefile_stats.sn"			# step three
-include: "workflow/Snakefile_derive.sn"			# step four
-include: "workflow/Snakefile_annotations.sn" 	# step five
+def list_samples(DIR_MAF):
+	FILES=[]
+	for file in glob.glob(DIR_MAF + '*' + EXT):
+		base = os.path.basename(file)
+		sample = (base.replace(EXT, ''))
+		FILES.append(sample)
+	return(FILES)
 
-############################# PSEUDORULE #################################
+part = list_samples(DIR_MAF)
 
+##### target rules #####
 rule all:
 	input:
-		all_outputs
+		expand("{path}{files}{type}", files=part, path=config["alignments"]["path"], type=config["alignments"]["type"])
+		
+		
