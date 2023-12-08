@@ -24,7 +24,9 @@ desired since they produce the same output.
 Bgzip_validation_variants has the highest priority since 
 it also handles moving the variants into the results folder.
 """
-ruleorder: get_validation_variants > bgzip_tabix > tabix
+
+
+# ruleorder: get_validation_variants > bgzip_tabix > tabix
 
 
 """  
