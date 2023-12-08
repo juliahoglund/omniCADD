@@ -4,7 +4,7 @@
 0. prerequisites
 ```bash
 cd /proj/snic2022-22-894/nobackup/omniCADD/
-module load bioinfo-tools conda snakemake
+module load bioinfo-tools conda snakemake mafTools
 source conda_init.sh
 conda deactivate # (base)
 conda activate cadd
@@ -26,58 +26,21 @@ wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments
 wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.Y_{1..30}.maf.gz
 
 wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.other_{1..856}.maf.gz
+
+snakemake --dry-run --use-conda --force -p # --use-singularity
+
+snakemake -c 6 --use-conda # --use-singularity
 ```
 
-1. mark ancestor
-```bash
-./mark_ancestor.py -i 43_mammals.epo.1_1.maf.gz -o marked_1_1.maf.gz -a Pig_Cow -l mark_ancestor.log --sp1-label sus_scrofa --sp1-ab Sscr --sp2-ab Btau
+1. test pipeline
+```
+snakemake --dry-run --use-conda --force -p 
 ```
 
-2. apply mafTools
-```bash
-python scripts/apply_mafTools.py -m ./marked/marked_ -g ./Sus_scrofa_ref -o sus_scrofa,Ancestor_Pig_Cow,bos_taurus -s ./mSTR/mSTR_ -r ./mRO/mRO_ -c no -f ./mDF/mDF_
+2. run pipeline
 ```
-
-3. sort by chromosome
-```bash
-python3 scripts/sort_by_chromosome.py -p ./mRO/ -f mRO_mSTR_mDF_ -s sus_scrofa -k '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X,Y' -o sorted -c no
+snakemake -c 6 --use-conda # --use-singularity
 ```
-
-4. sort MSA blocks (within chromosomes)
-```bash
-# back on rackham because mafTools
-python3 scripts/sort_msa_blocks.py -p sorted/ -s sus_scrofa -o sortedMSA -c no
-```
-
-5. remove unwanted species (if still present)
-```bash
-# back locally again
-python3 scripts/remove_species.py -p ./sortedMSA -f mS_ -s sus_scrofa -r pruned -c no
-```
-
-6. remove seqs on reverse strand
-```bash
-python3 scripts/remove_opposite_strand.py -p ./pruned -f rmSP_mS_ -r forwardStrandOnly -c no
-```
-
-7. extract actual ancestor!
-```bash
-python3 scripts/wrapper_extract_ancestor.py -p ./forwardStrandOnly -a Ancestor_Pig_Cow -s sus_scrofa -f rmOS_rmSP_mS_ -g ./scripts -i Sus_scrofa_ref.fai
-```
-
-8. test it all on Rackham with Snakemake
-```bash
-snakemake -c4
-# make snakefile with 4 cores
-# snakefile är hela extract ancestor
-```
-
-### Run with outgroup instead of marking ancestor
-1. mark outgroup
-```bash
-python3 scripts/mark_outgroup.py -a bos_taurus -f sus_scrofa -p ./ -i 43_mammals.epo
-```
-then go to 2. apply mafTools above and continue
 
 latest hash working mafTools
 [4e5b5de3f275f61b36b9762824cc1edbead31820](https://github.com/dentearl/mafTools/commit/4e5b5de3f275f61b36b9762824cc1edbead31820)
