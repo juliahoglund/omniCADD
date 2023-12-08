@@ -19,6 +19,8 @@ alignments:
   name_species_interest: "sus_scrofa"
   chrom_prefix: "chr" # prefix of chromosome in sequence label: mm39.chr[CHR]
   ancestor: "True"
+  pre_sorted: "False"
+
 
 mark_ancestor:
   ancestral_alignment: "21_murinae.epo" # Must the one of the alignments defined above
