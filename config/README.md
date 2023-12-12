@@ -1,34 +1,3 @@
-### Run within the conda environment
-```bash
-# create from yml file:
-conda env create -f cadd.yml
-# activate
-conda activate cadd
-
-# run pipeline
-```
-**OR**
-```bash
-# in all (to be sure) rules, add:
-conda:
-
-# like so:
-rule NAME:
-    input:
-        "input.txt"
-    output:
-        "output.txt"
-    conda:
-        "config/cadd.yml"
-    script:
-        '''
-        scripts
-        '''
-# and then when running the pipeline, run it like so:
-snakemake --use-conda [rest of commands]
-
-```
-
 ### Run with a (singularity) container
 if the user does not have access to installed versions of maftools.
 https://github.com/pmitev/UPPMAX-Singularity/tree/main/mafTools
@@ -53,7 +22,7 @@ rule NAME:
     output:
         "output.txt"
     container:
-        "library://juliahoeglund/collection/maftools:latest"
+        "library://juliahoeglund/collection/maftools:latest" # [change to correct local path]
         # OR
         "docker://juliahoglund/maftools"
     script:
