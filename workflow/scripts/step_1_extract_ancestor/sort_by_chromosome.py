@@ -28,31 +28,32 @@ import re
 import sys
 
 from argparse import ArgumentParser
+from collections import defaultdict
 import lz4.frame
 
 PARSER = ArgumentParser(description = __doc__)
 PARSER.add_argument("-i", "--input",
-                    help = "maf alignment file(s) which are to be sorted by chromosome", 
-                    type = str, 
-                    required = True, 
-                    nargs = "+")
+    help = "maf alignment file(s) which are to be sorted by chromosome", 
+    type = str, 
+    required = True, 
+     nargs = "+")
 PARSER.add_argument("-o", "--output",
-                    help = "Output alignment file(s), one per chr, has to end with chr[chr].maf(.gz|.lz4) ",
-                    type = str, 
-                    required = True, 
-                    nargs = "+")
+    help = "Output alignment file(s), one per chr, has to end with chr[chr].maf(.gz|.lz4) ",
+    type = str, 
+    required = True,
+    nargs = "+")
 PARSER.add_argument("-s", "--species",
-                    help = "name/label of the species by which the alignments should be sorted", 
-                    "expected to be first in the sequence, ignored if not", 
-                    type = str, 
-                    required = True)
+    help = "name/label of the species by which the alignments should be sorted expected to be first in the sequence, ignored if not", 
+    type = str, 
+    required = True)
 PARSER.add_argument("-l", "--logfile",
-                    help = "logfile (default chr_sorting_log.txt)", 
-                    type = str,
-                    default = "chr_sorting_log.txt")
+    help = "logfile (default chr_sorting_log.txt)", 
+    type = str,
+    default = "chr_sorting_log.txt")
 PARSER.add_argument("-p", "--prefix",
-                    help = "prefix for chr in sequence label e.g. chr for mm39.chr19 (default None)", 
-                    type = str, default = "None")
+    help = "prefix for chr in sequence label e.g. chr for mm39.chr19 (default None)", 
+    type = str, 
+    default = "None")
 
 
 def create_outfile_dict(out_files: list) -> [dict, list]:
@@ -61,7 +62,7 @@ def create_outfile_dict(out_files: list) -> [dict, list]:
     :param out_files: list of str, file(path/name) to open
     :return: dict of key chrom, value output file handle, list of chromosomes
     """
-    outfile_dict = {} 
+    outfile_dict = defaultdict(list) 
     chroms = []
     for outfile in out_files:
         match = re.search(r"chr([a-zA-Z\d]+).maf(?:|.gz|.lz4)$", outfile)
@@ -115,7 +116,7 @@ if __name__ == '__main__':
 
     with open(ARGS.logfile, "w") as log_f:
         log_f.write(f"Input files:\n{ARGS.input}\n"
-                    f"Output files:\n{OUTFILE_DICT}\n")
+            f"Output files:\n{OUTFILE_DICT}\n")
 
     # Iterating over all files and opening them
     for infile in ARGS.input:
@@ -127,9 +128,7 @@ if __name__ == '__main__':
             in_f = open(infile, "w")
             
         # Iterating over the content of each file
-        sort_alignments(in_f,
-                        ARGS.species,
-                        "" if ARGS.prefix == "None" else ARGS.prefix)
+        sort_alignments(in_f,ARGS.species, "" if ARGS.prefix == "None" else ARGS.prefix)
         in_f.close()
 
     for file in OUTFILE_DICT.values():
