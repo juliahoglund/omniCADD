@@ -7,9 +7,8 @@ cd /proj/snic2022-22-894/nobackup/omniCADD/
 module load bioinfo-tools conda snakemake mafTools
 source conda_init.sh
 conda deactivate # (base)
-conda activate cadd
-### (only once) ###
 
+### (only once) ###
 # mkdir output
 wget https://ftp.ensembl.org/pub/release-108/fasta/sus_scrofa/dna/Sus_scrofa.Sscrofa11.1.dna.toplevel.fa.gz
 gunzip Sus_scrofa.Sscrofa11.1.dna.toplevel.fa.gz
@@ -27,19 +26,16 @@ wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments
 
 wget https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/43_mammals.epo/43_mammals.epo.other_{1..856}.maf.gz
 
-snakemake --dry-run --use-conda --force -p # --use-singularity
-
-snakemake -c 6 --use-conda # --use-singularity
 ```
 
 1. test pipeline
 ```
-snakemake --dry-run --use-conda --force -p 
+snakemake --dry-run --use-conda --forceall # --use-singularity
 ```
 
 2. run pipeline
 ```
-snakemake -c 6 --use-conda # --use-singularity
+snakemake -c6 --use-conda --forceall # --use-singularity
 ```
 
 latest hash working mafTools
