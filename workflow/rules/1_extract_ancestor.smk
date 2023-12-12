@@ -181,8 +181,9 @@ rule sort_by_chr: # sort by chromosome
 		"results/logs/{alignment}_merging.log"
 	output:
 		out_chr = expand("results/alignment/merged/{{alignment}}/chr{chr}.maf.lz4",
-					chr=config["chromosomes"]["number"]),
-		out_other = "results/alignment/merged/{alignment}/chrOther.maf.lz4"
+					chr=config["chromosomes"]["karyotype"]),
+		out_other="results/alignment/merged/{{alignment}}/chrOther.maf.lz4"
+
 	shell:
 		"python3 {input.script}"
 		" -l {log}"
@@ -220,12 +221,11 @@ rule maf_str:
 rule maf_sorter:
 	input:
 		"results/alignment/stranded/{alignment}/chr{chr}.maf.lz4"
-		## make sure sort by chromosome has worked before this!!
 	params:
 		species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
 		pre_sorted=lambda wildcards: config['alignments'][wildcards.alignment]['pre_sorted']
 	conda:
-		"ancestor.smk"
+		"ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 2
@@ -251,7 +251,8 @@ rule gen_ancestor_seq:
 		maf=f"results/alignment/sorted/{config['mark_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
 		script=workflow.source_path(SCRIPTS_1 + 'extract_ancestor.py')
 	params:
-		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"]
+		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"],
+		ancestor=config['mark_ancestor']['name_ancestor']
 	conda:
 		"ancestor.yml"
 	output:
@@ -260,7 +261,7 @@ rule gen_ancestor_seq:
 		"python3 {input.script}"
 		" -i {input.maf}"
 		" -o {output}"
-		" -a {wildcards.ancestor}"
+		" -a {params.ancestor}"
 		" -n {params.species_name}"
 
 #################
