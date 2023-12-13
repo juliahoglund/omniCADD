@@ -54,6 +54,9 @@ parser.add_argument("-a", "--ancestor",
 parser.add_argument("-n", "--interest", 
 	help="Name/label of the species of interest",
 	required = True)
+parser.add_argument("-r", "--reference", 
+	help="Name of the genomewide reference species fasta sequence",
+	required = True)
 
 args = parser.parse_args()
 
@@ -121,53 +124,56 @@ def get_alignment_generator(input_f):
 		else open(input_f, "r")
 	return AlignIO.parse(handle, "maf")
 
+# get total chromosome length (in bases)
+chr_lengths = defaultdict(dict)
 
-def get_ancestral_sequences(alignment_gen, ancestral_n, intrest_n):
-	"""
-	Get dict of ancestral sequences with key start_pos
-	:param alignment_gen: Iterator providing SeqIO records for
-	 each alignment block
-	:param ancestral_n: name of ancestral seq
-	:param intrest_n: name of the seq of interest
-	:return: dict, key: start_pos, value: ancestral sequence
-	"""
-	anc_dict = {}
-	ref_start = {}
+with open(args.reference) as f:
+	lines = f.read().splitlines()
+	lines = lines.strip()
+lines = [ x for x in lines if len(x.split('\t')[0]) < 6 ]
+for line in lines:
+	chrom = line.split()[0]
+	length = line.split()[1]
+	chr_lengths[chrom] = length
 
-	# Loop through the file and create a dict for the ancestral seq.
-	for alignment in alignment_gen:
-		sp_seq = alignment[0]
+# Init dictionary with sequence start location as key and the sequence as values.
+# After iterating over the alignments it will go through this dictionary 
+# and create the final ancestor sequence by filling up missing positions with gaps.
+anc_pos_seq_dict = {}
 
-		# Search for the ancestor sequence of interest in alignment block and
-		# checks if the seq is of same size as in the annotation
-		anc_seq = ancestor_finder(alignment, ancestral_n)
-
-		if (not isinstance(anc_seq, SeqIO.SeqRecord)) or (str(intrest_n) + '.' not in sp_seq.id):
-			if (isinstance(anc_seq, SeqIO.SeqRecord)) and (str(intrest_n) + '.' not in sp_seq.id):
-                sys.exit(
-					'Something went wrong in the processing. The alignment block contains an ancestor sequence but not ' +
-					str(args.interest) + ' at first position. sequence details %s' % anc_seq.annotations)
-				continue
-		anc_dict[anc_seq.annotations['start']] = sequence_processing(sp_seq, anc_seq)
-		ref_start[ref_seq.annotations['start']] = ref_seq.annotations['start']
-		if ref_start in anc_dict:
-			if len(ref_start[ref_seq.annotations['start']]) > len(anc_dict[ref_start[ref_seq.annotations['start']]]):
-				anc_dict[ref_start] = anc_dict[anc_seq.annotations['start']]
+print("## Reading MAF file")
+# Loop through the file and create a dict for the ancestral seq. 
+for alignment in get_alignment_generator(args.input):
+	sp_seq = alignment[0]	
+	
+	# Search for the ancestor sequence of interest in alignment block and checks if the seq is of same size as in the annotation
+	anc_seq = ancestor_finder(alignment,args.ancestor)
+	ref_seq = ancestor_finder(alignment,args.interest)
+	
+	if (not isinstance(anc_seq,SeqIO.SeqRecord)) or (str(args.interest) +'.' not in sp_seq.id):
+		if (isinstance(anc_seq,SeqIO.SeqRecord)) and (str(args.interest) +'.' not in sp_seq.id):
+			print('Something went wrong in the processing. The alignment block contains an ancestor sequence but not '+ str(path_to_input) +' at first position. Path and sequence details %s \t %s' %(path_to_input,anc_seq.annotations))
+			print('This alignment block will be skipped.\n')
+			continue
+		else:
+			continue
+	else:
+		#ADDED TO MAKE POS REF GENOME, AND SAME START COORDINATES
+		anc_seq_processed = sequence_processing(sp_seq, anc_seq)
+		ref_start = ref_seq.annotations['start']
+		if ref_start in anc_pos_seq_dict:
+			if len(anc_seq_processed) > len(anc_pos_seq_dict[ref_start]):
+				anc_pos_seq_dict[ref_start] = anc_seq_processed
 			else:
 				continue
 		else:
-			anc_dict[ref_start] = anc_dict[anc_seq.annotations['start']]
-    return anc_dict
-
+			anc_pos_seq_dict[ref_start] = anc_seq_processed
 
 # Read alignment using AlignIO, extract ancestral sequences and put them in
 # dict start_pos=sequence. After iterating over the alignments the script
 # will go through this dictionary and create the final ancestor sequence by
 # filling up missing positions with gaps.
 print("## Reading MAF file")
-anc_pos_seq_dict = get_ancestral_sequences(get_alignment_generator(args.input), args.ancestor, args.interest)
-
-print("## Finished loading ancestral sequences from alignment")
 if len(anc_pos_seq_dict) == 0:
 	sys.exit(f"ERROR: No ancestral sequences found in {args.input}!\n"
 			f"There has been a configuration/software error or there are "
@@ -183,31 +189,31 @@ for key, value in list(anc_pos_seq_dict.items()):
 	if str(value) == 'Removed':
 		del anc_pos_seq_dict[key]
 
-# The genomic positions are stored and then sorted, such that the smallest
-# comes first. It will then iterate over this list and fill up a SeqRecord.
-# Before filling of that seqrecord it will insert as many "-" as current_loc
-# - (previous_loc+previous_size)
+# The genomic positions are stored and then sorted, such as the smallest comes first. 
+# It will then iterate over this list and fill up a SeqRecord. 
+# Before filling of that seqrecord it will insert as many "-" as current_loc - (previous_loc+previous_size)
 pos_list = anc_pos_seq_dict.keys()
 pos_list_s = sorted(pos_list)
+	
+# list with ancestor start positions
+print("pos_list_s:", pos_list_s)
 
-print("## Building ancestral sequence")
 pregaps = '-' * list(pos_list_s)[0]
+# pregaps = '-' * (pos_list_s[0]) #ADDED AS MAF IS 0-BASED SO START POS is +1 and pregaps is pos
 
-ancestor_record = SeqIO.SeqRecord(id='', seq=Seq(''))
+ancestor_record = SeqIO.SeqRecord(id='',seq=Seq(''))
 ancestor_record.seq = ancestor_record.seq + Seq(pregaps)
 
 # Adds the first position
 ancestor_record.seq = ancestor_record.seq + anc_pos_seq_dict[list(pos_list_s)[0]].seq
 
-# Enumerate at second position, thus the index i is always pointing to the
-# previous position
-for i, position in enumerate(list(pos_list_s)[1:]):
-
-	# The start of the previous position needs to be bigger than the last
-	# position of the previous sequence
+# Enumerate through pos_lis_s starting at second position, thus the index i is always pointing to the previous position
+for i,position in enumerate(list(pos_list_s)[1:]):
+	# The start of the previous position needs to be bigger than the ancestor_record
+	
+	# The start of the previous position needs to be bigger than the ancestor_record
 	if position+1 < len(ancestor_record):
-		print('The start position of ' + str(anc_pos_seq_dict[position].annotations['start']) + 
-			' is located in the previously added sub sequence that is already appended to the Ancestral sequence!')
+		print('The start position of ' + str(anc_pos_seq_dict[position].annotations['start']) + ' is located in the previously added sub sequence that is already appended to the Ancestral sequence!')
 		prev_position = list(pos_list_s)[i]
 		prev_seq = anc_pos_seq_dict[prev_position].seq
 		curr_seq = anc_pos_seq_dict[position].seq
@@ -215,9 +221,13 @@ for i, position in enumerate(list(pos_list_s)[1:]):
 		# Find the overlapping part between the previous and current sequences
 		if len(ancestor_record) - position > len(curr_seq):
 			overlap_len = len(curr_seq)
+			print("sequence within prev " +str(overlap_len))
 		else:
 			overlap_len = len(ancestor_record)-position #prev_position + (len(ancestor_record)-position) - position #
 			overlap = str(ancestor_record.seq).endswith(str(curr_seq[:overlap_len]))
+			print("#"+str(overlap_len) + " chars, same chars?: " + str(overlap))
+			print("Overlap: "+ str(overlap))
+
 		# Append the non-overlapping part of the current sequence to the existing ancestral record
 		if overlap:
 			non_overlap_seq = curr_seq[overlap_len:]
@@ -230,13 +240,15 @@ for i, position in enumerate(list(pos_list_s)[1:]):
 			curr_start = curr_seq[:overlap_len]
 			prev_end = current_fasta[-overlap_len:]
 			prev_end = current_fasta[position:position+overlap_len]
+			# why are there 2?
 
 			non_matching_indices = []
 			for i in range(len(curr_start)):
 				if curr_start[i] != prev_end[i]:
 					non_matching_indices.append(i)
-			working_pos = position 
-			#len(current_fasta[:prev_position+len(prev_seq)-len(prev_end)])
+			print("non matching indices: " + str(non_matching_indices))
+			print("Replaced with gaps: " + str(len(non_matching_indices)))
+			working_pos = position #len(current_fasta[:prev_position+len(prev_seq)-len(prev_end)])
 
 			for i in non_matching_indices:
 				current_fasta = current_fasta[:working_pos+int(i)] + "-" + current_fasta[working_pos+int(i)+1:]
@@ -244,30 +256,26 @@ for i, position in enumerate(list(pos_list_s)[1:]):
 			ancestor_record.seq = current_fasta
 	else:
 		# Adds gaps, marking the transition from the previous to the current ancestor sequence
-		pregaps = '-'*int(position-(len(ancestor_record))) 
+		pregaps = '-'*int(position-(len(ancestor_record))) # SAME AS list(pos_list_s)[i]+anc_pos_seq_dict[list(pos_list_s)[i]].annotations['size'])), SHOULD IT BE -1?
+		print("number of pregaps: "+ str(len(pregaps)))
 		ancestor_record.seq = ancestor_record.seq + Seq(pregaps)
 
 		# The processed ancestor sequence is appended to the gaps (gaps within the seq are automatically removed)
 		ancestor_record.seq = ancestor_record.seq + anc_pos_seq_dict[position].seq
 
-
 # Adds gaps until chromosome size is reached
-ancestor_record.seq = ancestor_record.seq + 
-	Seq('-' * (anc_pos_seq_dict[position].annotations['srcSize'] - len(ancestor_record.seq)))
+ancestor_record.seq = ancestor_record.seq + Seq('-'*(int(chr_lengths[chromosome]) - len(ancestor_record.seq)))
 
 print(f"## Annotating and writing ancestral sequence to file: {args.output}")
 # Adds annotations
 src_size = anc_pos_seq_dict[position].annotations['srcSize']
-ancestor_record.annotations = {'start': 0, 'srcSize': src_size, 'strand': 1,
-                               'size': len(ancestor_record)}
+ancestor_record.annotations = {'start': 0, 'srcSize': src_size, 'strand': 1, 'size': len(ancestor_record)}
 ancestor_record.name = anc_pos_seq_dict[position].name
 ancestor_record.id = anc_pos_seq_dict[position].id
 
-ancestor_record.description = f'start: 0, srcSize: {src_size} strand: 1, ' \
-                              f'size: {len(ancestor_record)} '
+ancestor_record.description = f'start: 0, srcSize: {src_size} strand: 1, size: {len(ancestor_record)} '
 
 # Writes ancestor sequence into file
 out_f = str(args.output)
-with gzip.open(out_f, "wt") if out_f.endswith(".gz") else open(out_f, "w") \
-        as output_handle:
-    SeqIO.write(ancestor_record, output_handle, "fasta")
+with gzip.open(out_f, "wt") if out_f.endswith(".gz") else open(out_f, "w") as output_handle:
+	SeqIO.write(ancestor_record, output_handle, "fasta")
