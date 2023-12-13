@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: ASCII -*-
+# -*- coding: utf-8 -*-
 
 """
 :Author: Seyan Hu
@@ -7,19 +7,20 @@
 :Extension and modification: Julia Höglund
 :Date: 02-05-2023
 
-:Usage: python <script.py> -a <ancestor seq file> -r <reference seq file> -c <chromosome number> -o <output file name>
+:Usage: python <script.py> -a <ancestor seq file> -r <reference seq file> -c
+<chromosome number> -o <output file name>
 
 :Example:
 python create_parameters.py -a Ancestor_1.fa -r chr1.fa -c 1 -o chr1.log
 
-Gathers parameters for the generation of the simulated variants for one chromosome.
-This script is performed for one chromosome thus a wrapper is needed.
-It gathers the counts of nucleotide substitutions, insertions and deletions.
-This script takes in one chromosome, and for severeal, has to be called with the wrapper,
-wrapper_create_parameters.py
+Gathers parameters for the generation of the simulated variants for one
+chromosome. This script is performed for one chromosome thus a wrapper is
+needed. It gathers the counts of nucleotide substitutions, insertions and
+deletions. This script takes in one chromosome, and for severeal, has to be
+called with the wrapper, wrapper_create_parameters.py
 
-For this script to work properly, the input fasta files had to be single stranded.
-
+For this script to work properly, the input fasta files had to be single
+stranded.
 
 :Sanity check:
 anc = 'GAAGCCGTGGAGCAGGG----------------------------AGCACCAGCGGGCGACGGTGGAGGACATGGG--------GCTGGCCGGGCAGAGG-ACGCAAA'
@@ -36,39 +37,47 @@ Deletion:	length = 1, count = 1; 		lenght = 2, count = 1
 """
 
 # Import dependencies
-import os, sys
-from optparse import OptionParser
+import sys
+from argparse import ArgumentParser
 from collections import defaultdict
-from progressbar import Percentage, ProgressBar, Bar, ETA # allow progress bar
 
-# OptionParser for input.
-parser = OptionParser()
-parser.add_option("-a", "--ancestor", dest="ancestor", help="extracted ancestor sequence",default="output/extracted_ancestor/Ancestor_Pig_Cow.1_chr1.fa")
-parser.add_option("-r", "--reference", dest="reference", help="reference sequence of the species of interest",default="genome/")
-parser.add_option("-c", "--chr", dest="chr", help="chromosome from which variants should be simulated",default="1")
-parser.add_option("-o", "--outfile", dest="outfile", help="name of output file",default= 'chr1.log')
+parser = ArgumentParser(description=__doc__)
+parser.add_argument("-a", "--ancestor",
+	help="extracted ancestor sequence",
+	type=str, 
+	required=True)
+parser.add_argument("-r", "--reference",
+	help="reference sequence of the species of interest",
+	type=str, 
+	required=True)
+parser.add_argument("-c", "--chromosome",
+	help="chromosome from which variants should be simulated",
+	type=str, 
+	required=True)
+parser.add_argument("-o", "--outfile",
+	help="name of output file, the parameter log.",
+	type=str, required=True)
 
-(options, args) = parser.parse_args()
+args = parser.parse_args()
 
-
-# Open inputs.
-anc_open = open(options.ancestor)
-anc_open.readline() # empty
-anc_open.readline() # header
-anc_str = anc_open.readline().replace('\n', '').upper() # sequence
-
-ref_open = open(options.reference)
-ref_open.readline() # empty
-ref_open.readline() # header
-ref_str = ref_open.readline().replace('\n', '').upper() # sequence
-
-# Function for turning seq into string and then to list per nt.
-def stringTOlist(seq):
+def get_nucleotides_list(file) -> list:
+	"""
+	Opens plaintext fasta file and creates a list of all nucleotides.
+	:param file: str, filename to read sequence from
+	:return: list of single char strings, one for each nt in the fasta input
+	"""
+	seq = ""
+	with open(file, "r") as file_h:
+		for line in file_h:
+			if not line.startswith(">"):
+				seq += line.strip().upper()
+	if len(seq) < 1:
+		sys.exit(f"No sequence found in file: {file}")
 	list_nt = [nt for nt in seq]
 	return list_nt
 
-list_anc = stringTOlist(anc_str)
-list_ref = stringTOlist(ref_str)
+list_anc = get_nucleotides_list(args.ancestor)
+list_ref = get_nucleotides_list(args.reference)
 
 # Total counts and mutation counts.
 total = 0
@@ -114,10 +123,6 @@ total += len_seq
 
 
 print('Start counting! Chr: ' + options.chr)
-
-# Iterate through nt and compare.
-N = len(list_ref)
-pbar = ProgressBar(widgets=[Bar('=', '[', ']'), ' ', Percentage(), ' ', ETA()], maxval = N).start()
 
 for num, nt_ref in enumerate(list_ref):
 	nt_anc = list_anc[num]
@@ -224,8 +229,6 @@ for num, nt_ref in enumerate(list_ref):
 			elif list_nt_anc_ref.endswith('T'):
 				GTn += 1
 				mut += 1
-	pbar.update(num)
-pbar.finish()
 
 ## Checks for insertions and deletions.
 # Dictionaries for instertions and deletions (length(key), count(value)).
@@ -236,9 +239,6 @@ deletion = 0
 
 print("Measuring indels ...")
 # Iterate over the nt in the sequence.
-N = len_seq
-pbar = ProgressBar(widgets=[Bar('=', '[', ']'), ' ', Percentage(), ' ', ETA()], maxval = N).start()
-
 for position in range(1, len_seq + 1):
 	nt_anc = list_anc[position-1]
 	nt_ref = list_ref[position-1]
@@ -262,8 +262,6 @@ for position in range(1, len_seq + 1):
 		if deletion > 0:
 			deletionsizes[deletion] += 1
 			deletion = 0
-	pbar.update(position)
-pbar.finish()
 
 # Define controls.
 chrom, window_start, pos = options.chr, 1, position
@@ -273,9 +271,6 @@ cmutCpG = mutCpG
 ctotalCpG = totalCpG
 cA, cC, cG, cT = totalrefA, totalrefC, totalrefG, totalrefT
 
-
-anc_open.close()
-ref_open.close()
 # Create output.
 '''
 :Output format:
@@ -297,32 +292,29 @@ chrom	window_start	pos	cmut	ctotal	cmutCpG	ctotalCpG	cA	cC	cG	cT
 '''
 
 print("Writing output.")
-output = open(options.outfile,'w')
+output = open(args.outfile, 'w')
 
 # Write to output.
-output.write("###CHROM " + str(options.chr) + "\n")
-output.write("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n"%(chrom, window_start, pos, cmut, ctotal, cmutCpG, ctotalCpG, cA, cC, cG, cT))
+output.write("###CHROM " + str(args.chr) + "\n")
+output.write("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n" % (
+	chrom, window_start, pos, cmut, ctotal, cmutCpG, ctotalCpG, cA, cC, cG, cT))
 
 output.write("\n##STATS\n")
 output.write("#A\tC\tG\tT\tCpGs\n")
-output.write("\t".join(map(str,[totalrefA, totalrefC, totalrefG, totalrefT, totalCpG])) + "\n")
+output.write("\t".join(
+	map(str, [totalrefA, totalrefC, totalrefG, totalrefT, totalCpG])) + "\n")
 output.write("#y\tN\tAC\tAG\tAT\tCA\tCG\tCT\tGA\tGC\tGT\tTA\tTC\tTG\n")
-output.write("\t".join(map(str,[mut, total, ACn, AGn, ATn, CAn, CGn, CTn, GAn, GCn, GTn, TAn, TCn, TGn])) + "\n")
+output.write("\t".join(map(str,
+	[mut, total, ACn, AGn, ATn, CAn, CGn, CTn, GAn, GCn, GTn, TAn, TCn, TGn])) + "\n")
 output.write("#yCpG\tNCpG\tCA\tCG\tCT\tGA\tGC\tGT\n")
-output.write("\t".join(map(str,[mutCpG, totalCpG, CA, CG, CT, GA, GC, GT])) + "\n")
+output.write("\t".join(map(str, [mutCpG, totalCpG, CA, CG, CT, GA, GC, GT])) + "\n")
 
 output.write("##INSERTIONS\n")
 output.write("#len\tcount\n")
 for key, value in insertionsizes.items():
-	output.write("%d\t%d\n"%(key, value))
+	output.write("%d\t%d\n" % (key, value))
 
 output.write("##DELETIONS\n")
 output.write("#len\tcount\n")
 for key, value in deletionsizes.items():
-	output.write("%d\t%d\n"%(key, value))
-
-print("Done!")
-# Create a txt file indicating that this process is finished (for snakemake)
-indication = open('finished_create_parameters.txt', 'x')
-indication.close()
-os.rename('./finished_create_parameters.txt', './output/finished_create_parameters.txt')
+	output.write("%d\t%d\n" % (key, value))
