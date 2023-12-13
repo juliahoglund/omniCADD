@@ -40,6 +40,7 @@ from argparse import ArgumentParser
 from Bio import AlignIO
 from Bio import SeqIO
 from Bio.Seq import Seq
+from collections import defaultdict
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-i", "--input",
