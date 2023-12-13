@@ -31,7 +31,7 @@ rule clean_ambiguous:
 		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
 		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 	output:
 		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
 		# create temporary files and dirs
@@ -65,7 +65,7 @@ rule mark_ancestor:
 		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
 		name_sp1 = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 	log:
 		"results/logs/{alignment}/{part}_mark_ancestor_log.txt"
 	output:
@@ -107,7 +107,7 @@ rule maf_df:
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 	threads: 2
 	output:
 		temp("results/alignment/dedup/{alignment}/{part}.maf.lz4")
@@ -124,7 +124,7 @@ rule maf_ro:
 	params:
 		order = lambda wildcards: config["alignments"][wildcards.alignment]["filter_order"]
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 2
@@ -176,7 +176,7 @@ rule sort_by_chr: # sort by chromosome
 		species_name=lambda wildcards: config["alignments"][wildcards.alignment]["name_species_interest"],
 		chrom_prefix=lambda wildcards: config["alignments"][wildcards.alignment]["chrom_prefix"]
 	conda:
-		"ancestor.yml" 
+		"../envs/ancestor.yml" 
 	log:
 		"results/logs/{alignment}_merging.log"
 	output:
@@ -201,7 +201,7 @@ rule maf_str:
 	params:
 		species_label = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 2
@@ -225,7 +225,7 @@ rule maf_sorter:
 		species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
 		pre_sorted=lambda wildcards: config['alignments'][wildcards.alignment]['pre_sorted']
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 2
@@ -251,11 +251,12 @@ rule gen_ancestor_seq:
 		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"],
 		ancestor=config['mark_ancestor']['name_ancestor']
 	conda:
-		"ancestor.yml"
+		"../envs/ancestor.yml"
 	output:
 		"results/ancestral_seq/{ancestor}/chr{chr}.fa"
 	shell:
 		"faidx -v {input.reference}"
+		
 		"python3 {input.script}"
 		" -i {input.maf}"
 		" -o {output}"
