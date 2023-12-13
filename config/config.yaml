@@ -25,3 +25,4 @@ mark_ancestor:
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
+  reference_genome: 'sus_scrofa_ref.fa'
