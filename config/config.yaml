@@ -25,4 +25,7 @@ mark_ancestor:
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
-  reference_genome: 'sus_scrofa_ref.fa'
+  reference_genome: 'Sus_scrofa_ref.fa'
+
+generate_variants:
+  reference_genome_wildcard: "genome/Sus_scrofa_ref{chr}.fa" #resources/...
