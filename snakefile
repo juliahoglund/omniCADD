@@ -16,7 +16,6 @@ report: "report/workflow.rst"
 
 
 ##### PARAMS #####
-REFERENCE = 'resources/genome/'
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
 SCRIPTS_2 = "scripts/step_2_simulate_variants/"
 # SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
