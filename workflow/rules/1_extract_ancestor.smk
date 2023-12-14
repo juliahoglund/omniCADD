@@ -246,22 +246,24 @@ rule gen_ancestor_seq:
 	input:
 		maf=f"results/alignment/sorted/{config['mark_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
 		script=workflow.source_path(SCRIPTS_1 + 'extract_ancestor.py'),
-		reference=workflow.source_path(REFERENCE + config['mark_ancestor']['reference_genome'])
 	params:
 		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"],
-		ancestor=config['mark_ancestor']['name_ancestor']
+		ancestor=config['mark_ancestor']['name_ancestor'],
+		reference=config['mark_ancestor']['reference_genome']
 	conda:
 		"../envs/ancestor.yml"
 	output:
 		"results/ancestral_seq/{ancestor}/chr{chr}.fa"
 	shell:
-		"faidx -v {input.reference}"
+		'''
+		faidx -v {params.reference}
 		
-		"python3 {input.script}"
-		" -i {input.maf}"
-		" -o {output}"
-		" -a {params.ancestor}"
-		" -n {params.species_name}"
-		" -r {input.reference}.fai"
+		python3 {input.script} \
+		 -i {input.maf} \
+		 -o {output} \
+		 -a {params.ancestor} \
+		 -n {params.species_name} \
+		 -r {params.reference}.fai \
+		'''
 
 #################
