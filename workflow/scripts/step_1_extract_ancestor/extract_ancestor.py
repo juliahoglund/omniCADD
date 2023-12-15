@@ -125,13 +125,22 @@ def get_alignment_generator(input_f):
 		else open(input_f, "r")
 	return AlignIO.parse(handle, "maf")
 
+
+# get chromosomes to use
+if 'chr' in args.input:
+	chr_num = args.input.split('chr')
+	chromosome = chr_num[1].split('.')[0]
+else:
+	chr_num = 'N'
+
 # get total chromosome length (in bases)
 chr_lengths = defaultdict(dict)
 
 with open(args.reference) as f:
 	lines = f.read().splitlines()
-	lines = lines.strip()
+
 lines = [ x for x in lines if len(x.split('\t')[0]) < 6 ]
+
 for line in lines:
 	chrom = line.split()[0]
 	length = line.split()[1]
@@ -174,7 +183,6 @@ for alignment in get_alignment_generator(args.input):
 # dict start_pos=sequence. After iterating over the alignments the script
 # will go through this dictionary and create the final ancestor sequence by
 # filling up missing positions with gaps.
-print("## Reading MAF file")
 if len(anc_pos_seq_dict) == 0:
 	sys.exit(f"ERROR: No ancestral sequences found in {args.input}!\n"
 			f"There has been a configuration/software error or there are "
@@ -195,9 +203,6 @@ for key, value in list(anc_pos_seq_dict.items()):
 # Before filling of that seqrecord it will insert as many "-" as current_loc - (previous_loc+previous_size)
 pos_list = anc_pos_seq_dict.keys()
 pos_list_s = sorted(pos_list)
-	
-# list with ancestor start positions
-print("pos_list_s:", pos_list_s)
 
 pregaps = '-' * list(pos_list_s)[0]
 # pregaps = '-' * (pos_list_s[0]) #ADDED AS MAF IS 0-BASED SO START POS is +1 and pregaps is pos
