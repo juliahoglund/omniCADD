@@ -9,11 +9,13 @@ chromosomes:
 
 alignments:
   43_mammals.epo:
-    path: 'alnFiles/'
+    path: 'alnFiles/' # /resources/alignment...
     type: 'maf.gz'
     clean_maf: 'True'
-    ancestral_label: "Ancestor_Pig_Cow"
+    ancestral_label: "Ancestor_Pig_Cow" 
+    # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
     filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+    # bos_taurus, ovis_aries_rambouillet, equus_caballus, loxodonta_africana
     exclude_patterns: [ "scaffold", "epo.Y" ] # Files including these strings will not be processed
     name_species_interest: "sus_scrofa"
     chrom_prefix: "chr" # prefix of chromosome in sequence label: mm39.chr[CHR]
@@ -23,9 +25,14 @@ alignments:
 mark_ancestor:
   ancestral_alignment: "43_mammals.epo"
   name_ancestor: 'Ancestor_Pig_Cow'
+  # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
+  # Btau, Oram, Ecab, Lafr
   reference_genome: 'genome/Sus_scrofa_ref.fa'
 
 generate_variants:
   reference_genome_wildcard: "genome/Sus_scrofa_ref{chr}.fa" #resources/...
+  simulate:
+    overestimation_factor: 5 
+    # doublecheck later based on what this is   
