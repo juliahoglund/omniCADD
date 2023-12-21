@@ -33,6 +33,12 @@ mark_ancestor:
 
 generate_variants:
   reference_genome_wildcard: "genome/Sus_scrofa_ref{chr}.fa" #resources/...
+  population_vcf:  "pig/chr{chr}.fa" #resources/pop_freq... #ON ANNUNA
+  derive:
+    frequency_threshold: 0.9
   simulate:
     overestimation_factor: 5 
     # doublecheck later based on what this is   
+
+## here make sure all variants get processewd enough to go into my visualisation, 
+## and make sure all those scripts collecting what is needed is still working!
