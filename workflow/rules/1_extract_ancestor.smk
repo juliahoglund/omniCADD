@@ -253,7 +253,7 @@ rule gen_ancestor_seq:
 	conda:
 		"../envs/ancestor.yml"
 	output:
-		"results/ancestral_seq/{ancestor}/chr{chr}.fa"
+		"results/ancestral_seq/{params.ancestor}/chr{chr}.fa"
 	shell:
 		'''
 		faidx -v {params.reference}
