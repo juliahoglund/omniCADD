@@ -22,7 +22,7 @@ parser.add_argument("-i", "--input",
     type=str, 
     required = True)
 parser.add_argument("-o", "--output",
-    help="NAme of output MAF file to filter, will be gzipped if input is (default: out.maf)",
+    help="Name of cleaned output MAF file, will be gzipped if input is (default: out.maf)",
     type=str, 
     default = "out.maf")
 
