@@ -1,153 +1,80 @@
 '''
- The snakemake file goes through the variant deriving. It makes use of the same reference genome from the previous steps
- as well as the extracted ancestral sequence, and compares the genomes to find out what nucleotide positions differs, 
- i.e. have been derived from the ancestral state. To filter for nearly-fixed variants, i.e. the ones that have been allowed
- to incerase in frequency in the reference, to near fixation, it makes use of a (self-provided) individual level vcf file,
- including genotype data, from which the allele frequencies are calculated. 
- The scripts directory contains all the used scripts by the snakemake file. 
+ Module that generates the derived variants,
+ From the previously obtained ancestral sequence,
+ the reference genome and the population vcf.
 
- :Author: Seyan Hu
- :Date: 14-10-2022
+ :Author: Job van Schipstal
+ :Date: 23-9-2023
+
+ Based upon the work of Seyan Hu.
+
  :Extension and modification: Julia Höglund
  :Date: 01-08-2023
- :Usage: snakemake -p --cores <number of cores> --snakefile <snakefile script>
 
  Params can be adjusted for any given species of interest. 
 '''
 
-## Targets
-# Code collecting output files from this part of the pipeline
-all_outputs.append('output/start_step4.txt')
-all_outputs.append('output/finished_generating_frequencies.txt')
-all_outputs.append('output/finished_generate_derived.txt')
-all_outputs.append('output/finished_simulated_vcf_trimming.txt')
-
-## rules
-rule derive:
-    input: 
-        SCRIPTS_4 + 'generate_frequencies.py'
-    output: 
-        'output/start_step4.txt'
-    shell:
-        '''
-        touch output/start_step4.txt
-        '''
-
-	
-'''	
- Generates frequency files from the population variants (vcf files).
- Population frequency files are used for the generation of the derived variants,
- in the step where the nearly-fixed variants are extracted from all the differing
- variants between ancestror and reference species.
-
- Manual input:	
-				'vcf', 		    compressed (!) vcf containing variants from the whole population (one per chromosome). 
-								including a wildcard ($i) instead of the name of the chromosome
- 				'chromosomes', 	list of chromosomes from the given species of interest. 
-
-'''
+""" 
+ Generates frequency files form the population variants (vcf files).
+ Population frequency files are used for the generation of the derived variants, 
+ since the genome is only constructed with one organism in mind and there may be some variations varying between different individuals.
+ The intent is to filter out young derived variants that have not been subject to many generations of natural selection,
+ by filtering for high prevalence or fixation in the population.
+"""
 rule freq_files:
 	input:
-		'output/start_step4.txt'
+		config["generate_variants"]["population_vcf"]
 	params:
-		script = SCRIPTS_4 + 'generate_frequencies.py',
-		vcf = config['16_vcf'],
-		chromosome = config['16_chromosome']
+		min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"]
+	conda:
+		"simulation.yml"
 	output:
-		'output/finished_generating_frequencies.txt'
+		'results/processed_population_frequency/chr{chr}.frq'
 	shell:
-		'''
-		for i in {{{params.chromosome}}}; do \
-		python {params.script} \
-		-v {params.vcf} \
-		-c $i; done
+		"vcftools --gzvcf {input}"
+		" --chr {wildcards.chr}"
+		" --remove-indels"
+		" --non-ref-af {params.min_non_ref_freq}"
+		" --max-non-ref-af 1.0"
+		" --stdout --freq > {output}"
 
-		mkdir output/frequencies
-		mv *.out output/frequencies
-		'''
-
-
-'''
+"""
  Generates the derived variants by looking at all data sources (ancestral seq, genome, freq files) simultaneously.
- Manual input:	
-				'chromosome'	list of chromosomes from which the variants are going to be derived
-				'ancestor', 	path to the folder with the extracted ancestor
-				'genome'		path to the reference genome folder
-				'frequency'		path to folder with frequency files
-				'start'			start position of the region
-'''
-rule generate_derived:
+"""
+rule gen_derived:
 	input:
-		'output/finished_generating_frequencies.txt'
+		ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
+		reference=config["generate_variants"]["reference_genome_wildcard"],
+		frequency="results/processed_population_frequency/chr{chr}.frq",
+		script=workflow.source_path(SCRIPTS_4 + "derive_variants.py")
 	params:
-		script = SCRIPTS_4 + 'derive_variants.py',
-		chromosome = config['17_chromosome'],
-		ancestor = config['17_ancestor'],
-		genome = config['17_genome'],
-		frequency = config['17_frequency'],
-		start = config['17_start']
+		output_prefix="results/derived_variants/raw/chr{chr}"
+	conda:
+		"simulation.yml"
 	output:
-		'output/finished_generate_derived.txt'
+		"results/derived_variants/raw/chr{chr}.vcf",
 	shell:
-		'''
-		python {params.script} \
-		-c {params.chromosome} \
-		-a {params.ancestor} \
-		-g {params.genome} \
-		-f {params.frequency} \
-		-s {params.start}
+		"python3 {input.script}"
+		" -c {wildcards.chr}"
+		" -a {input.ancestral}"
+		" -r {input.reference}"
+		" -v {input.frequency}"
+		" -o {params.output_prefix}"
 
-		mkdir output/derived
-		mv derived_* output/derived/
-		'''
-
-
-'''
- Trims lines in simulated vcf file to match with the number of lines in the derived vcf files.
-  Manual input:	
-				'simulated', 	path to folder containing the vcf with simulated variants. 
- 				'derived', 	    path to folder containing the vcfs with derived variants. 
- 				'prefixSimulated' path to derived variants.
-				'prefixDerived' prefix to simulated variant file(s).
-
-'''
-rule trim_vcf:
+"""
+ Filters the derived variants for separated and adjacent SNPs.
+"""
+rule snp_filter:
 	input:
-		'output/finished_generate_derived.txt'
-	params:
-		script = SCRIPTS_4 + 'trim_variants.py',
-		simulated = config['18_simulated'],
-		derived = config['18_simulated'],
-		prefixSimulated = config['18_prefixSimulated'],
-		prefixDerived = config['18_prefixDerived']
+		vcf="results/derived_variants/raw/chr{chr}.vcf",
+		script=workflow.source_path(SCRIPTS_4 + "filter_snps.py")
+	conda:
+		"simulation.yml"
 	output:
-		'output/finished_simulated_vcf_trimming.txt'
+		snps="results/derived_variants/singletons/chr{chr}.vcf",
+		series="results/derived_variants/series/chr{chr}.vcf"
 	shell:
-		'''
-		python {params.script} \
-		-s {params.simulated} \
-		-d {params.derived} \
-		-p {params.prefixSimulated} \
-		-q {params.prefixDerived}
-
-		trimmedFile=trimmed_{params.prefixSimulated}filtered.vcf
-		cat $trimmedFile | awk '$1 ~ /^#/ {{print $0;next}} {{print $0 | "sort -k1,1 -k2,2n"}}' > tmp
-		mv tmp $trimmedFile
-
-		# CHOP SIMULATED VARIANTS TO CHROMOSOMES
-		# FORMAT should only be there if there actually are some sample columns after it. 
-		# (The message is misleading in this context — what it's looking for is \tFORMAT\t)
-
-		bgzip $trimmedFile
-		tabix $trimmedFile.gz
-
-		in=$trimmedFile.gz
-		out=simSNPs
-
-		for i in {{1..18}} X; do bcftools view $in --regions $i -o $out_$i.vcf.gz -Oz; done
-		gunzip simSNPs_*
-
-		mkdir output/simulated
-		mv simSNPs_* output/simulated
-
-		'''
+		"python3 {input.script}"
+		" -i {input.vcf}"
+		" --snps {output.snps}"
+		" --series {output.series}"
