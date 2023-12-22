@@ -36,7 +36,7 @@ PARSER.add_argument("-i", "--input",
     help = "maf alignment file(s) which are to be sorted by chromosome", 
     type = str, 
     required = True, 
-     nargs = "+")
+    nargs = "+")
 PARSER.add_argument("-o", "--output",
     help = "Output alignment file(s), one per chr, has to end with chr[chr].maf(.gz|.lz4) ",
     type = str, 
