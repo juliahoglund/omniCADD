@@ -1,126 +1,82 @@
 #!/usr/bin/env python
-# -*- coding: ASCII -*-
-
+# -*- coding: utf-8 -*-
 """
 :Author: Christian Gross
 :Contact: cgross@tudelft.nl
 :Date: 01-08-2018
 
-This script takes the vcf file with simulated SNPs and iterates over it, 
-at each row identifying if the variant is at a position with a known ancestor or not. 
-Depending on that it is splitting the file.
+This script takes the vcf file with simulated SNPs and iterates over it,
+at each row identifying if the variant is at a position with a known high
+quality ancestor or not. Depending on that it is splitting the file.
 
 :Edited by: Seyan Hu
 :Date: 4-11-2022
-:Extension and modification: Julia Höglund
-:Date 1-5-2023
-:Usage: python <script.py>  -i <name and path of indel file> -s <name and path of snp file> -a <ancestor genome path>
-
-:Example:
-python filter_simulated.py -i -s -a
+:Edited by: Job van Schipstal
+:Date: 2-10-2023
+:Usage: see python filter_ancestor_site.py --help
+- Modified to accept input, ancestral and output filenames from argparse
+  instead of searching in a given folder.
+- Do not check chromosome for each variant,
+  it is expected for the inputs to match.
+- Reformatted to better align with PEP8 style guidelines.
 """
+
 # Import dependencies.
+import sys
+import gzip
+from argparse import ArgumentParser
 import pysam
-import sys,os
-from optparse import OptionParser
 
-# OptionParser for inputs. 
-parser = OptionParser()
-parser.add_option("-i", "--indels", dest="indels", help="name of simulated indel variants.", default='indels_simVariants.vcf')
-parser.add_option("-s", "--snps", dest="snps", help="name of simulated SNP variants.", default='snps_simVariants.vcf')
-parser.add_option("-a", "--ancestor", dest="ancestor", help="path to ancestor genome files.", default='./output/extracted_ancestor')
-(options, args) = parser.parse_args()
+parser = ArgumentParser(description=__doc__)
+parser.add_argument('-i', '--input',
+	help = 'Input vcf file of variants to filter',
+	type = str, 
+	required = True)
+parser.add_argument('-a', '--ancestor',
+	help = 'The ancestral sequence for the chromosome',
+	type = str, 
+	required = True)
+parser.add_argument('-o', '--output',
+	help = 'output filename, vcf format.',
+	type = str, 
+	required = True)
 
-# Checking if the path ends with '/' 
-if (not options.ancestor.endswith('/')):
-	options.ancestor = options.ancestor+'/'
 
-# Create list of chr ancestor files.
-anc_l = []
-for fn in os.listdir(options.ancestor):
-	if fn.endswith('.fa'):
-		anc_l.append(fn)
+def filter_vcf_by_ancestral(input_vcf, output_vcf, ancestral) -> None:
+	"""
+	Read input vcf and filter variants by presence of
+	an high quality ancestral allele.
+	:param input_vcf: str, filename for input file
+	:param output_vcf: str, filename for output file
+	:param ancestral: str, filename of ancestral sequence fasta file
+	:return: None, written to file
+	"""
+	# Open input/output vcf and ancestral fasta file
+	vcf_file = gzip.open(input_vcf, "rt") \
+		if input_vcf.endswith('.gz') else open(input_vcf, "r")
 
-# Open vcf files and ancestor file. 
-indel_input = open(options.indels, 'r')
-snp_input = open(options.snps, 'r')
+	outfile = gzip.open(output_vcf, "wt") \
+		if output_vcf.endswith('.gz') else open(output_vcf, "w")
+	anc_fasta = pysam.Fastafile(ancestral)
+	if anc_fasta.nreferences != 1:
+		sys.exit(f"Expected 1 sequence in ancestral fasta, not {anc_fasta.nreferences}")
 
-# Create output files
-outfile1 = open('./' + options.indels.replace(".vcf", "") + '_filtered.vcf','w')	
-outfile2 = open('./' + options.snps.replace(".vcf", "") + '_filtered.vcf','w')	
+	reference = anc_fasta.references[0]
 
-outfile1.write('##fileformat=VCFv4.1\n')
-outfile1.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\n')
-
-outfile2.write('##fileformat=VCFv4.1\n')
-outfile2.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\n')
-
-# Iterate over simulated list and ancestor list.
-for anc_file in anc_l:
-	print("checking {}".format(anc_file))
-	# Open ancestor file. 
-	anc_open = open(options.ancestor + anc_file, 'r')
-	anc_fasta = pysam.Fastafile(options.ancestor + anc_file)	
-	chr_num = ''
-	anc_file_n = ''
-
-	for line in anc_open:
-		if line.startswith('>'):
-			line = line.split(' ')[0]
-			line = line.replace('>', '')
-			line_n = line.split('.')[0]
-			line_chr = line.split('.')[1]
-			anc_file_n += line_n
-			chr_num += line_chr
+	# Iterate over lines in vcf.
+	for lines in vcf_file:
+		if lines[0] == '#':
+			outfile.write(lines)
 			continue
+		pos = lines.split('\t')[1]
+		ancestor = anc_fasta.fetch(reference, int(pos) - 1, int(pos))
+		if ancestor in 'ACGT':
+			outfile.write(lines)
+	outfile.close()
+	vcf_file.close()
 
-	# reset line search in input
-	indel_input.seek(0) 
-	# Iterate over lines in indel vcf.
-	for lines in indel_input:
-		# If lines starts with '#' or 'y' write to output. 
-		if (lines[0]=='#') or (lines[0]=='y'):
-			next
-		# Else split line for chromosome and position of SNP. 
-		# And check if SNP in ancestor position. 
-		else:
-			Chrom = lines.split('\t')[0]
-			Pos = lines.split('\t')[1]
-			if chr_num == Chrom:
 
-				ancestor = anc_fasta.fetch(anc_file_n + '.' + Chrom, int(Pos) - 1, int(Pos))
-			
-				if ancestor in 'ACGT':
-					outfile1.write(lines)
-				else: 
-					next
-			else:
-				next
+if __name__ == '__main__':
+	args = parser.parse_args()
+	filter_vcf_by_ancestral(args.input, args.output, args.ancestor)
 
-	# reset line search in input
-	snp_input.seek(0) 
-	# Iterate over lines in snp vcf. 
-	for lines in snp_input:
-		# If lines starts with '#' or 'y' write to output. 
-		if (lines[0]=='#') or (lines[0]=='y'):
-			next
-		# Else split line for chromosome and position of SNP. 
-		# And check if SNP in ancestor position. 
-		else:
-			Chrom = lines.split('\t')[0]
-			Pos = lines.split('\t')[1]
-			if chr_num == Chrom:
-
-				ancestor = anc_fasta.fetch(anc_file_n + '.' + Chrom, int(Pos) - 1, int(Pos))
-			
-				if ancestor in 'ACGT':
-					outfile2.write(lines)
-				else: 
-					next
-			else:
-				next
-
-# Create a txt file indicating that this process is finished (for snakemake)
-indication = open('finished_vcf_filtering.txt', 'x')
-indication.close()
-os.rename('./finished_vcf_filtering.txt', './output/finished_vcf_filtering.txt')
