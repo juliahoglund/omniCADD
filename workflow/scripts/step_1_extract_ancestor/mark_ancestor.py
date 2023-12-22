@@ -45,7 +45,7 @@ parser.add_argument('-i', '--input',
 	help = 'Alignment file to mark ancestral sequence in, can be gzip compressed', 
 	required = True)
 parser.add_argument('-o', '--output',
-	help = 'NAme of output file, will be compressed if ending in .gz',
+	help = 'Name of output file, will be compressed if ending with .gz',
 	required = True)
 parser.add_argument('-a', '--ancestor',
 	help = 'The name used to mark the ancestral sequence, eg. Pig_Cow',
