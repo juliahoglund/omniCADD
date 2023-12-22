@@ -35,4 +35,10 @@ vcftools --gzvcf boar/WildBoar_Chr$i.vcf.gz \
 
  # 221 (220) domesticated pic specimen
  # 58 wild boar specimen
+
+```
+
+2. split ref fasta from single line to multiline (if needed)
+```bash
+for i in {1..18} X; do tr "\t" "\n" < genome/Sus_scrofa_ref_$i.fa | fold -w 60 > Sus_scrofa_ref_$i.fa; done
 ```
