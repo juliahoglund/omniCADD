@@ -1,5 +1,5 @@
 # README
-This is the collection of scripts that derives variants in the reference species based on the extracted ancestral sequence. First, individual level vcf files (provided by the user) is used to calculate population frequencies, where the alternative allele has a frequency above 90%. Then this information is used in the deriving of variants. Then, the simulated variants are downsampled (randomly) to match the number of derived variants.
+This is the collection of scripts that derives variants in the reference species based on the extracted ancestral sequence. First, individual level vcf files (provided by the user) is used to calculate population frequencies, where the alternative allele has a frequency above 90%. Then this information is used in the deriving of variants. 
 
 The identification is based on five criteria:
 |Cases|1|2|3|4|5|
@@ -24,24 +24,17 @@ The identification is based on five criteria:
 		in the reference species / population, and hence be monomorphic in the reference.*
 		**not yet implemented**
 
-Dependencies:
-- bcftools
+Python dependencies:
+- biopython
+- pysam
+- mafTools
+- vcftools
+- snakemake
 - (conda)
 
-Python-specific dependencies are all exported in the conda environment `cadd.yml`. The pipeline can be run within this environment.
+Python-specific dependencies are all exported in the conda environment `simulation.yml`. The pipeline handles user proivided `.vcf`-files. This should contain data for multiple samples in a population, from which the allele frequency should be derived. 
 
-1. `generate_frequencies.py`
-  Usage: `python <script.py> -v <vcf.gz file> -c <chromosome list>`
-  This script take an individual level vcf file and extact the variants, together with their frequencies, if they are above 90% (0.90)
-
-2. `derive_variants.py`
-  Usage: `python derive_variants.py.py -c <chr num> -a <path to ancestor seq> -g <path to genome> -f <path to frequency files> -s <start position of region>`
-  This script uses the frequency file, the reference sequence and and the extracted ancestor sequence, to extract derived variants in the reference genome, based on the criteria above.
-
-3. `trim_variants`
-  Usage: `python <script.py> -s <path to simulated variants> -d <path to derived variants> -p <prefix of simulated variant file(s)> -q <prefix of derived variant file(s)>`
-  this script trims the simulated variants (randomly downsamples) down to the same amout as the derived variants.
+**To do**
+- add derived avriant summary stats to the stats report
 
 
-These scripts are all wrapped with a pipeline Snakemake file and can be run like this:
-`snakemake -c4 --snakefile Snakemake_derive.sn`
