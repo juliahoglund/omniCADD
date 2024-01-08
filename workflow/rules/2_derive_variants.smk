@@ -27,7 +27,7 @@ rule freq_files:
 	params:
 		min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"]
 	conda:
-		"simulation.yml"
+		"common.yml"
 	output:
 		'results/processed_population_frequency/chr{chr}.frq'
 	shell:
@@ -46,7 +46,7 @@ rule gen_derived:
 		ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
 		reference=config["generate_variants"]["reference_genome_wildcard"],
 		frequency="results/processed_population_frequency/chr{chr}.frq",
-		script=workflow.source_path(SCRIPTS_4 + "derive_variants.py")
+		script=workflow.source_path(SCRIPTS_2 + "derive_variants.py")
 	params:
 		output_prefix="results/derived_variants/raw/chr{chr}"
 	conda:
@@ -67,7 +67,7 @@ rule gen_derived:
 rule snp_filter:
 	input:
 		vcf="results/derived_variants/raw/chr{chr}.vcf",
-		script=workflow.source_path(SCRIPTS_4 + "filter_snps.py")
+		script=workflow.source_path(SCRIPTS_2 + "filter_snps.py")
 	conda:
 		"simulation.yml"
 	output:
