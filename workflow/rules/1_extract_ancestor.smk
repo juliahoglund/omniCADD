@@ -174,30 +174,29 @@ rule sort_by_chr: # sort by chromosome
 		script = workflow.source_path(SCRIPTS_1 + 'sort_by_chromosome.py')
 	params:
 		species_name=lambda wildcards: config["alignments"][wildcards.alignment]["name_species_interest"],
-		chrom_prefix=lambda wildcards: config["alignments"][wildcards.alignment]["chrom_prefix"]
+		directory = "results/alignment/merged/{alignment}/"
 	conda:
 		"../envs/ancestor.yml" 
 	log:
 		"results/logs/{alignment}_merging.log"
 	output:
-		out_chr = expand("results/alignment/merged/{{alignment}}/chr{chr}.maf.lz4",
-					chr=config["chromosomes"]["karyotype"]),
-		out_other="results/alignment/merged/{{alignment}}/chrOther.maf.lz4"
-
+		out_chr = expand("results/alignment/merged/{{alignment}}/chr{chr}.maf",
+			chr=config["chromosomes"]["karyotype"])
 	shell:
-		"python3 {input.script}"
-		" -l {log}"
-		" -s {params.species_name}"
-		" -p {params.chrom_prefix}"
-		" -i {input.maf}"
-		" -o {output.out_chr} {output.out_other}"
+		'''
+		python3 {input.script} \
+		 -s {params.species_name} \
+		 -i {input.maf} \
+		
+		mv chr*.maf {params.directory}
+		'''
 
 """	
  Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand. 
 """
 rule maf_str:
 	input:
-		"results/alignment/merged/{alignment}/chr{chr}.maf.lz4"
+		"results/alignment/merged/{alignment}/chr{chr}.maf"
 	params:
 		species_label = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
@@ -206,11 +205,11 @@ rule maf_str:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 2
 	output:
-		temp("results/alignment/stranded/{alignment}/chr{chr}.maf.lz4")
+		temp("results/alignment/stranded/{alignment}/chr{chr}.maf")
 	shell:
-		"lz4 -dc {input} | mafStrander --maf /dev/stdin"
+		"mafStrander --maf {input}"
 		" --seq {params.species_label}."
-		" --strand + | lz4 -f stdin {output}"
+		" --strand + > {output}"
 
 """
  Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
@@ -220,7 +219,7 @@ rule maf_str:
 """
 rule maf_sorter:
 	input:
-		"results/alignment/stranded/{alignment}/chr{chr}.maf.lz4"
+		"results/alignment/stranded/{alignment}/chr{chr}.maf"
 	params:
 		species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
 		pre_sorted=lambda wildcards: config['alignments'][wildcards.alignment]['pre_sorted']
@@ -233,9 +232,9 @@ rule maf_sorter:
 		"results/alignment/sorted/{alignment}/chr{chr}.maf.gz"
 	shell:
 		"if [ '{params.pre_sorted}' = 'True' ]; then "
-		"lz4 -dc {input} | gzip > {output};"
+		"gzip {input} > {output};"
 		"else "
-		"lz4 -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}."
+		"mafSorter --maf {input} --seq {params.species_label}."
 		" | gzip > {output}; fi"
 
 """
