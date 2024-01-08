@@ -14,8 +14,7 @@ chromosome output file.
 :Edited by: Job van Schipstal 
  :Date: 26-9-2023
 :Example: python chr_sorting.py --species mm39 -i file1 ... file_n -o file...
-- Removed redundant code, reformatted according to PEP8 guidelines.
-- Accepts gzipped or lz4 compressed input or output files.
+- Removed redundant code
 - Expects list of input and output files via argparse,
 instead of searching for files in a given folder.
 
@@ -26,110 +25,78 @@ instead of searching for files in a given folder.
 import gzip
 import re
 import sys
-
-from argparse import ArgumentParser
 from collections import defaultdict
+from argparse import ArgumentParser
 import lz4.frame
 
-PARSER = ArgumentParser(description = __doc__)
+PARSER = ArgumentParser(description=__doc__)
 PARSER.add_argument("-i", "--input",
     help = "maf alignment file(s) which are to be sorted by chromosome", 
     type = str, 
     required = True, 
     nargs = "+")
-PARSER.add_argument("-o", "--output",
-    help = "Output alignment file(s), one per chr, has to end with chr[chr].maf(.gz|.lz4) ",
-    type = str, 
-    required = True,
-    nargs = "+")
 PARSER.add_argument("-s", "--species",
-    help = "name/label of the species by which the alignments should be sorted expected to be first in the sequence, ignored if not", 
+    help = "name/label of the species by which the alignments should be sorted", 
     type = str, 
     required = True)
-PARSER.add_argument("-l", "--logfile",
-    help = "logfile (default chr_sorting_log.txt)", 
-    type = str,
-    default = "chr_sorting_log.txt")
-PARSER.add_argument("-p", "--prefix",
-    help = "prefix for chr in sequence label e.g. chr for mm39.chr19 (default None)", 
+PARSER.add_argument("-a", "--ancestor",
+    help = "name/label of the ancestor to keep in the alignment", 
     type = str, 
-    default = "None")
-
-
-def create_outfile_dict(out_files: list) -> [dict, list]:
-    """
-    Extract chromosome from outfile and create dict of opened output files.
-    :param out_files: list of str, file(path/name) to open
-    :return: dict of key chrom, value output file handle, list of chromosomes
-    """
-    outfile_dict = defaultdict(list) 
-    chroms = []
-    for outfile in out_files:
-        match = re.search(r"chr([a-zA-Z\d]+).maf(?:|.gz|.lz4)$", outfile)
-        if not match:
-            sys.exit(f"Invalid output file {outfile}, expected to end with chr[1].maf(.gz)")
-        chrom = match.groups()[0]
-        chroms.append(chrom)
-        if outfile.endswith(".gz"):
-            outfile_dict[chrom] = gzip.open(outfile, "wt")
-        elif outfile.endswith(".lz4"):
-            outfile_dict[chrom] = lz4.frame.open(outfile, mode = "wt")
-        else:
-            outfile_dict[chrom] = open(outfile, "w")
-        outfile_dict[chrom].write("##maf version=1\n")
-    return outfile_dict, chroms
-
-
-def sort_alignments(file_h, species: str, prefix: str) -> None:
-    """
-    Iterate through alignment lines. Check if first sequence is of species
-    of interest. If so store the alignment in the file for the chromosome of
-    the species of interest. Discards alignments that do not contain the
-    species of interest as the first sequence.
-    :param file_h: file handle, to read alignments from
-    :param species: str, species of interest label in alignments
-    :param prefix: str, prefix in between sequence label and chr label
-    :return: None, output written to files in OUTFILE_DICT
-    """
-    chrom = None
-    for line in file_h:
-        if line.startswith('a'):
-            next_line = file_h.readline()
-            if next_line.startswith(f"s {species}"):
-                chrom = next_line.split()[1].split('.')[1]
-                if chrom.startswith(prefix):
-                    chrom = chrom[len(prefix):]
-                if chrom not in CHROMOSOMES:
-                    chrom = 'Other'
-                OUTFILE_DICT[chrom].write(line)
-                OUTFILE_DICT[chrom].write(next_line)
-                continue
-            chrom = None
-        elif chrom:  # None if not to capture
-            OUTFILE_DICT[chrom].write(line)
-
+    required = True)
 
 if __name__ == '__main__':
-    ARGS = PARSER.parse_args()
+    args = PARSER.parse_args()
 
-    OUTFILE_DICT, CHROMOSOMES = create_outfile_dict(ARGS.output)
+    # Makes a list from the files in the directory and remove 'other' from files
+    file_list = []
+    for file in args.input:
+        file_list.append(file)
 
-    with open(ARGS.logfile, "w") as log_f:
-        log_f.write(f"Input files:\n{ARGS.input}\n"
-            f"Output files:\n{OUTFILE_DICT}\n")
+    # Create dict for chr and corresponding blocks
+    maf_blocks = defaultdict(list)
 
-    # Iterating over all files and opening them
-    for infile in ARGS.input:
-        if infile.endswith(".gz"):
-            in_f = gzip.open(infile, "rt")
-        elif infile.endswith(".lz4"):
-            in_f = lz4.frame.open(infile, mode = "rt")
+    # Loop through files list and add file names to correct chr
+    for maf_f in file_list:
+        print('Processing file: {}'.format(maf_f))
+
+        if maf_f.endswith(".gz"):
+            open_f = gzip.open(maf_f, "rt")
+        elif maf_f.endswith(".lz4"):
+            open_f = lz4.frame.open(maf_f, mode="rt")
         else:
-            in_f = open(infile, "w")
-            
-        # Iterating over the content of each file
-        sort_alignments(in_f,ARGS.species, "" if ARGS.prefix == "None" else ARGS.prefix)
-        in_f.close()
+            open_f = open(maf_f, "r")
 
-    for file in OUTFILE_DICT.values():
-        file.close()
+        ident_chr = "not_present"
+        blocks = ""
+        line = open_f.readline() # header
+        line = open_f.readline() # newline
+
+        while line != "":
+            line = open_f.readline()
+            if "a " in line:
+                switch = 0
+                blocks = ""
+                blocks += line
+            elif "s " in line:
+                blocks += line
+                if str(args.species) in line:
+                    ident_chr = line.split()[1].split('.')[1]
+            else:
+                switch = 1
+            if switch == 1:
+                blocks += '\n'
+                maf_blocks[ident_chr].append(blocks)
+
+
+    # Loop through keys in dict:
+for chr_num, blocks in maf_blocks.items():
+    if len(str(chr_num)) > 5:
+        continue
+    else:
+        new_file = open("chr" + str(chr_num) + ".maf", "a")
+        new_file.write("##maf version=1\n\n")
+
+        for line in blocks:
+            new_file.write(line)
+
+    new_file.close()
