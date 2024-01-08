@@ -17,19 +17,19 @@ report: "report/workflow.rst"
 
 ##### PARAMS #####
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
-SCRIPTS_2 = "scripts/step_2_simulate_variants/"
+SCRIPTS_2 = "scripts/step_2_derive_variants/"
+SCRIPTS_3 = "scripts/step_3_simulate_variants/"
 # SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
-# SCRIPTS_4 = "workflow/step_4_derive_variants/scripts/"
 # SCRIPTS_5 = "workflow/step_5_annotate_variants/scripts/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
 
 ##### load modules  #####
-include: "rules/common.smk"					# common functions	
+include: "rules/common.smk"					# common rules	
 include: "rules/1_extract_ancestor.smk"		# step one
-# include: "workflow/Snakefile_simulate.sn"		# step two
+include: "rules/2_derive_variants.smk"		# step two
+include: "rules/3_simiulate_variants.smk"	# step three
 # include: "workflow/Snakefile_stats.sn"		# step three
-# include: "workflow/Snakefile_derive.sn"		# step four
 # include: "workflow/Snakefile_annotations.sn" 	# step five
 
 ##### target rules #####
@@ -37,4 +37,6 @@ rule all:
 	input:
 		expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
 			ancestor = config["mark_ancestor"]["ancestral_alignment"], 
-			chr = config["chromosomes"]["karyotype"], allow_missing=True)
+			chr = config["chromosomes"]["karyotype"], allow_missing=True),
+		expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
+		expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"])
