@@ -263,7 +263,7 @@ for i,position in enumerate(list(pos_list_s)[1:]):
 	else:
 		# Adds gaps, marking the transition from the previous to the current ancestor sequence
 		pregaps = '-'*int(position-(len(ancestor_record))) # SAME AS list(pos_list_s)[i]+anc_pos_seq_dict[list(pos_list_s)[i]].annotations['size'])), SHOULD IT BE -1?
-		print("number of pregaps: "+ str(len(pregaps)))
+		# print("number of pregaps: "+ str(len(pregaps)))
 		ancestor_record.seq = ancestor_record.seq + Seq(pregaps)
 
 		# The processed ancestor sequence is appended to the gaps (gaps within the seq are automatically removed)
