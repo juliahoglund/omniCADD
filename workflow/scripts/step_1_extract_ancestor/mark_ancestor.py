@@ -149,7 +149,7 @@ def main(args):
 		# Write renamed/annotated ancestral alignment if fields found.
 		if ancestor_seq and elem:
 			outfile.write('s ' + args.ancestor + '.' +	
-				elem[1].split('.')[1] + '\t' + '\t'.join(elem[2:]) + '\t' + lines.strip().split()[-1] + '\n')
+				elem[1].split('.')[1] + '\t' + '\t'.join(elem[2:]) + '\t' + ancestor_seq + '\n')
 			ancestor_seq, elem = None, None
 
 		# Write original line if not tree or ancestral sequence
