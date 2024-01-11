@@ -57,7 +57,7 @@ parser.add_argument("-n", "--interest",
 	help="Name/label of the species of interest",
 	required = True)
 parser.add_argument("-r", "--reference", 
-	help="Name of the genomewide reference species fasta sequence index file",
+	help="Name of the genomewide reference species fasta sequence file",
 	required = True)
 
 args = parser.parse_args()
@@ -66,8 +66,10 @@ args = parser.parse_args()
 # is available in alignment block and returns seq, otherwise empty string
 def ancestor_finder(alignment_instance,anc_identifer):
     for i,entrance in enumerate(alignment_instance):
+        print(entrance.id)
         if entrance.id.startswith(anc_identifer):
-            return entrance   
+            return entrance  
+
     return None
 
 # Function that removes gaps that are present in both the sequence of the given species and its ancestor. 
@@ -147,6 +149,8 @@ def get_ancestral_sequences(alignment_gen, ancestral_n, interest_n):
             else:
                 anc_dict[ref_start] = anc_seq_processed
 
+    return anc_dict
+
 def get_chr(input_n):
 # get chromosomes to use
     if 'chr' in input_n:
@@ -187,8 +191,6 @@ chromosome = get_chr(args.input)
 # dict of chromosome sizes
 chr_lengths = get_chr_lengths(args.reference)
 
-#####
-## HERE
 
 # Read alignment using AlignIO, extract ancestral sequences and put them in
 # dict start_pos=sequence. After iterating over the alignments the script
