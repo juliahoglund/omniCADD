@@ -41,6 +41,3 @@ generate_variants:
   simulate:
     overestimation_factor: 5 
     # doublecheck later based on what this is   
-
-## here make sure all variants get processewd enough to go into my visualisation, 
-## and make sure all those scripts collecting what is needed is still working!
