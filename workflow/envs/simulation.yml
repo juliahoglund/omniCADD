@@ -96,6 +96,7 @@ dependencies:
   - zstandard=0.22.0=py310h1275a96_0
   - zstd=1.5.5=hfc55251_0
   - pip:
+      - natsort==8.4.0
       - numpy==1.26.2
       - pysam==0.22.0
 prefix: /home/juliaha/.conda/envs/simulation
