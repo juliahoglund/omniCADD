@@ -27,7 +27,7 @@ rule freq_files:
 	params:
 		min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"]
 	conda:
-		"common.yml"
+		"../envs/common.yml"
 	output:
 		'results/processed_population_frequency/chr{chr}.frq'
 	shell:
@@ -50,7 +50,7 @@ rule gen_derived:
 	params:
 		output_prefix="results/derived_variants/raw/chr{chr}"
 	conda:
-		"simulation.yml"
+		"../envs/simulation.yml"
 	output:
 		"results/derived_variants/raw/chr{chr}.vcf",
 	shell:
@@ -69,7 +69,7 @@ rule snp_filter:
 		vcf="results/derived_variants/raw/chr{chr}.vcf",
 		script=workflow.source_path(SCRIPTS_2 + "filter_snps.py")
 	conda:
-		"simulation.yml"
+		"../envs/simulation.yml"
 	output:
 		snps="results/derived_variants/singletons/chr{chr}.vcf",
 		series="results/derived_variants/series/chr{chr}.vcf"
