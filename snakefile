@@ -19,7 +19,7 @@ report: "report/workflow.rst"
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
 SCRIPTS_2 = "scripts/step_2_derive_variants/"
 SCRIPTS_3 = "scripts/step_3_simulate_variants/"
-# SCRIPTS_3 = "workflow/step_3_simulation_report/scripts/"
+SCRIPTS_4 = "scripts/step_4_simulation_report/"
 # SCRIPTS_5 = "workflow/step_5_annotate_variants/scripts/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
@@ -29,7 +29,7 @@ include: "rules/common.smk"					# common rules
 include: "rules/1_extract_ancestor.smk"		# step one
 include: "rules/2_derive_variants.smk"		# step two
 include: "rules/3_simiulate_variants.smk"	# step three
-# include: "workflow/Snakefile_stats.sn"		# step three
+include: "rules/4_summary_report.smk"		# step three
 # include: "workflow/Snakefile_annotations.sn" 	# step five
 
 ##### target rules #####
@@ -40,3 +40,4 @@ rule all:
 			chr = config["chromosomes"]["karyotype"], allow_missing=True),
 		expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
 		expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"])
+		"results/visualisation/raw_summary.log", "results/visualisation/filtered_summary.log", "results/visualisation/parameter_summary.log"	
