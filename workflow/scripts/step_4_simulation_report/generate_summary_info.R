@@ -16,36 +16,26 @@ library(pandoc)
 rm(list=ls())
 
 option_list = list(
-  make_option(c("-v", "--vcf"), type="character", default="data/simVariants.vcf",
-              help="vcf with simulated variants", metavar="character"),
-  
-  make_option(c("-s", "--snp"), type="character", default="data/snps_simVariants.vcf",
+  make_option(c("-s", "--snp"), type="character", default="results/simulated_variants/Ancestor_Pig_Cow/raw_snps/all_chr.vcf",
               help="vcf with simulated SNPs", metavar="character"),
-  
-  make_option(c("-i", "--indels"), type="character", default="data/indels_simVariants.vcf",
-              help="vcf with simulated indels", metavar="character"),
-  
-  make_option(c("-t", "--snpFiltered"), type="character", default="data/snps_simVariants_filtered.vcf",
+
+  make_option(c("-t", "--snpFiltered"), type="character", default="results/simulated_variants/Ancestor_Pig_Cow/filtered_snps/all_chr.vcf",
               help="vcf with filtered snps", metavar="character"),
-  
-  make_option(c("-j", "--indelFiltered"), type="character", default="data/indels_simVariants_filtered.vcf",
-              help="vcf with filtered indels", metavar="character"),
-  
-  make_option(c("-r", "--reference"), type="character", default="data/indexfile.txt",
+
+  make_option(c("-r", "--reference"), type="character", default="indexfile.txt",
               help="reference genome fasta index", metavar="character"),
   
-  make_option(c("-a", "--ancestor"), type="character", default="extracted_ancestor/",
+  make_option(c("-a", "--ancestor"), type="character", default="results/ancestral_seq/Ancestor_Pig_Cow/",
               help="path to ancestor fasta files", metavar="character"),
-  
-  make_option(c("-p", "--parameters"), type="character", default="data/parameters.log",
+
+  make_option(c("-p", "--parameters"), type="character", default="results/visualisation/Ancestor_Pig_Cow/parameter_summary.log",
               help="log file with output from checked rates parameters", metavar="character"),
-  
-  make_option(c("-u", "--simulated"), type="character", default="data/simVariants.log",
+
+  make_option(c("-u", "--simulated"), type="character", default="results/visualisation/Ancestor_Pig_Cow/raw_summary.log",
               help="log file with output from checked rates simulated variants", metavar="character"),
-  
-  make_option(c("-f", "--simulatedFiltered"), type="character", default="data/snps_simVariants_filtered.log",
+
+  make_option(c("-f", "--simulatedFiltered"), type="character", default="results/visualisation/Ancestor_Pig_Cow/filtered_summary.log",
               help="log file with output from checked rates simulated variants filtered for ancestral positions", metavar="character")
-  
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -57,25 +47,21 @@ opt = parse_args(opt_parser)
 
 message("Reading files with simulated variants ...")
 
-simulatedFull <- read.table(opt$vcf, header = F)
-colnames(simulatedFull) <- 
-  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
-
 simulatedSNPs <- read.table(opt$snp, header = F)
 colnames(simulatedSNPs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
-simulatedINDELs <- read.table(opt$indels, header = F)
-colnames(simulatedINDELs) <- 
-  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+# simulatedINDELs <- read.table(opt$indels, header = F)
+# colnames(simulatedINDELs) <- 
+#   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 simulatedAncestorSNPs <- read.table(opt$snpFiltered, header = F)
 colnames(simulatedAncestorSNPs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
-simulatedAncestorINDELs <- read.table(opt$indelFiltered, header = F)
-colnames(simulatedAncestorINDELs) <- 
-  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+# simulatedAncestorINDELs <- read.table(opt$indelFiltered, header = F)
+# colnames(simulatedAncestorINDELs) <- 
+#   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
 
 
 message("Reading files for the reference genome ...")
@@ -91,6 +77,7 @@ filenames <- paste(opt$ancestor, filenames, sep = "")
 ancestor.fai <- data.frame(chromosome = character(),
                            size = numeric()
                            )
+
 message("Parsing ancestor fasta files ...")
 
 for (i in 1:length(filenames)) { 
@@ -110,8 +97,8 @@ reference.fai$chromosome <- factor(reference.fai$chromosome, levels = str_sort(f
 
 
 info <- data.frame(
-  file = c("simulatedFull", "simulatedSNPs", "simulatedINDELs", "simulatedAncestorSNPs", "simulatedAncestorINDELs"),
-  num = c(nrow(simulatedFull), nrow(simulatedSNPs), nrow(simulatedINDELs), nrow(simulatedAncestorSNPs), nrow(simulatedAncestorINDELs))
+  file = c("simulatedSNPs", "simulatedINDELs", "simulatedAncestorSNPs"),
+  num = c(nrow(simulatedSNPs), nrow(simulatedAncestorSNPs))
   )
 
 
@@ -123,13 +110,9 @@ info.fai$chromosome <- factor(info.fai$chromosome, levels = str_sort(factor(uniq
 
 mutations <- data.frame(
   chromosome = info.fai$chromosome,
-  no.variants = rep(0, nrow(info.fai)),
   no.SNPs = rep(0, nrow(info.fai)),
-  frac.SNPs = rep(0, nrow(info.fai)),
   no.SNPs.filtered = rep(0, nrow(info.fai)),
   frac.SNPs.filtered = rep(0, nrow(info.fai)),
-  no.indels = rep(0, nrow(info.fai)),
-  no.indels.filtered = rep(0, nrow(info.fai))
 )
 
 message("Creating output ...")
@@ -140,17 +123,14 @@ for (i in 1:nrow(mutations)) {
     dplyr::filter(CHROM == mutations$chromosome[i]) %>% 
     nrow(.)
   mutations$no.SNPs[i] <- simulatedSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
-  mutations$frac.SNPs[i] <- mutations$no.SNPs[i] / mutations$no.variants[i]
   mutations$no.SNPs.filtered[i] <- simulatedAncestorSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$frac.SNPs.filtered[i] <- mutations$no.SNPs.filtered[i] / mutations$no.SNPs[i]
-  mutations$no.indels[i] <- simulatedINDELs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
-  mutations$no.indels.filtered[i] <- simulatedAncestorINDELs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
 }
 
 stats <- merge(info.fai, mutations, by = "chromosome")
 stats$chromosome <- factor(stats$chromosome, levels = str_sort(factor(stats$chromosome), numeric = TRUE))
 
-rm(simulatedINDELs, simulatedAncestorINDELs, simulatedFull)
+rm(simulatedFull)
 
 #################################################
 ################ MUTATIONS ######################
@@ -172,13 +152,13 @@ fullset <- data.frame(
 
 for (i in 1:nrow(mutations)) {
   fullset$no.SNPs[i] <- 
-    simulatedAncestorSNPs %>% 
+    simulatedSNPs %>% 
     dplyr::select(CHROM) %>% 
     dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     nrow(.)
   
   fullset$transitions[i] <- 
-    simulatedAncestorSNPs %>% 
+    simulatedSNPs %>% 
     dplyr::select(CHROM, REF, ALT, INFO) %>% 
     dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     dplyr::filter(INFO == '.') %>%
@@ -190,7 +170,7 @@ for (i in 1:nrow(mutations)) {
   fullset$frac.transitions[i] <- fullset$transitions[i] / fullset$no.SNPs[i]
   
   fullset$transversions[i] <- 
-    simulatedAncestorSNPs %>% 
+    simulatedSNPs %>% 
     dplyr::select(CHROM, REF, ALT, INFO) %>% 
     dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     dplyr::filter(INFO == '.') %>%
@@ -202,7 +182,7 @@ for (i in 1:nrow(mutations)) {
   fullset$frac.transversions[i] <- fullset$transversions[i] / fullset$no.SNPs[i]
   
   fullset$CpGs[i] <-  
-    simulatedAncestorSNPs %>% 
+    simulatedSNPs %>% 
     dplyr::select(CHROM, REF, ALT, INFO) %>% 
     dplyr::filter(CHROM == fullset$chromosome[i]) %>% 
     dplyr::filter(INFO == 'CpG') %>%
