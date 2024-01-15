@@ -22,7 +22,7 @@ rule create_parameters:
         reference=config["generate_variants"]["reference_genome_wildcard"],
         script=workflow.source_path(SCRIPTS_3 + "create_parameters.py")
     conda:
-        "simulation.yml"
+        "../envs/simulation.yml"
     output:
         "results/simulated_variants/parameters/chr{chr}.txt"
     shell:
@@ -40,13 +40,12 @@ rule process_parameters:
     input:
         parameters=expand("results/simulated_variants/parameters/chr{chr}.txt", chr=config["chromosomes"]["karyotype"]),
         derived_count="results/derived_variants/singletons/total.count",
-        # kolla vart den invokas etc med common.smk!
         script=workflow.source_path(SCRIPTS_3 + "process_parameters.py")
     params:
         factor=config["generate_variants"]["simulate"]["overestimation_factor"]
         # kolla upp denna sen alltså vad den multiplicertar
     conda:
-        "simulation.yml"
+        "../envs/simulation.yml"
     output:
         parameters="results/simulated_variants/params.pckl",
         log=report("results/logs/process_parameters.log", category="Logs")
@@ -68,7 +67,7 @@ rule simulate_snps:
         params="results/simulated_variants/params.pckl",
         script=workflow.source_path(SCRIPTS_3 + "simulate_variants.py")
     conda:
-        "simulation.yml"
+        "../envs/simulation.yml"
     output:
         "results/simulated_variants/raw_snps/chr{chr}.vcf"
     shell:
@@ -88,7 +87,7 @@ rule simulate_indels:
         params="results/simulated_variants/params.pckl",
         script=workflow.source_path(SCRIPTS_3 + "simulate_variants.py")
     conda:
-        "simulation.yml"
+        "../envs/simulation.yml"
     output:
         "results/simulated_variants/raw_indels/chr{chr}.vcf"
     shell:
@@ -107,7 +106,7 @@ rule filter_variants:
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         script=workflow.source_path(SCRIPTS_3 + "filter_variants.py")
     conda:
-        "simulation.yml"
+        "../envs/simulation.yml"
     output:
         "results/simulated_variants/filtered_{type}/chr{chr}.vcf"
     shell:
@@ -116,34 +115,60 @@ rule filter_variants:
         " -a {input.ancestral}"
         " -o {output}"
 
+
 """
 Variants are generated and filtered for each chromosome in parallel.
 Trimming is done for the whole variant set so they are first merged into one
 """
 rule merge_by_chr:
     input:
-        vcf=expand("results/simulated_variants/filtered_{{type}}/chr{chr}.vcf", 
+        raw=expand("results/simulated_variants/raw_{{type}}/chr{chr}.vcf", 
+            chr=config["chromosomes"]["karyotype"]),
+        filtered=expand("results/simulated_variants/filtered_{{type}}/chr{chr}.vcf", 
             chr=config["chromosomes"]["karyotype"])
     output:
-        "results/simulated_variants/filtered_{type}/all_chr.vcf"
+        raw="results/simulated_variants/raw_{type}/all_chr.vcf",
+        filtered="results/simulated_variants/filtered_{type}/all_chr.vcf"
     shell:
         '''
-        echo "##fileformat=VCFv4.1" >> {output}
-        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output}
-        grep -vh "^#" {input} >> {output}
+        echo "##fileformat=VCFv4.1" >> {output.raw}
+        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
+        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
+        grep -vh "^#" {input.raw} >> {output.raw}
+
+        echo "##fileformat=VCFv4.1" >> {output.filtered}
+        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.filtered}
+        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.filtered}
+        grep -vh "^#" {input.filtered} >> {output.filtered}
         '''
 
-### INFO EXPLAINING HERE LATER
-### WHERE HAVE THIS ONE
-#rule check_substitutions_rates:
-#    input:
-#        original="results/simulated_variants/raw_{type}/chr{chr}.vcf",
-#        filtered="results/simulated_variants/filtered_{type}/chr{chr}.vcf",
-#        params="results/simulated_variants/params.pckl",
-#        script=workflow.source_path(SCRIPTS_2 + "check_substitutions_rates.py")
-#    output:
-#        "results/simulated_variants/filtered_{type}/all_chr.vcf" # CHANGE THIS
+"""
+Summarises the parameter files, raw simulated snp file and filtered snp file
+and creates three log files with number of substitutions, base pair counts and other.
+These are later used for the visualisation and tables in the stats report.
+"""
+rule check_substitutions_rates:
+    input:
+        snps="results/simulated_variants/raw_snps/all_chr.vcf",
+        trimmed_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
+        params=expand("results/simulated_variants/parameters/chr{chr}.txt", 
+            chr=config["chromosomes"]["karyotype"]),
+        script=workflow.source_path(SCRIPTS_3 + "check_substitution_rates.py")
+    conda:
+         "../envs/simulation.yml"
+    output:
+        raw="results/visualisation/raw_summary.log",
+        filtered="results/visualisation/filtered_summary.log",
+        params="results/visualisation/parameter_summary.log"
+
+    shell:
+        "python3 {input.script}"
+        "--sim-snps {input.snps}"
+        "--trimmed-snps {input.trimmed_snps}"
+        "--param-logfiles {input.params}"
+        "--snp-outfile {output.raw}"
+        "--trimmed-outfile {output.filtered}"
+        "--param-outfile {output.params}"
 
 """
 Trims the vcf file to the desired number of variants. This is done because 
@@ -159,7 +184,7 @@ rule trim_vcf:
          derived_count="results/derived_variants/singletons/total.count",
          script=workflow.source_path(SCRIPTS_3 + "trim_vcf.py")
     conda:
-         "simulation.yml"
+         "../envs/simulation.yml"
     output:
         "results/simulated_variants/trimmed_snps/all_chr.vcf" # also indels?
     shell:
@@ -171,7 +196,7 @@ rule trim_vcf:
 """
 Split VCF by chromosome using bcftools view.
 By splitting the variants processing can be parallelized,
-with each thread requiring less memory.snakm
+with each thread requiring less memory.
 """
 rule split_by_chrom:
     input:
@@ -180,6 +205,7 @@ rule split_by_chrom:
     output:
         "results/simulated_variants/trimmed_{type}/chr{chr}.vcf"
     conda:
-         "common.yml"
+         "../envs/common.yml"
     shell:
          "bcftools view {input.vcf} --regions {wildcards.chr} -o {output} -O v"
+
