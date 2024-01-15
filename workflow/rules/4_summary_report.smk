@@ -13,46 +13,24 @@
  Params can be adjusted for any given species of interest.
 '''
 
-## Targets
-# Code collecting output files from this part of the pipeline
-all_outputs.append('output/start_step3.txt')
-all_outputs.append('output/finished_generate_data.txt')
-all_outputs.append('output/finished_create_input.txt')
-all_outputs.append('output/finished_create_summary.txt')
-
-## rules
-rule graphs:
-    input:
-        SCRIPTS_3 + 'generate_summary_info.R'
-    output:
-        'output/start_step3.txt'
-    shell:
-        '''
-        touch output/start_step3.txt
-        '''
-
 rule create_summary:
     input:
-        'output/start_step3.txt'
-    params:
-        script = SCRIPTS_3 + 'generate_summary_info.R',
-        vcf = config['13_vcf'],
-        snp = config['13_snp'],
-        indels = config['13_indels'],
-        snpFiltered = config['13_snpFiltered'],
-        indelFiltered = config['13_indelFiltered'],
-        index = config['13_index'],
-        ancestor = config['13_ancestor'],
-        parameters = config['13_parameters'],
-        simulated = config['13_simulated'],
-        filtered = config['13_filtered'],
-
+        raw_snps = 'results/simulated_variants/Ancestor_Pig_Cow/raw_snps/all_chr.vcf',
+        filtered_snps = 'results/simulated_variants/Ancestor_Pig_Cow/filtered_snps/all_chr.vcf',
+        ancestral_fa = 'results/ancestral_seq/Ancestor_Pig_Cow/',
+        parameter_log = 'results/visualisation/Ancestor_Pig_Cow/parameter_summary.log',
+        raw_log = 'results/visualisation/Ancestor_Pig_Cow/raw_summary.log',
+        filtered_log = 'results/visualisation/Ancestor_Pig_Cow/filtered_summary.log',
+        script = workflow.source_path(SCRIPTS_4 + 'generate_summary_info.R')
+ 
     output:
         'output/finished_create_summary.txt'
 
     shell:
         '''
         # create "ideogram file" / "fasta index"
+        cat results/ancestral_seq/Ancestor_Pig_Cow/*.fai | cut -f2 -d"." | cut -f1,2 | awk '{print $1, '0', $2}' | sort -g > indexfile.txt
+
         cat {params.index}*.fa >> Ancestor.fa
         grep ">" Ancestor.fa | cut -f3,5,11 -d" " | tr -d "," | tr " " "\t" > indexfile.txt
 
