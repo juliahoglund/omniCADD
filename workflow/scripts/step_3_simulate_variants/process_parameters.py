@@ -214,7 +214,7 @@ logfile.write("Length\tCount\tnFreq\n")
 for key in to_sort:
     value = insertionsizes[key] / tinserts
     inserts.append((key, value))
-del insertionsizes
+
 ginserts = tinserts / sum_obs
 logfile.write(
     "INSERTIONS: gfreq=%.8f, %s...\n" % (ginserts, str(inserts)[:120]))
@@ -231,13 +231,15 @@ for key in to_sort:
     # if key <= 10: logfile.write("%d\t%d\t%.8f\n"%(key, deletionsizes[key],
     # value))
     deletions.append((key, value))
-del deletionsizes
+
 gdeletions = tdeletions / sum_obs
 logfile.write(
     "DELETIONS: gfreq=%.8f, %s...\n" % (gdeletions, str(deletions)[:120]))
 
+print('creating pickle..')
 pickle_f = open(args.outfile, 'wb')
 pickle.dump([intervals, interval_vals, gmut, dmut, gmutCpG, dmutCpG,
              gdeletions, ginserts, dmutindel, GTR_CpG, GTR_nonCpG,
              deletions, inserts], pickle_f)
 pickle_f.close()
+
