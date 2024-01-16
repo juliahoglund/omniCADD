@@ -18,3 +18,4 @@ config/ensemblAPI.yml
 workflow/step_5_annotate_variants/scripts/getelem.pl
 howToPhast.md
 notes.md
+config/slurm/cluster.yaml
