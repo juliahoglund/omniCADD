@@ -49,20 +49,11 @@ message("Reading files with simulated variants ...")
 
 simulatedSNPs <- read.table(opt$snp, header = F)
 colnames(simulatedSNPs) <- 
-  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
-
-# simulatedINDELs <- read.table(opt$indels, header = F)
-# colnames(simulatedINDELs) <- 
-#   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
+  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
 
 simulatedAncestorSNPs <- read.table(opt$snpFiltered, header = F)
 colnames(simulatedAncestorSNPs) <- 
-  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
-
-# simulatedAncestorINDELs <- read.table(opt$indelFiltered, header = F)
-# colnames(simulatedAncestorINDELs) <- 
-#   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT")
-
+  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
 
 message("Reading files for the reference genome ...")
 
@@ -97,7 +88,7 @@ reference.fai$chromosome <- factor(reference.fai$chromosome, levels = str_sort(f
 
 
 info <- data.frame(
-  file = c("simulatedSNPs", "simulatedINDELs", "simulatedAncestorSNPs"),
+  file = c("simulatedSNPs", "simulatedAncestorSNPs"),
   num = c(nrow(simulatedSNPs), nrow(simulatedAncestorSNPs))
   )
 
@@ -112,25 +103,23 @@ mutations <- data.frame(
   chromosome = info.fai$chromosome,
   no.SNPs = rep(0, nrow(info.fai)),
   no.SNPs.filtered = rep(0, nrow(info.fai)),
-  frac.SNPs.filtered = rep(0, nrow(info.fai)),
+  frac.SNPs.filtered = rep(0, nrow(info.fai))
 )
 
 message("Creating output ...")
 
 for (i in 1:nrow(mutations)) {
-  mutations$no.variants[i] <- simulatedFull %>% 
+  mutations$no.SNPs[i] <- 
+    simulatedSNPs %>% 
     dplyr::select(CHROM) %>% 
     dplyr::filter(CHROM == mutations$chromosome[i]) %>% 
     nrow(.)
-  mutations$no.SNPs[i] <- simulatedSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$no.SNPs.filtered[i] <- simulatedAncestorSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$frac.SNPs.filtered[i] <- mutations$no.SNPs.filtered[i] / mutations$no.SNPs[i]
 }
 
 stats <- merge(info.fai, mutations, by = "chromosome")
 stats$chromosome <- factor(stats$chromosome, levels = str_sort(factor(stats$chromosome), numeric = TRUE))
-
-rm(simulatedFull)
 
 #################################################
 ################ MUTATIONS ######################
