@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import sys
 
@@ -29,4 +30,4 @@ with open(sys.argv[1], "r") as fh:
                 pos += 1
 
 if in_sequence_region:  # last sequence region in last chrom
-    print(f"{chrom}\t{start}\t{pos}")
+    print(f'{chrom}\t{start}\t{pos}')
