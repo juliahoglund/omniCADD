@@ -44,9 +44,9 @@ generate_variants:
 
 stats_report:
   annotation: 'True'
-  gff: 'Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
-  prefix: 'Sus_scrofa.Sscrofa11.1.111.chr'
+  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
+  prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
   tree: 'resources/tree_43_mammals.nwk'
   ingroup: 'sus scrofa' # has to be small letters only
-  outgroup: 'bos taurus'      
+  outgroup: 'bos taurus'
     # bos taurus, ovis aries rambouillet, equus caballus, loxodonta africana
