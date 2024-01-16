@@ -24,18 +24,18 @@ rule create_summary:
         script = workflow.source_path(SCRIPTS_4 + 'generate_summary_info.R')
  
     output:
-        r_clump = 'results/visualisation/graphs.RData'
+        r_clump = 'results/visualisation/graphs.RData',
         indexfile = 'results/visualisation/indexfile.txt'
 
     shell:
         '''
         # create genomewide ancestral fasta file"
-        cat {params.ancestral_fa}*.fa >> {params.ancestral_fa}Ancestor.fa
+        cat {input.ancestral_fa}*.fa >> {input.ancestral_fa}Ancestor.fa
 
         # create "ideogram file" / "fasta index"
-        cat {params.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{print $1, '0', $2}' | sort -g > indexfile.txt
+        cat {input.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, '0', $2}}' | sort -g > indexfile.txt
 
-        Rscript {params.script} \
+        Rscript {input.script} \
         -s {input.raw_snps} \
         -t {input.filtered_snps} \
         -r indexfile.txt \
@@ -51,12 +51,12 @@ rule create_summary:
 if config['stats_report']['annotation'] == 'True':
     rule create_input:
       input:
-        gff = config['stats_report']['gff']
+        gff = config['stats_report']['gff'],
         file = config['stats_report']['prefix']
 
       output:
-        regions = 'CDS.regions.bed'
-        coverage = 'CDS.coverage.bed'
+        regions = 'CDS.regions.bed',
+        coverage = 'CDS.coverage.bed',
         ancestor_genome = 'Ancestor.bed'
 
       shell:
@@ -71,19 +71,19 @@ if config['stats_report']['annotation'] == 'True':
 
 rule create_datafiles:
     input:
-        tree = config['stats_report']['tree']
-        ideogram = 'results/visualisation/indexfile.txt'
-        annotation = 'results/visualisation/Ancestor.bed'
-        bedfile = 'results/visualisation/CDS.regions.bed'
-        coverage = 'results/visualisation/CDS.coverage.bed'
-        script = workflow.source_path(SCRIPTS_4 + 'generate_graphs.Rmd')
+        tree = config['stats_report']['tree'],
+        ideogram = 'results/visualisation/indexfile.txt',
+        annotation = 'results/visualisation/Ancestor.bed',
+        bedfile = 'results/visualisation/CDS.regions.bed',
+        coverage = 'results/visualisation/CDS.coverage.bed',
+        script = workflow.source_path(SCRIPTS_4 + 'stats_report.Rmd')
 
     params:
-        ingroup = config['stats_report']['ingroup']
+        ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
 
     output:
-        'results/visualisation/generate_graphs.html'
+        'results/visualisation/stats_report.html'
         # make sure it ends up where it is supposed to
 
     shell:
@@ -99,7 +99,7 @@ rule create_datafiles:
          outgroup="{params.outgroup}" \
          ))'
 
-        mv rules/step_4_simulation_report/generate_graphs.html results/visualisation/
+        mv rules/step_4_simulation_report/stats_report.html results/visualisation/
 
         # make sure graphs end up in visualisation as they should
         '''
