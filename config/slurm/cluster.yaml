@@ -1,0 +1,22 @@
+__default__:
+  account: # fill in your compute account on your HPC system (if applicable)
+  partition: core
+  time: 05:00:00
+  ntasks: 1
+  cpus-per-task: 1
+
+
+  #### example
+  ### repeat identification
+repeatmodeler:
+  time: 06-00:00:00
+  cpus-per-task: 16
+repeatclassifier:
+  time: 01-00:00:00
+  cpus-per-task: 2
+repeatmasker:
+  time: 10-00:00:00
+  cpus-per-task: 16
+
+  # what is a task and is it rule or job
+  # same in the general obne

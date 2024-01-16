@@ -1,0 +1,6 @@
+# Based on example in https://github.com/Snakemake-Profiles/slurm/blob/master/%7B%7Bcookiecutter.profile_name%7D%7D/config.yaml
+
+# Default command line arguments:
+cores: 8
+use-conda: True
+use-singularity: False
