@@ -34,9 +34,7 @@ docker push juliahoglund/report-renv:latest
 # data used here are from ENSEMBL
 wget https://ftp.ensembl.org/pub/release-111/gff3/sus_scrofa/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz
 gunzip Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz
-grep "CDS" Sus_scrofa.Sscrofa11.1.111.chr* | cut -f1,4,5 > CDS.sus_scrofa.bed
+grep "CDS" Sus_scrofa.Sscrofa11.1.111.chr* | cut -f1,4,5 > CDS.regions.bed
 mv Sus_scrofa.Sscrofa11.1.111.chr* resources/
-python3 scripts/fasta2bed.py results/ancestral_seq/Ancestor.fa > results/visualisation/Ancestor.bed
-bedtools coverage -a results/visualisation/Ancestor.bed -b results/visualisation/CDS.sus_scrofa.bed > results/visualisation/coverage.CDS.bed
 ```
 
