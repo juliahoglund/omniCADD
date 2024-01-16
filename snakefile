@@ -41,3 +41,4 @@ rule all:
 		expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
 		expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"])
 		"results/visualisation/raw_summary.log", "results/visualisation/filtered_summary.log", "results/visualisation/parameter_summary.log"	
+        "results/visualisation/stats_report.html"
