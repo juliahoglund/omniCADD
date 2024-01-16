@@ -15,105 +15,91 @@
 
 rule create_summary:
     input:
-        raw_snps = 'results/simulated_variants/Ancestor_Pig_Cow/raw_snps/all_chr.vcf',
-        filtered_snps = 'results/simulated_variants/Ancestor_Pig_Cow/filtered_snps/all_chr.vcf',
-        ancestral_fa = 'results/ancestral_seq/Ancestor_Pig_Cow/',
-        parameter_log = 'results/visualisation/Ancestor_Pig_Cow/parameter_summary.log',
-        raw_log = 'results/visualisation/Ancestor_Pig_Cow/raw_summary.log',
-        filtered_log = 'results/visualisation/Ancestor_Pig_Cow/filtered_summary.log',
+        raw_snps = 'results/simulated_variants/raw_snps/all_chr.vcf',
+        filtered_snps = 'results/simulated_variants/filtered_snps/all_chr.vcf',
+        ancestral_fa = 'results/ancestral_seq/',
+        parameter_log = 'results/visualisation/parameter_summary.log',
+        raw_log = 'results/visualisation/raw_summary.log',
+        filtered_log = 'results/visualisation/filtered_summary.log',
         script = workflow.source_path(SCRIPTS_4 + 'generate_summary_info.R')
  
     output:
-        'output/finished_create_summary.txt'
+        r_clump = 'results/visualisation/graphs.RData'
+        indexfile = 'results/visualisation/indexfile.txt'
 
     shell:
         '''
-        # create "ideogram file" / "fasta index"
-        cat results/ancestral_seq/Ancestor_Pig_Cow/*.fai | cut -f2 -d"." | cut -f1,2 | awk '{print $1, '0', $2}' | sort -g > indexfile.txt
+        # create genomewide ancestral fasta file"
+        cat {params.ancestral_fa}*.fa >> {params.ancestral_fa}Ancestor.fa
 
-        cat {params.index}*.fa >> Ancestor.fa
-        grep ">" Ancestor.fa | cut -f3,5,11 -d" " | tr -d "," | tr " " "\t" > indexfile.txt
+        # create "ideogram file" / "fasta index"
+        cat {params.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{print $1, '0', $2}' | sort -g > indexfile.txt
 
         Rscript {params.script} \
-        -v {params.vcf} \
-        -s {params.snp} \
-        -i {params.indels} \
-        -t {params.snpFiltered} \
-        -j {params.indelFiltered} \
+        -s {input.raw_snps} \
+        -t {input.filtered_snps} \
         -r indexfile.txt \
-        -a {params.ancestor} \
-        -p {params.parameters} \
-        -u {params.simulated} \
-        -f {params.filtered}
+        -a {input.ancestral_fa} \
+        -p {input.parameter_log} \
+        -u {input.raw_log} \
+        -f {input.filtered_log}
 
-        touch output/finished_create_summary.txt
-        mv Ancestor.fa output/
+        mv graphs.RData {output.r_clump}
+        mv indexfile.txt {output.indexfile}
         '''
 
-if config['14_annotation'] == 'Yes':
+if config['stats_report']['annotation'] == 'True':
     rule create_input:
       input:
-        'output/finished_create_summary.txt'
-
-      params:
-        gff = config['14_gff'],
-        file = config['14_prefix']
+        gff = config['stats_report']['gff']
+        file = config['stats_report']['prefix']
 
       output:
-        'output/finished_create_input.txt'
+        regions = 'CDS.regions.bed'
+        coverage = 'CDS.coverage.bed'
+        ancestor_genome = 'Ancestor.bed'
 
       shell:
         '''
-        gunzip {params.gff}
-        grep "CDS" {params.file}* | cut -f1,4,5 > CDS.sus_scrofa.bed
-        SCRIPTS_FASTA2BED output/Ancestor.fa > Ancestor.bed
-        bedtools coverage -a Ancestor.bed -b CDS.regions.bed > coverage.CDS.bed
-        touch 'output/finished_create_input.txt'
-        '''
-else:
-    rule create_input:
-      input:
-        'output/finished_create_summary.txt'
+        gunzip {input.gff}
+        grep "CDS" {input.file}* | cut -f1,4,5 > {output.regions}
+        SCRIPTS_FASTA2BED output/Ancestor.fa > {output.ancestor_genome}
+        bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage}
 
-      output:
-        'output/finished_create_input.txt'
-
-      shell:
-        '''
-        touch 'output/finished_create_input.txt'
+        mv *.bed results/visualisation/
         '''
 
 rule create_datafiles:
     input:
-        'output/finished_create_input.txt'
+        tree = config['stats_report']['tree']
+        ideogram = 'results/visualisation/indexfile.txt'
+        annotation = 'results/visualisation/Ancestor.bed'
+        bedfile = 'results/visualisation/CDS.regions.bed'
+        coverage = 'results/visualisation/CDS.coverage.bed'
+        script = workflow.source_path(SCRIPTS_4 + 'generate_graphs.Rmd')
+
     params:
-        script = SCRIPTS_3 + 'generate_graphs.Rmd',
-        path = config['15_path'],
-        tree = config['15_tree'],
-        ideogram = config['15_ideogram'],
-        annotation = config['15_annotation'],
-        bedfile = config['15_bedfile'],
-        coverage = config['15_coverage'],
-        ingroup = config['15_ingroup'],
-        outgroup = config['15_outgroup']
+        ingroup = config['stats_report']['ingroup']
+        outgroup = config['stats_report']['outgroup']
 
     output:
-        'output/finished_generate_data.txt'
+        'results/visualisation/generate_graphs.html'
+        # make sure it ends up where it is supposed to
 
     shell:
         '''
-        Rscript -e 'rmarkdown::render("{params.script}", \
+        Rscript -e 'rmarkdown::render("{input.script}", \
          params=list( \
-         tree="{params.tree}", \
-         ideogram="{params.ideogram}", \
-         annotation="{params.annotation}", \
-         bedfile="{params.bedfile}", \
-         coverage="{params.coverage}", \
+         tree="{input.tree}", \
+         ideogram="{input.ideogram}", \
+         annotation="{input.annotation}", \
+         bedfile="{input.bedfile}", \
+         coverage="{input.coverage}", \
          ingroup="{params.ingroup}", \
          outgroup="{params.outgroup}" \
          ))'
 
-        mv workflow/step_3_simulation_report/scripts/generate_graphs.html output/
-        mv Ancestor.bed CDS.regions.bed coverage.CDS.bed output/
-        touch output/finished_generate_data.txt
+        mv rules/step_4_simulation_report/generate_graphs.html results/visualisation/
+
+        # make sure graphs end up in visualisation as they should
         '''
