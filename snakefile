@@ -14,15 +14,20 @@ configfile: "config.yaml"
 ##### setup report #####
 report: "report/workflow.rst"
 
-
 ##### PARAMS #####
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
 SCRIPTS_2 = "scripts/step_2_derive_variants/"
 SCRIPTS_3 = "scripts/step_3_simulate_variants/"
 SCRIPTS_4 = "scripts/step_4_simulation_report/"
-# SCRIPTS_5 = "workflow/step_5_annotate_variants/scripts/"
+SCRIPTS_5 = "scripts/step_5_annotate_variants/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
+
+
+# change these to correct paths later. 
+CONVERSION_P = "../scripts/conversion_tools/"
+
+ANNOTATION_SOURCES = load_tsv_configuration(config["annotation_config"]["sources"])
 
 ##### load modules  #####
 include: "rules/common.smk"					# common rules	
@@ -30,7 +35,7 @@ include: "rules/1_extract_ancestor.smk"		# step one
 include: "rules/2_derive_variants.smk"		# step two
 include: "rules/3_simiulate_variants.smk"	# step three
 include: "rules/4_summary_report.smk"		# step three
-# include: "workflow/Snakefile_annotations.sn" 	# step five
+include: "rules/5_annotate_vars.smk" 		# step five
 
 ##### target rules #####
 rule all:
