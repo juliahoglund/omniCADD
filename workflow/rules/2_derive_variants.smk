@@ -48,18 +48,30 @@ rule gen_derived:
 		frequency="results/processed_population_frequency/chr{chr}.frq",
 		script=workflow.source_path(SCRIPTS_2 + "derive_variants.py")
 	params:
+		no_chrs=config['chromosomes']['autosomes'],
 		output_prefix="results/derived_variants/raw/chr{chr}"
 	conda:
 		"../envs/simulation.yml"
 	output:
 		"results/derived_variants/raw/chr{chr}.vcf",
 	shell:
-		"python3 {input.script}"
-		" -c {wildcards.chr}"
-		" -a {input.ancestral}"
-		" -r {input.reference}"
-		" -v {input.frequency}"
-		" -o {params.output_prefix}"
+		'''
+		echo "Formatting multiline fasta to single line fasta"
+		# this one needs a failsafe if genome is already a oneliner!!!!!
+
+		start=$(date +%s)
+		awk '/^>/ {{printf("\\n%s\\n",$0); next; }} {{ printf("%s",$0);}} END {{printf("\\n");}}' {input.reference} > tmp{wildcards.chr}
+		mv tmp{wildcards.chr} {input.reference}
+		end=$(date +%s)
+		echo "Elapsed time: $(($end-$start)) seconds"
+  
+		python3 {input.script} \
+		 -c {wildcards.chr} \
+		 -a {input.ancestral} \
+		 -r {input.reference} \
+		 -v {input.frequency} \
+		 -o {params.output_prefix} \
+		'''
 
 """
  Filters the derived variants for separated and adjacent SNPs.
