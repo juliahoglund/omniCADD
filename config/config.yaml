@@ -4,8 +4,10 @@
 
 
 chromosomes:
-  number: [ '18' ]
+  autosomes: [ '18' ]
   karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
+
+species_name: "sus_scrofa"
 
 alignments:
   43_mammals.epo:
@@ -50,3 +52,19 @@ stats_report:
   ingroup: 'sus scrofa' # has to be small letters only
   outgroup: 'bos taurus'
     # bos taurus, ovis aries rambouillet, equus caballus, loxodonta africana
+
+
+###########
+### vEP ###
+###########
+
+# later has to become optional steps, as there might be users that cannot 
+# annotate with vep, in case their species (or adjacent species)
+# does not have publicly available data deposited.
+
+vep:
+  cache:
+    directory: "resources/vep" # change to server vep location later
+    should_install: False # Should we install or assume that it has been installed by the user?
+    install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1" # Version, species and (optional: assembly).
+
