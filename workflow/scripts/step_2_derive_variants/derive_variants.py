@@ -47,9 +47,6 @@ import sys
 from argparse import ArgumentParser
 import pysam
 
-
-##############################
-
 parser = ArgumentParser(description=__doc__)
 parser.add_argument('-o', '--output',
 	help='Vcf output file prefix and path, both low and high quality variants will be generated '
@@ -72,9 +69,15 @@ parser.add_argument('-s', '--start',
 	default=0, 
 	type=int)
 
+# Check if the nt are written in upper (unmasked) or lower case (masked), 
+# depending on this, the script writes it in one of the two output files.
+# change this later as well maybe or move it down
 def write_line(chrom, pos, reference, an, output):
 	if (reference in 'ACGTacgt') and (an in 'ACGTacgt'):
-		output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
+		if an.islower():
+			output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an.upper()))
+		else:
+			output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
 
 def main(args):
 	# Define input files for the Ancestral sequence and the reference.
@@ -115,7 +118,7 @@ def main(args):
 	index_outer = (args.start, args.start + 350000)
 	input_snps.readline()  # Skip header
 	snp_line = input_snps.readline()
-	snp_pos = int(snp_line.strip().split('\t')[1]) - 1
+	snp_pos = int(snp_line.strip().split('\t')[1])
 
 	while index_outer[0] <= anc_length:
 		# Fetch the reference and ancestral sequence.
