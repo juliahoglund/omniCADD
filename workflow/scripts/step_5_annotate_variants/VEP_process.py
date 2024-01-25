@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: ASCII -*-
+# -*- coding: utf-8 -*-
 
 """
 :Author: Christian Gross
@@ -9,77 +9,126 @@
 It takes an VEP output file as input and returns a tab delimited, encoded file.
 And adds additional annotations.
 The annotated variants file contains annotations for:
-	the chromosome, position, reference base, alternative base, whenever it is a transversion, 
-	GC%, CpG%, difference in motif score count, 
-	indication if the variant falls in a high information position, 
-	difference in motif score (between the variant and ref), 
-	the overlapping domains (between the variant and ref), reference AA, chancged AA, 
-	grantham score, SIFTcat, SIFTval, cDNA position, CDS position, protein position. 
+ the chromosome, position, reference base, alternative base,
+ whenever it is a transversion,
+ GC%, CpG%, difference in motif score count,
+ indication if the variant falls in a high information position,
+ difference in motif score (between the variant and ref),
+ the overlapping domains (between the variant and ref),
+ reference AA, changed AA,
+ grantham score, SIFTcat, SIFTval, cDNA position,
+ Dst2Splice and Dst2SplType<REMOVED by Seyan>,
+ CDS position, protein position.
 
 Abbreviation used for the consequences are:
-	SG, Stop_Gained;				NS, Non_Synonymous (missense);
-	IF, Inframe_Insertion;			FS, Frame_Shift;
-	SL, Stop_Lost;					CS, Canonical_Splice (splice donor);
-	S, Splice_Site (splice donor);	NC, Noncoding_Change (non-coding exon);
-	SN, Synonymous;					IG, Intergenic;
-	DN, Downstream;					UP, Upstream;
-	R, Regulatory_Region;			U5, 5Prime_UTR;
-	U3, 3Prime_UTR;					I, Intronic;
-	O, Unknown. 
-	
+ SG, Stop_Gained;                 NS, Non_Synonymous (missense);
+ IF, Inframe_Insertion;           FS, Frame_Shift;
+ SL, Stop_Lost;                   CS, Canonical_Splice (splice donor);
+ S, Splice_Site (splice donor);   NC, Noncoding_Change (non-coding exon);
+ SN, Synonymous;                  IG, Intergenic;
+ DN, Downstream;                  UP, Upstream;
+ R, Regulatory_Region;            U5, 5Prime_UTR;
+ U3, 3Prime_UTR;                  I, Intronic;
+ O, Unknown.
+
 
 :Edited by: Seyan Hu
 :Date: 29-11-2022
 :Extension and modification: Julia Höglund
-:Date:
-:Usage: python <script>.py -v <VEP output> -r <reference chromosome> -s <original vcf file before VEP annotation> -e <exome file> -g <grantham file>
+:Edited by: Job van Schipstal
+:Date: 5-10-2023
+:Usage: python <script>.py -v <VEP
+output> -r <Reference chromosome> -s <Original vcf file before VEP
+annotation> -e <exome file> -g <grantham file> -o <outfile>
 
 """
 
-# Import dependencies. 
-import sys, os
-from optparse import OptionParser
-from collections import defaultdict
-import pysam
-import string
-import random
-from itertools import tee
-import pdb
-import numpy as np
+
+# Import dependencies.
 import copy
+import os
+import sys
+from argparse import ArgumentParser
+
+import pysam
 
 # OptionParser for input files. 
-parser = OptionParser()
-parser.add_option("-v","--vep", dest = "vep", help = "VEP (variant effect predictor) output",  default = "")
-parser.add_option("-r","--reference", dest = "reference", help = "Path to reference chromosome", default = '')
+parser = ArgumentParser(description=__doc__)
 
-parser.add_option("-s","--vcf_source", dest = "vcf", help = "Path to bgzipped & tabix index vcf source file (original variant files with simulated and derived variants before annotation)", default = "") 
+parser.add_argument("-v", "--vep",
+	help = "VEP (variant effect predictor) output", 
+	type = str)
+parser.add_argument("-r", "--reference", 
+	help = "Path to reference chr",
+	type = str)
+parser.add_argument("-s", "--vcf-source", 
+	dest = "vcf",
+	help = "Path to bgzipped & tabix index vcf source file" 
+		 "(vcf file of the generated variants before VEP annotation)", 
+	type = str)
+parser.add_argument("-g", "--grantham", 
+	type = str,
+	help = "Path to Grantham score annotation file",
+	default = 'grantham_matrix.tsv')
+parser.add_argument("-o", "--output", 
+	type = str,
+	help = "Output file (default vep_annotated.tsv)",
+	default = 'vep_annotated.tsv')
+parser.add_argument("-a", "--all",
+	help = "Produce all output lines, rather than random one on same hierarchy (def OFF)",
+	default = False, 
+	action = "store_true")
+parser.add_argument("-m", "--multiple", 
+	dest = "multiple_variants",
+	help = "Expect multiple variants on one position and treat them seperately (def False)",
+	default = False, 
+	action = "store_true")
+parser.add_argument("-b", "--verbose", 
+	dest = "verbose",
+	help = "Turn verbose messages on (def OFF)",
+	default = False, 
+	action = "store_true")
 
-parser.add_option("-g","--grantham", dest = "grantham", help = "Path to Grantham score annotation file", default = '')
-
-# i don't know what this one is
-parser.add_option("-a","--all", dest = "all", help = "Produce all output lines, rather than random one on same hierarchy (def OFF)", default = False, action = "store_true")
-parser.add_option("-b","--verbose", dest = "verbose", help = "Turn verbose messages on (def OFF)", default = False, action = "store_true")
-
-(options, args) = parser.parse_args()
+args = parser.parse_args()
 
 ##########################################
 ############### VARIABLES ################
 ##########################################
 
-# Defines path to VEP output. 
-path_vep = options.vep 
+# Define hearders for output file. (Originally there were also 'Dst2Splice',
+# 'Dst2SplType', these were removed since this information is already in the
+# consequences of the VEP output)
+ELIST = ['#Chrom', 'Pos', 'Ref', 'Alt', 'isTv', 'Consequence', 'GC', 'CpG',
+			'motifECount', 'motifEHIPos', 'motifEScoreChng', 'Domain', 'oAA',
+			'nAA', 'Grantham', 'SIFTcat', 'SIFTval', 'cDNApos', 'relcDNApos',
+			'CDSpos', 'relCDSpos', 'protPos', 'relprotPos']
 
-# Make header for output file. 
-elist = ['#Chrom','Pos', 'Ref', 'Alt', 'isTv', 'Consequence', 'GC', 'CpG', 'motifECount', 'motifEHIPos', 'motifEScoreChng', 'Domain', 'oAA','nAA', 'Grantham','SIFTcat', 'SIFTval','cDNApos', 'relcDNApos', 'CDSpos','relCDSpos', 'protPos', 'relprotPos']
+# List for transversions and transitions.
+TRANSVERSIONS = {('A', 'C'), ('C', 'A'), ('T', 'A'), ('A', 'T'), ('C', 'G'),
+					('G', 'C'), ('G', 'T'), ('T', 'G')}
 
-# List for transversions and transitions. 
-transversions = set([('A','C'),('C','A'),('T','A'),('A','T'),('C','G'),('G','C'),('G','T'),('T','G')])
-transitions = set([('C','T'),('T','C'),('G','A'),('A','G')])
+TRANSITIONS = {('C', 'T'), ('T', 'C'), ('G', 'A'), ('A', 'G')}
 
-# List for consequence hierarchy. 
-hierachy1 = ["SG","CS","NS","SN","FS","SL","S","IF","U5","U3","R","IG","NC","I","UP","DN","O"]
+# List of hierachy of the consequences.
+HIERACHY1 = ["SG", "CS", "NS", "SN", "FS", "SL", "S", "IF", "U5", "U3", "R",
+				"IG", "NC", "I", "UP", "DN", "O"]
 # from worst to best? does it need to be stated somewhere int he text maybe?
+
+# VEP output fields by column
+fVName = 3  # Uploaded_variation (not needed)
+fVCoord = 4  # Location variation
+fVallele = 5  # Allele
+fVgene = 6  # Gene
+fVfeature = 7  # Feature
+fVfeattype = 8  # Feature_type
+fVconseq = 9  # Consequence
+fVcDNA = 10  # cDNA_position
+fVCDSPos = 11  # CDS_position
+fVpPOS = 12  # Protein_position
+fVAA = 13  # Amino_acids
+fVCodon = 14  # Codons
+fVVar = 15  # Existing_variation
+fVExtra = 16  # Extra
 
 ##########################################
 ############### FUNCTIONS ################
@@ -109,18 +158,19 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
 		return '-','-'
 
 # Function for formatting the header or annotations of a variant and returns a formatted line. 
-def annotation2line(data,header=False):
-	global elist
+def annotation2line(data, header=False):
+	global ELIST
 	if header:
-		return "\t".join(elist)+"\n"
+		return "\t".join(ELIST) + "\n"
 	else:
 		fstr = ""
-		for elem in elist:
-			if elem in data: 
-				fstr += "%s\t"%(data[elem])
-			else: 
+		for elem in ELIST:
+			if elem in data:
+				fstr += "%s\t" % (data[elem])
+			else:
 				fstr += "-\t"
 	return fstr[:-1] + "\n"
+
 
 
 # Function for extracting chromosome, chromosome position and the Ref and Alt alleles from the vcf file and VEP output. 
@@ -159,7 +209,9 @@ def extract_transcript_coding_prot_feature(output_dict, vepfields, position, lab
 				elength = int(helper[-1])
 				vepfields[position] = helper[0]
 			else:
-				sys.exit('At this point a list called annotations should be iterated but this is not defined in this script or in the original. Chrom:%s Pos:%s :%s cDNA%s' %(output_dict['#Chrom'],output_dict['Pos'],vepfields[position]))
+				sys.exit('At this point a list called annotations should be iterated but this is not defined in this script or in the original. '
+						'Chrom:%s Pos:%s :%s cDNA%s' %(
+						output_dict['#Chrom'],output_dict['Pos'],vepfields[position]))
 			output_dict[label1] = vepfields[position].replace('?-','').replace('-?','').split('-')[0]
 			if elength != None:
 				output_dict[label2] = "%.2f"%(min(1.0,float(vepfields[position].replace('?-','').replace('-?','').split('-')[0])/elength))
@@ -168,9 +220,10 @@ def extract_transcript_coding_prot_feature(output_dict, vepfields, position, lab
 		
 		return output_dict
 	except ValueError:
-		sys.exit("Error to investigate. Location: %s %s %s" %(output_dict['#Chrom'],output_dict['Pos'],vepfields[position]))
+		sys.exit("Error to investigate. Location: %s %s %s" %(
+			output_dict['#Chrom'],output_dict['Pos'],vepfields[position]))
 
-# Function for cxtracting the consequences from the VEP annotated vcf file.
+# Function for extracting the consequences from the VEP annotated vcf file.
 # It also gives the consequence an abbreviation. 
 # Appends to the given dict these consequences and returns it. 
 def extract_consequences(output_dict, vepfields, fVconseq):
@@ -295,7 +348,8 @@ def extract_Aminoacids(output_dict, vepfields, fVAA):
 			output_dict['oAA'],output_dict['nAA'] = ("-","-")
 		else:
 			print(hfields, output_dict)
-			sys.exit('The field resevered for Aminoacid has a corrupted value. The value and the latest output dict are printed.')
+			sys.exit('The field resevered for Aminoacid has a corrupted value. '
+						'The value and the latest output dict are printed.')
 	else:
 		output_dict['oAA'],output_dict['nAA'] = ("-","-")
 	
@@ -321,17 +375,26 @@ def extract_extra(output_dict, vepfields, fVExtra):
 					ndomain = True
 				else:
 					name = name.lower()
-					if "coil" in name: ncoils = True
-					elif "tmhelix" in name: tmhmm = True
-					elif "signalp" in name: sigp = True
-					elif name == "seg": lcompl = True
+					if "coil" in name: 
+						ncoils = True
+					elif "tmhelix" in name: 
+						tmhmm = True
+					elif "signalp" in name: 
+						sigp = True
+					elif name == "seg": 
+						lcompl = True
 			
 			# Implement simple hierarchy of domain annotations:
-			if ncoils: output_dict['Domain'] = "ncoils"
-			elif tmhmm: output_dict['Domain'] = "tmhmm"
-			elif sigp: output_dict['Domain'] = "sigp"
-			elif ndomain: output_dict['Domain'] = "ndomain"
-			elif lcompl: output_dict['Domain'] = "lcompl"
+			if ncoils: 
+				output_dict['Domain'] = "ncoils"
+			elif tmhmm: 
+				output_dict['Domain'] = "tmhmm"
+			elif sigp: 
+				output_dict['Domain'] = "sigp"
+			elif ndomain: 
+				output_dict['Domain'] = "ndomain"
+			elif lcompl: 
+				output_dict['Domain'] = "lcompl"
 
 		elif hfields[0] == "HIGH_INF_POS":
 			output_dict['motifEHIPos'] = "True" if "Y" == hfields[1] else "False"
@@ -389,12 +452,12 @@ def read_grantham(filename):
 ##########################################
 
 # Open reference of chr, generated variants (vcf without annotations). 
-ref_fasta = pysam.Fastafile(options.reference)
-vcf_tabix = pysam.VariantFile(options.vcf, 'r')
+ref_fasta = pysam.Fastafile(args.reference)
+vcf_tabix = pysam.VariantFile(args.vcf, 'r')
 
 
 # Reads in the grantham matrix
-grantham_matrix = read_grantham(options.grantham)
+grantham_matrix = read_grantham(args.grantham)
 
 
 # Open VEP annotated variants. 
@@ -408,53 +471,11 @@ problem_out = open('problem_out.tsv', 'w')
 
 
 # Create output. 
-outp_chr = options.reference.split('chr')[-1]
-outp_chr = outp_chr.split('.')[0]
+outp = open(args.output, 'w')
 
-if 'simulated' in options.vcf:
-	variant_type = 'simulated'
-elif 'derived' in options.vcf:
-	variant_type = 'derived'
-outp = open(variant_type + 'chr' + outp_chr + '_VEP_processed.vcf', 'w')
-
-# Processes the VEP header
-for vepline in vepinput:
-	if vepline.startswith('##'): 
-		continue
-	
-	# Was previously 'Uploaded_variation' instead of Chrom. 
-	if vepline.startswith('#Chrom') & fline: 
-		vepfields = [x.strip() for x in vepline.split('\t')]
-		
-		# Uploaded_var location in the fields set to 3, was previously 0 (+3 to everything). 
-		# Length of field in vep was previously set to 14. 
-		if len(vepfields) == 17:
-			fVName = 3				# Uploaded_variation (not needed)
-			fVCoord = 4	 			# Location variation
-			fVallele = 5			# Allele
-			fVgene = 6				# Gene
-			fVfeature = 7 			# Feature
-			fVfeattype= 8 			# Feature_type
-			fVconseq = 9			# Consequence
-			fVcDNA = 10	 			# cDNA_position
-			fVCDSPos = 11 			# CDS_position
-			fVpPOS = 12	 			# Protein_position 
-			fVAA = 13				# Amino_acids
-			fVCodon = 14			# Codons
-			fVVar = 15				# Existing_variation
-			fVExtra = 16			# Extra
-		else:
-			sys.exit("Unknown input data format.")
-		
-		fline = False
-		# Writes header to standard output.
-		outp.write(annotation2line({},True)) 
-		# Changed every 'sys.stdout' to 'outp'. 
-		break
-
-
-# Read chr number or ncbi identifier from reference index file. 
-ref_ident_f = open(options.reference + '.fai', 'r')
+# Read chr number or ncbi identifier from reference index file.
+ref_ident_f = open(args.reference + '.fai', 'r')
+line_split = None
 for line in ref_ident_f:
 	line_split = line.split('\t')[0]
 	break
@@ -462,97 +483,133 @@ ref_ident = line_split
 
 # Processes the body of the VEP file and writes out the annotations.
 previous_dict = {}
-# Iterates over the lines in the VEP output. 
+# Iterates over the lines in the VEP output.
 for vepline in vepinput:
-	# Splits the line into fields. 
+	if vepline.startswith('#'):
+		# Was previously 'Uploaded_variation' instead of Chrom.
+		if vepline.startswith('#Chrom') & fline:
+			vepfields = [x.strip() for x in vepline.split('\t')]
+
+			# Uploaded_var location in the fields set to 3, was previously 0
+			# (+3 to everything). Length of field in vep was previously set
+			# to 14.
+			if len(vepfields) != 17:
+				sys.exit("Unknown input data format.")
+
+			fline = False
+			# Writes header
+			outp.write(annotation2line({}, True))
+
+		continue
+
+	# Splits the line into fields.
 	vepfields = [x.strip() for x in vepline.split('\t')]
 	# Was previously set to 14.
-	if len(vepfields) != 17: 
+	if len(vepfields) != 17:
 		problem_out.write(vepline)
 		continue
-	
-	
-	## Start of parsing vep input line, the function consists of many subfunctions for each feature respectively.
-	# Creates an empty dict and performs the function for extracting 
-	# chromosome, chromosome position and the Ref and Alt alleles from the vcf file and VEP output.
-	if (len(vepfields) > 3 ):
-		output_dict = {}
-		output_dict = extract_alleles_locs(output_dict, fVCoord, fVallele, vepfields)
-		output_dict['Ref'], output_dict['Alt']
-		if (output_dict['Ref'] == 'F' or output_dict['Alt'] == 'F'):
-			problem_out.write(vepline)
-			continue
-	
-	# Performs function that returns the percentage of GC and CpG in given window of 75 (75 bases before and after the position of the variant).
-	# Replaced 'ref_ident' with output_dict['#Chrom'], otherwise it would not work if the reference is from ncbi. 
-	output_dict['GC'],output_dict['CpG'] = count_GC_CpG(ref_ident, output_dict['Pos'], output_dict['Pos'], 75, ref_fasta)
-	
-	
-	# Checks whenever the mutations is a transversion or not. 
-	output_dict['isTv'] = (output_dict['Ref'], output_dict['Alt']) in transversions
-	
-	
-	# Performs function that returns features from VEP annotated file with the given labels.
-	output_dict = extract_transcript_coding_prot_feature(output_dict,vepfields,fVcDNA,'cDNApos','relcDNApos')
-	output_dict = extract_transcript_coding_prot_feature(output_dict,vepfields,fVCDSPos,'CDSpos','relCDSpos')
-	output_dict = extract_transcript_coding_prot_feature(output_dict,vepfields,fVpPOS,'protPos', 'relprotPos')
-	
-	
-	# Performs function that returns the AA before and after the mutation. 
-	output_dict = extract_Aminoacids(output_dict,vepfields,fVAA)
-	
-	
-	# Appends the correct Grantham score to the change in AA. 
-	if (output_dict['nAA'],output_dict['oAA']) in grantham_matrix:
-		output_dict['Grantham'] = grantham_matrix[output_dict['nAA'],output_dict['oAA']]
-	elif (output_dict['oAA'],output_dict['nAA']) in grantham_matrix:
-		output_dict['Grantham'] = grantham_matrix[output_dict['oAA'],output_dict['nAA']]
+
+	# # Start of parsing vep input line, the function consists of many
+	# subfunctions for each feature respectively.
+	# Creates an empty dict and performs the function for extracting
+	# chromosome, chromosome position and the Ref and Alt alleles from the
+	# vcf file and VEP output.
+	output_dict = {}
+	output_dict = extract_alleles_locs(output_dict, fVCoord, fVallele, vepfields)
+
+	if output_dict['Ref'] == 'F' or output_dict['Alt'] == 'F':
+		problem_out.write(vepline)
+		continue
+
+	# Performs function that returns the percentage of GC and CpG in given
+	# window of 75 (75 bases before and after the position of the variant).
+	# Replaced 'ref_ident' with output_dict['#Chrom'], otherwise it would not
+	# work if the reference is from ncbi.
+	output_dict['GC'], output_dict['CpG'] = count_GC_CpG(ref_ident,
+		output_dict['Pos'], output_dict['Pos'], 75, ref_fasta)
+
+	# Checks whenever the mutations is a transversion or not.
+	output_dict['isTv'] = (output_dict['Ref'],
+			output_dict['Alt']) in TRANSVERSIONS
+
+	# Performs function that returns features from VEP annotated file with
+	# the given labels.
+	output_dict = extract_transcript_coding_prot_feature(output_dict,
+		vepfields, fVcDNA, 'cDNApos', 'relcDNApos')
+
+	output_dict = extract_transcript_coding_prot_feature(output_dict,
+		vepfields, fVCDSPos, 'CDSpos', 'relCDSpos')
+
+	output_dict = extract_transcript_coding_prot_feature(output_dict,
+		vepfields, fVpPOS, 'protPos', 'relprotPos')
+
+	# Performs function that returns the AA before and after the mutation.
+	output_dict = extract_Aminoacids(output_dict, vepfields, fVAA)
+
+	# Appends the correct Grantham score to the change in AA.
+	if (output_dict['nAA'], output_dict['oAA']) in grantham_matrix:
+		output_dict['Grantham'] = grantham_matrix[output_dict['nAA'], output_dict['oAA']]
+
+	elif (output_dict['oAA'], output_dict['nAA']) in grantham_matrix:
+		output_dict['Grantham'] = grantham_matrix[output_dict['oAA'], output_dict['nAA']]
+
 	else:
 		output_dict['Grantham'] = '-'
-	
-	
-	# Performs the function for extracting the consequences from the VEP output. 
-	output_dict = extract_consequences(output_dict, vepfields, fVconseq)
-	
-	
-	# Performs the function to process the extra field in VEP output. 
-	output_dict = extract_extra(output_dict, vepfields, fVExtra)
-	
 
-	# If it is the first line to be parsed, store it in previous_dict and move on.
+	# Performs the function for extracting the consequences from the VEP
+	# output.
+	output_dict = extract_consequences(output_dict, vepfields, fVconseq)
+
+	# Performs the function to process the extra field in VEP output.
+	output_dict = extract_extra(output_dict, vepfields, fVExtra)
+
+	# Performs function for extracting exome data if the variants has
+	# 'ENSSSCT' as feature. (left out!) !!! Non VEP annotation and is treated
+	# differently depending on information given by VEP.
+	# output_dict = dist_to_spl(output_dict,vepfields,fVfeature, ref_ident)
+
+	# If it is the first line to be parsed, store it in previous_dict and
+	# move on.
 	if not bool(previous_dict):
 		previous_dict = copy.deepcopy(output_dict)
 		continue
-		
-	# Checks for duplicates (variants with multiple annotations) 
-	# and stores the adjusted line ('output_dict') to 'previous_dict'. 
-	elif (previous_dict['#Chrom'] == output_dict['#Chrom']) & (previous_dict['Pos'] == output_dict['Pos']) & (previous_dict['Alt'] == output_dict['Alt']):
-		
-		# If statements used regarding other features that may be influenced by duplications such as cDNApos, CDSpos, protPos, oAA, nAA, grantham.
-		if (float(previous_dict['motifEScoreChng'])) < (float(output_dict['motifEScoreChng'])):
-			output_dict['motifEScoreChng'] = previous_dict['motifEScoreChng']
-		
-		# If duplicate, add up all motifs for the final motifEScore. 
-		output_dict['motifECount'] = str(int(previous_dict['motifECount']) + int(output_dict['motifECount']))
-		
-		# Performs function that takes the most deleterious VEP Consequence if there are variants with multiple annotations. 
-		output_dict['Consequence'] = indexing(previous_dict['Consequence'],output_dict['Consequence'])
-		
+
+	# Checks for duplicates (variants with multiple annotations)
+	# and stores the adjusted line ('output_dict') to 'previous_dict'.
+	if (previous_dict['#Chrom'] == output_dict['#Chrom']) & (
+			previous_dict['Pos'] == output_dict['Pos']) & (
+			previous_dict['Alt'] == output_dict['Alt']):
+
+		# If statements used regarding other features that may be influenced
+		# by duplications such as cDNApos, CDSpos, protPos, oAA, nAA,
+		# grantham.
+		if (float(previous_dict['motifEScoreChng'])) < (
+				float(output_dict['motifEScoreChng'])):
+				output_dict['motifEScoreChng'] = previous_dict['motifEScoreChng']
+
+		# If duplicate, add up all motifs for the final motifEScore.
+		output_dict['motifECount'] = str(
+			int(previous_dict['motifECount']) + int(output_dict['motifECount']))
+
+		# Performs function that takes the most deleterious VEP Consequence
+		# if there are variants with multiple annotations.
+		output_dict['Consequence'] = indexing(previous_dict['Consequence'],
+			output_dict['Consequence'])
+
 		for key in previous_dict.keys():
 			if output_dict[key] == '-' and previous_dict[key] != '-':
 				output_dict[key] = previous_dict[key]
-		
+
 		previous_dict = copy.deepcopy(output_dict)
 		continue
-		
-	# Stores the adjusted line ('output_dict') to 'previous_dict' if there are no duplicates.
-	else: 
-		outp.write(annotation2line(previous_dict))
-		previous_dict = copy.deepcopy(output_dict)
 
+	# Stores the adjusted line ('output_dict') to 'previous_dict' if there
+	# are no duplicates.
+	outp.write(annotation2line(previous_dict))
+	previous_dict = copy.deepcopy(output_dict)
 
-# Writes last line which is now stored in previous_dict to output. 
+# Writes last line which is now stored in previous_dict to output.
 outp.write(annotation2line(previous_dict))
 
-# Closes opened VEP file. 
+# Closes opened VEP file.
 vepinput.close()
