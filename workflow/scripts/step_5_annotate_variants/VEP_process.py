@@ -462,7 +462,7 @@ grantham_matrix = read_grantham(args.grantham)
 
 # Open VEP annotated variants. 
 # Header VEP: #Chrom	Start	End	Uploaded_variation	Location	Allele	Gene	Feature	Feature_type	Consequence	cDNA_position	CDS_position	Protein_position	Amino_acids	Codons	Existing_variation	Extra
-vepinput = open(path_vep, 'r')
+vepinput = open(args.vep, 'r')
 fline = True
 
 
