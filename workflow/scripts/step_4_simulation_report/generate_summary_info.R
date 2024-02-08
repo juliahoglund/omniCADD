@@ -16,25 +16,28 @@ library(pandoc)
 rm(list=ls())
 
 option_list = list(
-  make_option(c("-s", "--snp"), type="character", default="results/simulated_variants/Ancestor_Pig_Cow/raw_snps/all_chr.vcf",
+  make_option(c("-s", "--snp"), type="character", default="results/simulated_variants/raw_snps/all_chr.vcf",
               help="vcf with simulated SNPs", metavar="character"),
 
-  make_option(c("-t", "--snpFiltered"), type="character", default="results/simulated_variants/Ancestor_Pig_Cow/filtered_snps/all_chr.vcf",
+  make_option(c("-t", "--snpFiltered"), type="character", default="results/simulated_variants/filtered_snps/all_chr.vcf",
               help="vcf with filtered snps", metavar="character"),
+  
+  make_option(c("-d", "--derived"), type = "character", default = "results/derived_variants/singletons/all_chr.vcf",
+              help="vcf with derived SNPs", metavar="character"),
 
   make_option(c("-r", "--reference"), type="character", default="indexfile.txt",
               help="reference genome fasta index", metavar="character"),
   
-  make_option(c("-a", "--ancestor"), type="character", default="results/ancestral_seq/Ancestor_Pig_Cow/",
+  make_option(c("-a", "--ancestor"), type="character", default="results/ancestral_seq/",
               help="path to ancestor fasta files", metavar="character"),
 
-  make_option(c("-p", "--parameters"), type="character", default="results/visualisation/Ancestor_Pig_Cow/parameter_summary.log",
+  make_option(c("-p", "--parameters"), type="character", default="results/visualisation/parameter_summary.log",
               help="log file with output from checked rates parameters", metavar="character"),
 
-  make_option(c("-u", "--simulated"), type="character", default="results/visualisation/Ancestor_Pig_Cow/raw_summary.log",
+  make_option(c("-u", "--simulated"), type="character", default="results/visualisation/raw_summary.log",
               help="log file with output from checked rates simulated variants", metavar="character"),
 
-  make_option(c("-f", "--simulatedFiltered"), type="character", default="results/visualisation/Ancestor_Pig_Cow/filtered_summary.log",
+  make_option(c("-f", "--simulatedFiltered"), type="character", default="results/visualisation/filtered_summary.log",
               help="log file with output from checked rates simulated variants filtered for ancestral positions", metavar="character")
 )
 
@@ -53,6 +56,12 @@ colnames(simulatedSNPs) <-
 
 simulatedAncestorSNPs <- read.table(opt$snpFiltered, header = F)
 colnames(simulatedAncestorSNPs) <- 
+  c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
+
+message("Reading files with derived variants ...")
+
+derivedSNPs <- read.table(opt$derived, header = F)
+colnames(derivedSNPs) <- 
   c("CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
 
 message("Reading files for the reference genome ...")
@@ -88,10 +97,9 @@ reference.fai$chromosome <- factor(reference.fai$chromosome, levels = str_sort(f
 
 
 info <- data.frame(
-  file = c("simulatedSNPs", "simulatedAncestorSNPs"),
-  num = c(nrow(simulatedSNPs), nrow(simulatedAncestorSNPs))
+  file = c("simulatedSNPs", "simulatedAncestorSNPs", "derivedSNPs"),
+  num = c(nrow(simulatedSNPs), nrow(simulatedAncestorSNPs), nrow(derivedSNPs))
   )
-
 
 info.fai <- merge(reference.fai, ancestor.fai, by = "chromosome") %>% 
   dplyr::rename('srcSize' = "size.x", 'size.ancestor' = "size.y") %>% 
@@ -103,7 +111,8 @@ mutations <- data.frame(
   chromosome = info.fai$chromosome,
   no.SNPs = rep(0, nrow(info.fai)),
   no.SNPs.filtered = rep(0, nrow(info.fai)),
-  frac.SNPs.filtered = rep(0, nrow(info.fai))
+  frac.SNPs.filtered = rep(0, nrow(info.fai)),
+  no.derived = rep(0, nrow(info.fai))
 )
 
 message("Creating output ...")
@@ -116,6 +125,7 @@ for (i in 1:nrow(mutations)) {
     nrow(.)
   mutations$no.SNPs.filtered[i] <- simulatedAncestorSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
   mutations$frac.SNPs.filtered[i] <- mutations$no.SNPs.filtered[i] / mutations$no.SNPs[i]
+  mutations$no.derived[i] <- derivedSNPs %>% dplyr::select(CHROM) %>% dplyr::filter(CHROM == mutations$chromosome[i]) %>% nrow(.)
 }
 
 stats <- merge(info.fai, mutations, by = "chromosome")
@@ -245,6 +255,49 @@ for (i in 1:nrow(mutations)) {
 ancestorset$chromosome <- factor(ancestorset$chromosome, levels = str_sort(factor(ancestorset$chromosome), numeric = TRUE))
 
 
+derivedset <- data.frame(
+  chromosome = ancestor.fai$chromosome,
+  no.derived = c(rep(0, nrow(ancestor.fai))),
+  transitions = c(rep(0, nrow(ancestor.fai))),
+  frac.transitions = c(rep(0, nrow(ancestor.fai))),
+  transversions = c(rep(0, nrow(ancestor.fai))),
+  frac.transversions = c(rep(0, nrow(ancestor.fai)))
+)
+
+for (i in 1:nrow(mutations)) {
+  derivedset$no.derived[i] <- 
+    derivedSNPs %>% 
+    dplyr::select(CHROM) %>% 
+    dplyr::filter(CHROM == derivedset$chromosome[i]) %>% 
+    nrow(.)
+  
+  derivedset$transitions[i] <- 
+    derivedSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == derivedset$chromosome[i]) %>% 
+    dplyr::filter(
+      (REF == 'A' & ALT == 'G') | (REF == 'G' & ALT == 'A') |
+        (REF == 'C' & ALT == 'T') | (REF == 'T' & ALT == 'C') ) %>%
+    nrow(.)
+  
+  derivedset$frac.transitions[i] <- derivedset$transitions[i] / derivedset$no.derived[i]
+  
+  derivedset$transversions[i] <- 
+    derivedSNPs %>% 
+    dplyr::select(CHROM, REF, ALT, INFO) %>% 
+    dplyr::filter(CHROM == derivedset$chromosome[i]) %>% 
+    dplyr::filter(!(
+      (REF == 'A' & ALT == 'G') | (REF == 'G' & ALT == 'A') |
+        (REF == 'C' & ALT == 'T') | (REF == 'T' & ALT == 'C') )) %>%
+    nrow()
+  
+  derivedset$frac.transversions[i] <- derivedset$transversions[i] / derivedset$no.derived[i]
+
+}
+
+derivedset$chromosome <- factor(derivedset$chromosome, levels = str_sort(factor(derivedset$chromosome), numeric = TRUE))
+
+
 ###################################
 #### TRANSFORM DATA FOR GRAPHS ####
 ###################################
@@ -263,6 +316,12 @@ simulatedAncestorSNPs <-
   group_by(CHROM) %>%
   dplyr::select(POS, CHROM, ALT) %>%
   mutate(overlap = 'overlapping') %>% 
+  group_split()
+
+derivedSNPs <- 
+  derivedSNPs %>%
+  group_by(CHROM) %>%
+  dplyr::select(POS, CHROM, ALT) %>%
   group_split()
 
 matchPos <- function(a, b) {
@@ -302,6 +361,16 @@ OverlapVars <-
   lapply(. %>% distinct()) %>% 
   bind_rows()
 
+derivedVars <- 
+  derivedSNPs %>% 
+  lapply(. %>% mutate(bins = cut(POS, breaks = seq(from=0, to=max(POS), by=100000)))) %>% 
+  lapply(. %>% mutate(ALT = 1)) %>% 
+  lapply(. %>% group_by(CHROM,bins)) %>% 
+  lapply(. %>% mutate(n = sum(ALT))) %>%
+  lapply(. %>% reframe(Start = min(POS), End = max(POS), n = n)) %>% 
+  lapply(. %>% distinct()) %>% 
+  bind_rows()
+
 #########################
 
 original <- fread(opt$parameters, fill = TRUE, sep = "\t", header=F, blank.lines.skip = TRUE) %>%
@@ -328,6 +397,6 @@ substitutions[] <- lapply(substitutions, str_replace_all, "(\\d+\\.\\d+)", repla
 ## SAVE
 message("Creating data clump ...")
 
-save(substitutions, simulatedOVERLAP, SimVars, OverlapVars, stats, data, info, fullset, ancestorset, info.fai, file ="graphs.RData")
+save(substitutions, simulatedOVERLAP, SimVars, OverlapVars, derivedVars, stats, data, info, fullset, ancestorset, derivedset, info.fai, file ="graphs.RData")
 
 
