@@ -43,6 +43,11 @@ PARSER.add_argument("-a", "--ancestor",
     help = "name/label of the ancestor to keep in the alignment", 
     type = str, 
     required = True)
+PARSER.add_argument("-c", "--chromosomes",
+    help = "list of chromosome(s) based on which the alignments will be sorted", 
+    type = str, 
+    required = True,
+    nargs = "+")
 
 if __name__ == '__main__':
     args = PARSER.parse_args()
@@ -52,10 +57,18 @@ if __name__ == '__main__':
     for file in args.input:
         file_list.append(file)
 
+    chr_list = []
+    for chromosome in args.chromosomes:
+        chr_list.append(chromosome)
+        chr_list[chromosome] = open("chr" + str(chromosome) + ".maf", "a")
+        chr_list[chromosome].write("##maf version=1\n\n")
+
+
     # Create dict for chr and corresponding blocks
     maf_blocks = defaultdict(list)
 
     # Loop through files list and add file names to correct chr
+
     for maf_f in file_list:
         print('Processing file: {}'.format(maf_f))
 
@@ -84,19 +97,9 @@ if __name__ == '__main__':
             else:
                 switch = 1
             if switch == 1:
-                blocks += '\n'
-                maf_blocks[ident_chr].append(blocks)
+                if ident_chr in chr_list:
+                    blocks += '\n'
+                    chr_list[ident_chr].write(blocks)
 
-
-    # Loop through keys in dict:
-for chr_num, blocks in maf_blocks.items():
-    if len(str(chr_num)) > 5:
-        continue
-    else:
-        new_file = open("chr" + str(chr_num) + ".maf", "a")
-        new_file.write("##maf version=1\n\n")
-
-        for line in blocks:
-            new_file.write(line)
-
-    new_file.close()
+    for chromosome in chr_list:
+        chr_list[chromosome].close()
