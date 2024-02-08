@@ -1,5 +1,5 @@
 ---
-title: "Summary statistics of simulated variants and extractred ancestral sequences"
+title: "Summary statistics of simulated variants, derived variants, and extractred ancestral sequences"
 output:
   html_document: 
     df_print: paged
@@ -12,7 +12,7 @@ params:
   coverage: data/CDS.coverage.bed
   ingroup: sus scrofa
   outgroup: bos taurus
-  path: ~/
+  path: ~/Documents/GitHub/omniCADD/
 ---
 
 ```{r setup, include = FALSE}
@@ -53,7 +53,10 @@ library(RIdeogram)
 library(imager)
 load.fontawesome()
 
-load(paste(params$path, "data/graphs.RData", sep = ""))
+load(paste(params$path, "data/graphsElephant.RData", sep = ""))
+ancestorset <- ancestorset[-20,]
+derivedset <- derivedset[-20,]
+fullset <- fullset[-20,]
 ```
 
 # Variant simulator; report
@@ -228,13 +231,86 @@ if (params$ideogram == 'None') {
 
 ```
 
-```{r figure 1 legend, fig.width = 12, fig.height = 2, echo = FALSE}
+```{r figure 2 legend, fig.width = 12, fig.height = 2, echo = FALSE}
 if (params$ideogram == 'None') {
   skip = 1
   } else {
     df <- data.frame(
     x = 1, y = 1, label = paste( "**Figure 2.** <br>
   chromPlot showing the karyogram of the species of interest from chromosome 1:N and sex chromosome (if applicable). The chromosome number is shown above each chromosome. <span style = 'color:#bababa;'>The count (per bin)</span> of total simulated variants are shown in <span style = 'color:#bababa;'>grey</span>. <span style = 'color:#fa5545;'>The count (per bin)</span> of simulated variants that are overlapping with a corresponding non-gap ancestral sequence, i.e, that are not located within an ancetral gap, are shown in <span style = 'color:#fa5545;'>red</span>. This graph aims to show the overall distribution of simulated variants within the full reference genome against the parts that are aligning to an available ancestral sequence."))
+  text <-  
+    ggplot(df) +
+    ggtext::geom_textbox(aes(x = x, y = y, label = label), width = unit(700, "pt"), box.margin = margin(0,0,0,0, "pt")) +
+    theme_void() 
+  
+  text
+  }
+```
+
+### Distribution of derived variants across the reference genome
+If an ideogram (often possible to download on the UCSC website, [here](https://genome.ucsc.edu/cgi-bin/hgTables)) has been provided, the distribution of derived variants is shown across the genome of the species of interest. The distribution of derived variants across the genome is shown in red. 
+
+```{r derived distribution, echo = FALSE, include = FALSE}
+
+if (params$ideogram == 'None') {
+  skip = 1
+  } else {
+    
+  plotData2 <- 
+    derivedVars %>% 
+      dplyr::rename('pos' = Start, 'chrom' = CHROM, 'count' = n) %>%
+      dplyr::select(chrom, pos, count) %>% 
+      group_by(chrom) %>% 
+      mutate(bins = cut(pos, breaks = seq(from=0, to=max(pos), by=100000))) %>% 
+      group_by(chrom, bins) %>% 
+      reframe(pos = min(pos), count = sum(count)) %>% 
+      distinct()
+  
+  plotData2$chrom <- factor(plotData2$chrom, levels = str_sort(factor(unique(plotData2$chrom)), numeric = TRUE))
+  plotData2 <- plotData2[order(plotData2$chrom),]
+  
+  # making the data frame for karyotype visualisation
+  blobby2 <- data.frame(chrom = info.fai$chromosome, # keep the factors, one for each chrom
+                       pos = info.fai$srcSize,
+                       name = info.fai$chromosome,
+                       value = info.fai$srcSize,
+                       low = - (min(plotData2$pos)*0.05))
+
+  }
+
+```
+
+```{r plot distribution derived, fig.width = 13, fig.height = 14, echo = FALSE, warning=FALSE}
+
+if (params$ideogram == 'None') {
+  skip = 1
+  
+} else {
+  
+  ggplot(blobby2, aes(y = low, yend = low, x = pos, xend = 0)) +
+    geom_col(data = plotData2, aes(x = pos, y = count, fill = 'tomato'), inherit.aes = FALSE, width = 150000) +
+    scale_fill_manual('count', values = c('tomato'), label = c('derived variants')) +
+    geom_segment(linewidth = 5, color = "lightsteelblue4", lineend = "round") +
+    geom_segment(linewidth = 5, color = "lightsteelblue1") +
+    facet_wrap(.~chrom) +
+    geom_hline(yintercept = 0) +
+    labs(x = 'position (bp)', y = "count") +
+    coord_flip() +
+    theme_classic() +
+    theme(axis.line=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank())
+  }
+
+```
+
+```{r figure 1 legend, fig.width = 12, fig.height = 2, echo = FALSE}
+if (params$ideogram == 'None') {
+  skip = 1
+  } else {
+    df <- data.frame(
+    x = 1, y = 1, label = paste( "**Figure 3.** <br>
+  chromPlot showing the karyogram of the species of interest from chromosome 1:N and sex chromosome (if applicable). The chromosome number is shown above each chromosome. <span style = 'color:#fa5545;'>The count (per bin)</span> of derived variants is shown in <span style = 'color:#fa5545;'>red</span>. This graph aims to show the overall distribution of derived variants across the full reference genome."))
   text <-  
     ggplot(df) +
     ggtext::geom_textbox(aes(x = x, y = y, label = label), width = unit(700, "pt"), box.margin = margin(0,0,0,0, "pt")) +
@@ -312,21 +388,22 @@ SNPS <-
   data.frame(Chromosome = stats$chromosome,
              A = stats$no.SNPs,
              B = stats$no.SNPs.filtered,
-             C = stats$frac.SNPs.filtered
+             C = stats$frac.SNPs.filtered,
+             D = stats$no.derived
   ) %>% 
   arrange_all() %>%
   column_to_rownames(var = "Chromosome") %>%
   mutate(C = round(C, digits = 2)) %>%
   dplyr::rename("No of sim. SNPs" = "A",
          "Number of sim. SNPs overlapping ancestral seq." = "B",
-         "Fraction of sim. SNPs overlapping ancestral seq." = "C")
+         "Fraction of sim. SNPs overlapping ancestral seq." = "C",
+         "Number of derived variants" = "D")
 
-kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 2**.<br>Fraction of simulated SNPs that is overlapping with a reconstructed ancestral sequence. Column explanation from left to right: <br> **i)** chromosome number<br> **ii)** the total number of simulated SNPs <br> **iii)** the <i>number</i> of simulated SNPs that are overlapping with a non-gap align recontructed ancestral sequence. <br> **iv)** the <i>fraction</i> of simulated SNPs that are overlapping with a non-gap align recontructed ancestral sequence.")
+kable(SNPS, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 2**.<br>Fraction of simulated SNPs that is overlapping with a reconstructed ancestral sequence. Column explanation from left to right: <br> **i)** chromosome number<br> **ii)** the total number of simulated SNPs <br> **iii)** the <i>number</i> of simulated SNPs that are overlapping with a non-gap align recontructed ancestral sequence. <br> **iv)** the <i>fraction</i> of simulated SNPs that are overlapping with a non-gap align recontructed ancestral sequence.<br> **v)** the total number of derived variants.")
 
 ```
 
 ### Types of simulated mutations
-
 
 ```{r variant fractions, echo = FALSE, fig.width = 11, fig.height = 8, warning = FALSE}
 
@@ -387,6 +464,62 @@ ANC <-
          "Fraction non-CpGs (1-CpGs)" = "E")
 
 kable(ANC, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 3** <br> Fraction of mutation types across the simulated variants with an available corresponding ancestral sequence. Column explanation, starting from left: <br> **i)** chromosome number <br> **ii)** the total number of SNPs <br> **iii)** the fraction of transitions <br> **iv)** the fraction of transversions <br> **v)** the fraction of CpG site mutations <br> **vi)** the fraction of non-CpG mutations (transitions + transversions)")
+
+```
+
+### Types of derived mutations*
+* CpG mutation information is not available. 
+
+```{r variant fractions derived, echo = FALSE, fig.width = 11, fig.height = 8, warning = FALSE}
+
+## here change to fullset ancestorset and the one that takes the count table directly
+mutation.plot2 <- 
+  derivedset %>% 
+    dplyr::select(chromosome, frac.transitions, frac.transversions) %>% 
+    dplyr::rename('transition' = frac.transitions, 'transversion' = frac.transversions) %>% 
+    pivot_longer(!chromosome, names_to = "mutations", values_to = "fraction") %>%
+    mutate(mutations = factor(fct_relevel(mutations, "transition", "transversion"))) %>%
+    group_by(chromosome) %>% 
+    ggplot(aes(chromosome, fraction)) +
+    geom_col(aes(fill = mutations)) +
+    geom_text(aes(label=paste0(sprintf("%1.1f", fraction*100),"%"), fill = mutations), color = "#333e3d", position = position_stack(vjust = 0.1)) +
+    labs(y= "count", x = "chromosome") +
+    scale_fill_manual(name = "mutation type", values=c('#f2c975', '#b96d41')) +
+    ggtitle("Fractions of mutation types across the derived variants") +
+    theme_classic()
+
+fig_legend <- plot_annotation(
+  caption = "**Figure 5.** <br>
+  Stacked barplot depicting how many of the types of mutations (transitions, transversions) across the derived variants. Total count of variants is on the Y axis and the chromosome on the X axis. <span style = 'color:#b96d41;'>Transitions</span> are shown in <span style = 'color:#b96d41;'>orange</span>, and <span style = 'color:#928674;'>transversions</span> are shown in <span style = 'color:#928674;'>brown</span>.<br><br>For the derived variants, no information regarding CpG mutations is available.",
+  theme = theme(
+    plot.caption = element_textbox_simple(
+      size = 14,
+      box.colour = "black",
+      linetype = 2,
+      padding = unit(c(7, 7, 7, 7), "pt"),
+      margin = unit(c(10,10,10,10), "pt"),
+      r = unit(3, "pt"))))
+
+mutation.plot2 + fig_legend
+```
+##### Table with corresponding data:
+
+```{r variant table derived, echo=FALSE}
+# make table
+DER <- 
+  data.frame(Chromosome = derivedset$chromosome,
+             A = derivedset$no.derived,
+             B = derivedset$frac.transitions,
+             C = derivedset$frac.transversions) %>%
+  arrange_all() %>%
+  column_to_rownames(var = "Chromosome") %>%
+  mutate(B = round(B, digits = 2),
+         C = round(C, digits = 2)) %>%
+  dplyr::rename("No. of SNPs" = "A", 
+         "Fraction transitions" = "B",
+         "Fraction transversions" = "C")
+
+kable(DER, format = "pipe", align = 'r', format.args = list(big.mark = " "), caption = "**Table 4** <br> Fraction of mutation types across the derived variants. Column explanation, starting from left: <br> **i)** chromosome number <br> **ii)** the total number of SNPs <br> **iii)** the fraction of transitions <br> **iv)** the fraction of transversions.")
 
 ```
 
@@ -501,9 +634,8 @@ if (params$annotation == "None") {
            overlaid = ancestor_seqs,
            colorset1 = c("#fff2ed", "#ffb296", "#ff7f50"),
            output = paste(params$path, "anc-seq.svg", sep=""))
-          # CHANGE HERE TO VISUALISATION
-  
-  suppressMessages(anc_seq <- svgparser::read_svg(paste("~/anc-seq.svg", sep = "")))
+
+  suppressMessages(anc_seq <- svgparser::read_svg(paste(params$path, "anc-seq.svg", sep = "")))
 
   df <- data.frame(x = 1:10, y = 1:10)
   karyo1 <-   
@@ -513,7 +645,7 @@ if (params$annotation == "None") {
   theme_void()
   
   df <- data.frame(
-      x = 1, y = 1, label = paste( "**Figure 5.** <br>
+      x = 1, y = 1, label = paste( "**Figure 6.** <br>
     Karyoplot depicting the <span style = 'color:#660066;'>gene density</span> and the <span style = 'color:#ff7f50;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the overlap of coding sequences in the reference genome and the location / density of the reconstructed ancestral sequence(s).<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
   
   text <-  
@@ -542,7 +674,7 @@ if (params$annotation == "None") {
            colorset2 = c("#fff2ed", "#ffb296", "#ff7f50"),
            output = paste(params$path, "anc-seq.svg", sep=""))
   
-  suppressMessages(anc_seq <- svgparser::read_svg(paste("~/anc-seq.svg", sep = "")))
+  suppressMessages(anc_seq <- svgparser::read_svg(paste(params$path, "anc-seq.svg", sep = "")))
 
   karyo1 <-
     ggplot() + 
@@ -551,7 +683,7 @@ if (params$annotation == "None") {
   theme_void()
   
   df <- data.frame(
-      x = 1, y = 1, label = paste( "**Figure 5.** <br>
+      x = 1, y = 1, label = paste( "**Figure 6.** <br>
     Karyoplot depicting the <span style = 'color:#660066;'>gene density</span> and the <span style = 'color:#ff7f50;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the overlap of coding sequences in the reference genome and the location / density of the reconstructed ancestral sequence(s).<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
   
   text <-  
@@ -571,6 +703,69 @@ if (params$annotation == "None") {
     plot_layout(design = layout)
 
 }
+
+########################################################
+#######  MANIPULATE derived/simulated VARIABLES. #######
+############ (bins of number of variants) ##############
+########################################################
+
+derived_seqs <- data.frame(Chr = derivedVars$CHROM,
+                            Start = derivedVars$Start,
+                            End = derivedVars$End,
+                            Value = derivedVars$n)
+
+derived_seqs$Chr <- factor(derived_seqs$Chr, levels = str_sort(factor(unique(derived_seqs$Chr)), numeric = TRUE))
+derived_seqs <- derived_seqs[order(derived_seqs$Chr),]
+derived_seqs$Chr <- as.character(derived_seqs$Chr)
+
+simulated_seqs <- data.frame(Chr = OverlapVars$CHROM,
+                            Start = OverlapVars$Start,
+                            End = OverlapVars$End,
+                            Value = OverlapVars$n)
+
+simulated_seqs$Chr <- factor(simulated_seqs$Chr, levels = str_sort(factor(unique(simulated_seqs$Chr)), numeric = TRUE))
+simulated_seqs <- simulated_seqs[order(simulated_seqs$Chr),]
+simulated_seqs$Chr <- as.character(simulated_seqs$Chr)
+
+####################################
+#####  CREATE SEQ DENSITY PLOT #####
+####################################
+
+ideogram(karyotype = karyogram, 
+         overlaid = simulated_seqs, 
+         label = derived_seqs, 
+         label_type = "heatmap", 
+         colorset1 = c("#cab2b2", "#854c4c", "#510000"),
+         colorset2 = c("#cfd3de", "#6f7d9c", "#434d65"),
+         output = paste(params$path, "sim-der.svg", sep=""))
+  
+suppressMessages(sim_der <- svgparser::read_svg(paste(params$path, "sim-der.svg", sep = "")))
+
+karyo3 <-
+  ggplot() + 
+  geom_point(aes(x = 1:10, y = 1:10), alpha = 0.0) +
+  annotation_custom(sim_der, xmin = 0, xmax = 16, ymin = -5, ymax = 11) + 
+  theme_void()
+  
+df <- data.frame(
+    x = 1, y = 1, label = paste( "**Figure 7.** <br>
+    Karyoplot depicting the <span style = 'color:#510000;'>simulated variant density</span> and <span style = 'color:#434d65;'>derived variant density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the distribution/density of simulated variants across the reference genome and the distribution/density of derived variants in relation to the ancestral sequence.<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
+  
+text <-  
+  ggplot(df) +
+  ggtext::geom_textbox(aes(x = x, y = y, label = label), 
+                       width = unit(700, "pt"), 
+                       box.margin = margin(0,0,0,0, "pt")) +
+  theme_void()
+  
+layout <- c(
+  area(1,2,1,2),
+  area(1,2,4,5),
+  area(4,2,5,4)
+  )
+  
+plot_spacer() + karyo3 + text + 
+  plot_layout(design = layout)
 
 ######################################
 #####  LOAD coverage BED FILE. #######
@@ -611,7 +806,7 @@ if (params$coverage == "None") {
 
 if (params$coverage == "None") {
   
-  message("skipped last figure.")
+  message("skipped last figure with simulated variants.")
   
 } else {
   
@@ -622,7 +817,7 @@ if (params$coverage == "None") {
          colorset1 = c("#efe5ef", "#a366a3", "#660066"), 
          output = paste(params$path, "anc-coverage.svg", sep=""))
   
-  suppressMessages(anc_cov <- svgparser::read_svg(paste("~/anc-coverage.svg", sep = "")))
+  suppressMessages(anc_cov <- svgparser::read_svg(paste(params$path, "anc-coverage.svg", sep = "")))
 
   karyo2 <-
     ggplot() + 
@@ -631,7 +826,7 @@ if (params$coverage == "None") {
   theme_void()
     
   df <- data.frame(
-      x = 1, y = 1, label = paste( "**Figure 6.** <br>
+      x = 1, y = 1, label = paste( "**Figure 8.** <br>
     Karyoplot depicting the <span style = 'color:#660066;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the ancestral sequence density as bands and  the <span style = 'color:#0A2E54;'>blue</span> polygon data shows the coverage (in bins) of reconstructed ancestral sequences that is overlapping with coding sequences in the reference genome.<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
   
   text <-  
