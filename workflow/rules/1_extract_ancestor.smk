@@ -174,7 +174,9 @@ rule sort_by_chr: # sort by chromosome
 		script = workflow.source_path(SCRIPTS_1 + 'sort_by_chromosome.py')
 	params:
 		species_name=lambda wildcards: config["alignments"][wildcards.alignment]["name_species_interest"],
-		directory = "results/alignment/merged/{alignment}/"
+		directory = "results/alignment/merged/{alignment}/",
+		chromosomes = config["chromosomes"]["karyotype"],
+		ancestor = config['mark_ancestor']['name_ancestor']
 	conda:
 		"../envs/ancestor.yml" 
 	log:
@@ -187,8 +189,10 @@ rule sort_by_chr: # sort by chromosome
 		python3 {input.script} \
 		 -s {params.species_name} \
 		 -i {input.maf} \
+		 -c {params.chromosomes} \
+		 -a {params.ancestor} \
 		
-		mv chr*.maf {params.directory}
+		gzip chr*.maf && mv chr*.maf.gz {params.directory}
 		'''
 
 """	
@@ -196,20 +200,19 @@ rule sort_by_chr: # sort by chromosome
 """
 rule maf_str:
 	input:
-		"results/alignment/merged/{alignment}/chr{chr}.maf"
+		"results/alignment/merged/{alignment}/chr{chr}.maf.gz"
 	params:
 		species_label = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
-	threads: 2
+	threads: 4
 	output:
-		temp("results/alignment/stranded/{alignment}/chr{chr}.maf")
+		temp("results/alignment/stranded/{alignment}/chr{chr}.maf.gz")
 	shell:
-		"mafStrander --maf {input}"
-		" --seq {params.species_label}."
-		" --strand + > {output}"
+		"gzip -dc {input} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + | gzip > {output}"
+
 
 """
  Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
@@ -219,28 +222,24 @@ rule maf_str:
 """
 rule maf_sorter:
 	input:
-		"results/alignment/stranded/{alignment}/chr{chr}.maf"
+		"results/alignment/stranded/{alignment}/chr{chr}.maf.gz"
 	params:
 		species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
-		pre_sorted=lambda wildcards: config['alignments'][wildcards.alignment]['pre_sorted']
 	conda:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
-	threads: 2
+	threads: 4
 	output:
 		"results/alignment/sorted/{alignment}/chr{chr}.maf.gz"
 	shell:
-		"if [ '{params.pre_sorted}' = 'True' ]; then "
-		"gzip {input} > {output};"
-		"else "
-		"mafSorter --maf {input} --seq {params.species_label}."
-		" | gzip > {output}; fi"
+		"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. | gzip > {output}"
 
 """
  Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
  and outputs per chromosome a fasta file of the ancestral sequence. 
 """
+
 rule gen_ancestor_seq:
 	input:
 		maf=f"results/alignment/sorted/{config['mark_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
