@@ -24,7 +24,6 @@ alignments:
     chrom_prefix: "chr" # prefix of chromosome in sequence label: mm39.chr[CHR]
     # is this needed later if not in sort by chr?
     ancestor: "True"
-    pre_sorted: "False"
 
 mark_ancestor:
   ancestral_alignment: "43_mammals.epo"
@@ -36,7 +35,7 @@ mark_ancestor:
   reference_genome: 'resources/genome/Sus_scrofa_ref.fa'
 
 generate_variants:
-  reference_genome_wildcard: "resources/genome/Sus_scrofa_ref{chr}.fa"
+  reference_genome_wildcard: "resources/genome/Sus_scrofa_ref_{chr}.fa"
   population_vcf:  "pig/chr{chr}.fa" #resources/pop_freq... #ON ANNUNA
   derive:
     frequency_threshold: 0.9
