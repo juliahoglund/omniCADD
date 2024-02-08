@@ -93,3 +93,20 @@ rule snp_filter:
 		" -i {input.vcf}"
 		" --snps {output.snps}"
 		" --series {output.series}"
+
+"""
+Variants are generated and filtered for each chromosome in parallel.
+Trimming is done for the whole variant set so they are first merged into one
+"""
+rule merge_by_chr:
+    input:
+        raw=expand("results/derived_variants/singletons/chr{chr}.vcf") 
+    output:
+        raw="results/derived_variants/singletons/all_chr.vcf"
+    shell:
+        '''
+        echo "##fileformat=VCFv4.1" >> {output.raw}
+        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
+        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
+        grep -vh "^#" {input.raw} >> {output.raw}
+        '''
