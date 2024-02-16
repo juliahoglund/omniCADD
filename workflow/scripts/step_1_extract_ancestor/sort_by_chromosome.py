@@ -57,9 +57,8 @@ if __name__ == '__main__':
     for file in args.input:
         file_list.append(file)
 
-    chr_list = []
+    chr_list = defaultdict(list)
     for chromosome in args.chromosomes:
-        chr_list.append(chromosome)
         chr_list[chromosome] = open("chr" + str(chromosome) + ".maf", "a")
         chr_list[chromosome].write("##maf version=1\n\n")
 
