@@ -420,11 +420,11 @@ def extract_extra(output_dict, vepfields, fVExtra):
 # Function for returning the most deleterious annotation for the same variant, 
 # when there are two annotations given for a single variant. 
 def indexing(previous, current):
-	global hierachy1
-	
-	index_current = hierachy1.index(current)
-	index_previous = hierachy1.index(previous) 
-	
+	global HIERACHY1
+
+	index_current = HIERACHY1.index(current)
+	index_previous = HIERACHY1.index(previous)
+
 	if index_previous > index_current:
 		return current
 	else:
