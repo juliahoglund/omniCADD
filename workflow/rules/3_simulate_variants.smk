@@ -189,7 +189,8 @@ rule trim_vcf:
         "results/simulated_variants/trimmed_snps/all_chr.vcf" # also indels?
     shell:
          "python3 {input.script}"
-         " -i {input.vcf} -o {output}"
+         " -i {input.vcf}"
+         " -o {output}"
          " -c $(cat {input.simulated_count})"
          " -d $(cat {input.derived_count})"
 
