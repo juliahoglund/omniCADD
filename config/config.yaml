@@ -52,6 +52,13 @@ stats_report:
   outgroup: 'bos taurus'
     # bos taurus, ovis aries rambouillet, equus caballus, loxodonta africana
 
+annotation:
+  gerp:
+    alignment: '43_mammals.epo'
+    species: 'sus_scrofa'
+
+parallelization:
+  blocks_per_split: 10000
 
 ###########
 ### vEP ###
