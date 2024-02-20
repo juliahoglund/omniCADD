@@ -190,7 +190,7 @@ rule sort_by_chr: # sort by chromosome
 		 -s {params.species_name} \
 		 -i {input.maf} \
 		 -c {params.chromosomes} \
-		 -a {params.ancestor} \
+		 -a {params.ancestor} &&
 		
 		gzip chr*.maf && mv chr*.maf.gz {params.directory}
 		'''
