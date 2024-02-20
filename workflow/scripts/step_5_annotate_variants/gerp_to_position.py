@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+
 from sys import argv
 from itertools import islice
 import operator
