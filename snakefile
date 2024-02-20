@@ -1,5 +1,5 @@
 from snakemake.utils import min_version
-import glob
+from glob import glob
 import os
 
 ##### pipeline version ######
@@ -18,7 +18,7 @@ report: "report/workflow.rst"
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
 SCRIPTS_2 = "scripts/step_2_derive_variants/"
 SCRIPTS_3 = "scripts/step_3_simulate_variants/"
-SCRIPTS_4 = "scripts/step_4_simulation_report/"
+SCRIPTS_4 = "scripts/step_4_summary_report/"
 SCRIPTS_5 = "scripts/step_5_annotate_variants/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
@@ -40,10 +40,19 @@ include: "rules/5_annotate_vars.smk" 		# step five
 ##### target rules #####
 rule all:
 	input:
-		expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
-			ancestor = config["mark_ancestor"]["ancestral_alignment"], 
-			chr = config["chromosomes"]["karyotype"], allow_missing=True),
-		expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
-		expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"])
-		"results/visualisation/raw_summary.log", "results/visualisation/filtered_summary.log", "results/visualisation/parameter_summary.log"	
-        "results/visualisation/stats_report.html"
+		#expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
+		#	ancestor = config["mark_ancestor"]["ancestral_alignment"], 
+		#	chr = config["chromosomes"]["karyotype"], allow_missing=True),
+		#expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
+		#expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
+		#"results/visualisation/raw_summary.log", "results/visualisation/filtered_summary.log", "results/visualisation/parameter_summary.log"	
+		#"results/visualisation/stats_report.html"
+		# change to trimmed when not elephant
+		#expand("results/simulated_variants/Ancestor_Pig_Elephant/filtered_snps/chr{chr}_vep.tsv", 
+		#	chr = config["chromosomes"]["karyotype"]),
+		#expand("results/derived_variants/Ancestor_Pig_Elephant/singletons/chr{chr}_vep.tsv", 
+		#	chr = config["chromosomes"]["karyotype"])
+		lambda wildcards: glob("results/gerp/annotation/{name}/chr{chr}/*.fasta.rates.parsed".format(
+				name=config["mark_ancestor"]["ancestral_alignment"], 
+				chr=config["chromosomes"]["karyotype"]))
+
