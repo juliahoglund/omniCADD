@@ -52,7 +52,7 @@ rule all:
 		#	chr = config["chromosomes"]["karyotype"]),
 		#expand("results/derived_variants/Ancestor_Pig_Elephant/singletons/chr{chr}_vep.tsv", 
 		#	chr = config["chromosomes"]["karyotype"])
-		lambda wildcards: glob("results/gerp/annotation/{name}/chr{chr}/*.fasta.rates.parsed".format(
-				name=config["mark_ancestor"]["ancestral_alignment"], 
-				chr=config["chromosomes"]["karyotype"]))
+		expand("results/annotation/gerp/{name}/chr{chr}.gerp",
+			name = config["mark_ancestor"]["ancestral_alignment"],
+			chr = config["chromosomes"]["karyotype"])
 
