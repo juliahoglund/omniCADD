@@ -192,7 +192,7 @@ rule sort_by_chr: # sort by chromosome
 		 -c {params.chromosomes} \
 		 -a {params.ancestor} &&
 		
-		gzip chr*.maf && mv chr*.maf.gz {params.directory}
+		gzip -9 chr*.maf && mv chr*.maf.gz {params.directory}
 		'''
 
 """	
@@ -207,11 +207,11 @@ rule maf_str:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
-	threads: 4
+	threads: 6
 	output:
 		temp("results/alignment/stranded/{alignment}/chr{chr}.maf.gz")
 	shell:
-		"gzip -dc {input} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + | gzip > {output}"
+		"gzip -dc {input} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + | gzip > {output} && gzip -9 {input}"
 
 
 """
@@ -229,11 +229,11 @@ rule maf_sorter:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
-	threads: 4
+	threads: 6
 	output:
 		"results/alignment/sorted/{alignment}/chr{chr}.maf.gz"
 	shell:
-		"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. | gzip > {output}"
+		"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. > {output}"
 
 """
  Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
