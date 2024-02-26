@@ -17,39 +17,229 @@ if it is run in offline mode, the glaf --offline is used, if there is a local ca
  Params can be adjusted for any given species of interest. 
 
 '''
-
-## Targets
-# Code collecting output files from this part of the pipeline
-all_outputs.append('output/start_step5.txt')
-all_outputs.append('output/finished_VEP.txt')
-all_outputs.append('output/finished_bgzip_tabix.txt')
-all_outputs.append('output/finished_VEP_processing.txt')
-all_outputs.append('output/finished_GERP.txt')
-all_outputs.append('output/finished_format_GERP.txt')
-all_outputs.append('output/finished_split_GERP.txt')
-all_outputs.append('output/finished_format_wig.txt')
-all_outputs.append('output/finished_phast_lifover.txt')
-all_outputs.append('output/finished_phast_split.txt')
-all_outputs.append('output/finished_get_repeat_position.txt')
-all_outputs.append('output/finished_merging.txt')
-all_outputs.append('output/finished_encoding_mv.txt')
-
-
-## rules
-rule annotate:
-    input:
-        SCRIPTS_5 + 'VEP_annotate.py'
-    output: 
-        'output/start_step5.txt'
-    shell:
-        '''
-        touch output/start_step5.txt
-        '''
-
+import sys
 
 ##########################
 ##### VEP ANNOTATION #####
 ##########################
+
+"""
+Optional rule that installs the needed VEP cache using the vep_install tool
+included with VEP. It is used with the -n no update flag and a set version for reproducibility.
+The VEP cache and program should be from the same release, hence care should be taken to update them together.
+"""
+rule vep_cache:
+    params:
+          version_species=config["vep"]["cache"]["install_params"]
+    output:
+          directory(config["vep"]["cache"]["directory"])
+    shell:
+         "vep_install -a cf -n {params.version_species} -c {output} --CONVERT"
+
+
+"""
+Annotate a vcf file using Ensembl-VEP.
+The VEP cache can automatically be downloaded if should_install is True in the config, 
+otherwise a path to an existing cache should be given.
+An indexed cache is faster than the standard one, so that is what the vep_cache rule provides.
+This rule expects SIFT scores to be available but this is not the case for many species,
+"""  # TODO make sift a config option
+rule run_vep:
+    input:
+         vcf="{folder}/{file}.vcf.gz",
+         script=workflow.source_path(SCRIPTS_5 + "vep.sh"),
+         cache=rules.vep_cache.output if
+            config["vep"]["cache"]["should_install"] == "True" else []
+    params:
+          cache_dir=config["vep"]["cache"]["directory"],
+          species_name=config["species_name"]
+    conda:
+         "../envs/annotation.yml"
+    # Parts are at most a few million variants, 2 threads is already fast.
+    threads: 2
+    output:
+          temp("{folder}/{file}_vep_output.tsv")
+    shell:
+         "chmod +x {input.script} && "
+         "{input.script} {input.vcf} {output} "
+         "{params.cache_dir} {params.species_name} {threads} && "
+         "[[ -s {output} ]]"
+
+"""
+Processes VEP output into the tsv format used by the later steps.
+The VEP consequences are summarised and basic annotations are calculated here as well.
+"""
+rule process_vep:
+    input:
+         vcf="{folder}/chr{chr}.vcf.gz",
+         index="{folder}/chr{chr}.vcf.gz.tbi",
+         vep="{folder}/chr{chr}_vep_output.tsv",
+         genome=config["generate_variants"]["reference_genome_wildcard"],
+         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
+         script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
+    conda:
+         "../envs/common.yml" # add in common?
+    output:
+          temp("{folder}/chr{chr}_vep.tsv")
+    shell:
+         "python3 {input.script} -v {input.vep} -s {input.vcf} "
+         "-r {input.genome} -g {input.grantham} -o {output}"
+
+
+########## works up until here
+########## when check this one by one. 
+
+"""
+Process whole genome variant VEP annotation with a lower priority.
+If the model is trained before the full genome variants have been fully processed,
+it can continuously schedule tasks without having to wait on the model training.
+"""
+use rule process_vep as process_genome_vep with:
+    input:
+         vcf="results/whole_genome_variants/{batch}/{file}.vcf.gz",
+         index="results/whole_genome_variants/{batch}/{file}.vcf.gz.tbi",
+         vep="results/whole_genome_variants/{batch}/{file}_vep_output.tsv",
+         genome=lambda wildcards: \
+            config["generate_variants"]["reference_genome_wildcard"].replace(
+                "{chr}",wildcards.file.split("_")[0][3:]), # check that this one works
+         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix.tsv"),
+         script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
+    priority: -8
+    output:
+          "results/whole_genome_variants/{batch}/{file}_vep.tsv"  # TODO make temporary
+
+
+###########################
+##### GERP ANNOTATION #####
+############
+
+rule msa_converter:
+    """
+    converts the maf chunks to fasta to prepare for correct gerp alignment fasta format.
+    """
+    input:
+        maf="results/alignment/sorted/{name}/chr{chr}.maf"
+    output:
+        temp("results/alignment/fasta/{name}/chr{chr}.fasta") # TODO: fix intermediate zipping
+    conda:
+        "../envs/ancestor.yml"
+    shell:
+        r'''
+        msaconverter -i {input.maf} -o {output} -p maf -q fasta && gzip {input.maf}
+        sed -E 's/(>.+)\..+/\1/g' {output} | sed -E 's/(>.+)\..+/\1/g' > {output}.temp && mv {output}.temp {output}
+        '''
+
+rule split_fasta:
+    """
+    Split the reference genome of the target species into contigs for concatenation with the outgroups.
+    Replace contig in output fasta file with reference genome name.
+    """
+    input:
+        fasta="results/alignment/fasta/{name}/chr{chr}.fasta",
+        script=workflow.source_path(SCRIPTS_5 + "split_fasta.py")
+    output:
+        mock=temp("results/alignment/fasta/{name}/chr{chr}/finished_splitting.txt"),
+        folder=directory("results/alignment/fasta/{name}/chr{chr}/")
+    params:
+        n_chunks=config['annotation']['gerp']['n_chunks']
+    conda:
+        "../env/annotation.yml"
+    shell:
+        "python3 {input.script} {input.fasta} {params.n_chunks} {output.folder} && "
+        "touch {output.mock}"
+
+checkpoint split_stats:
+    input:
+        expand("results/alignment/fasta/{{name}}/chr{chr}/finished_splitting.txt",
+               chr=config["chromosomes"]["karyotype"])
+    output:
+        "results/logs/{name}/split_log.txt"
+    shell:
+        "ls -alh {input} > {output}"
+
+
+# straight outta generode
+rule compute_gerp:
+    """
+    Compute GERP++ scores.
+    Output only includes positions, no contig names.
+    This analysis is run as one job per genome chunk, but is internally run per contig.
+    """
+    input:
+        fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
+        tree=config["annotation"]['gerp']["tree"],
+    output:
+        temp("results/annotation/gerp/{name}/chr{chr}/{part}.rates")
+    params:
+        reference_species = lambda wildcards: config['alignments'][wildcards.name]['name_species_interest']
+    log:
+       "results/logs/{name}/chr{chr}_{part}_gerp_log.txt",
+    threads: 4
+    singularity:
+        "docker://quay.io/biocontainers/gerp:2.1--hfc679d8_0"
+    shell:
+        '''
+        gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2> {log} &&
+          mv {input.fasta}.rates {output} 2>> {log} &&
+          echo "Computed GERP++ scores for" {input.fasta} >> {log}
+        '''
+
+# straight outta generode
+rule gerp2coords:
+    """
+    Convert GERP-scores to the correct genomic coordinates. 
+    Script currently written to output positions without contig names.
+    This analysis is run as one job per genome chunk, but is internally run per contig.
+    """
+    input:
+       fasta = lambda wildcards: f"results/annotation/gerp/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.rates",
+       gerp = rules.compute_gerp.output,
+       script = workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
+    output:
+       "results/annotation/gerp/{name}/chr{chr}/{part}.rates.parsed"
+    params:
+       reference_species = lambda wildcards: config['alignments'][wildcards.name]['name_species_interest']
+    log:
+       "results/logs/{name}/chr{chr}_{part}_gerp_coord_log.txt",
+    threads: 2
+    shell:
+       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {{log}} && "
+       " mv {input.gerp} {output} 2>> {{log}} && "
+       " echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
+
+def get_parts(wildcards):
+    alignment_name = config["mark_ancestor"]["ancestral_alignment"]
+    checkpoints.split_stats.get(name=alignment_name)
+    parts = glob_wildcards(f"results/annotation/gerp/{alignment_name}/chr{wildcards.chr}/{{part}}.rates.parsed").part
+    return expand("results/gerp/{{name}}/chr{{chr}}/{part}.gerp", part=parts)
+
+"""
+Since GERP was computes per blocks, the scores need to be merged into a single file.
+The chromosome was not extracted from the data so we add it back in here with sed find/replace.
+# check this was it really
+"""
+rule merge_gerp_chr:
+    input:
+        get_parts
+    output:
+        "results/annotation/gerp/{name}/chr{chr}.gerp"
+    wildcard_constraints:
+        name="[^/]+"
+    shell:
+        """
+        cat {input} | sed "s/chrom=(null)/chrom={wildcards.chr}/g" > {output}
+        """
+
+
+###############################
+##### BCFTOOLS ANNOTATION #####
+###############################
+# these ones have to be downloaded and also it is many of the things i 
+# have further down so it has to be implemented later
+
+#################################################
+#### oild versions ##############################
+#################################################
 
 '''
  Performs VEP on the derived and simulated variants. 
