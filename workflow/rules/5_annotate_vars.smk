@@ -113,7 +113,7 @@ use rule process_vep as process_genome_vep with:
 ##### GERP ANNOTATION #####
 ############
 
-rule msa_converter:
+rule msa_converter: # script works in itself, not tested in pipeline
     """
     converts the maf chunks to fasta to prepare for correct gerp alignment fasta format.
     """
@@ -129,7 +129,7 @@ rule msa_converter:
         sed -E 's/(>.+)\..+/\1/g' {output} | sed -E 's/(>.+)\..+/\1/g' > {output}.temp && mv {output}.temp {output}
         '''
 
-rule split_fasta:
+rule split_fasta: # script works in itself, not tested in pipeline
     """
     Split the reference genome of the target species into contigs for concatenation with the outgroups.
     Replace contig in output fasta file with reference genome name.
@@ -148,7 +148,7 @@ rule split_fasta:
         "python3 {input.script} {input.fasta} {params.n_chunks} {output.folder} && "
         "touch {output.mock}"
 
-checkpoint split_stats:
+checkpoint split_stats: # works in dryrun, skips gerp rule
     input:
         expand("results/alignment/fasta/{{name}}/chr{chr}/finished_splitting.txt",
                chr=config["chromosomes"]["karyotype"])
@@ -158,8 +158,8 @@ checkpoint split_stats:
         "ls -alh {input} > {output}"
 
 
-# straight outta generode
-rule compute_gerp:
+# adapted from generode [ref]
+rule compute_gerp: # untested
     """
     Compute GERP++ scores.
     Output only includes positions, no contig names.
@@ -184,8 +184,8 @@ rule compute_gerp:
           echo "Computed GERP++ scores for" {input.fasta} >> {log}
         '''
 
-# straight outta generode
-rule gerp2coords:
+# adapted from generode [ref]
+rule gerp2coords: # untested
     """
     Convert GERP-scores to the correct genomic coordinates. 
     Script currently written to output positions without contig names.
@@ -210,7 +210,7 @@ rule gerp2coords:
 def get_parts(wildcards):
     alignment_name = config["mark_ancestor"]["ancestral_alignment"]
     checkpoints.split_stats.get(name=alignment_name)
-    parts = glob_wildcards(f"results/annotation/gerp/{alignment_name}/chr{wildcards.chr}/{{part}}.rates.parsed").part
+    parts = glob_wildcards(f"results/annotation/gerp/{alignment_name}/chr{wildcards.chr}/{{part}}.fasta").part
     return expand("results/gerp/{{name}}/chr{{chr}}/{part}.gerp", part=parts)
 
 """
@@ -218,7 +218,7 @@ Since GERP was computes per blocks, the scores need to be merged into a single f
 The chromosome was not extracted from the data so we add it back in here with sed find/replace.
 # check this was it really
 """
-rule merge_gerp_chr:
+rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue?
     input:
         get_parts
     output:
