@@ -47,7 +47,7 @@ stats_report:
   annotation: 'True'
   gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
   prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
-  tree: 'resources/tree_43_mammals.nwk'
+  tree: 'resources/tree_43_mammals.nh'
   ingroup: 'sus scrofa' # has to be small letters only
   outgroup: 'bos taurus'
     # bos taurus, ovis aries rambouillet, equus caballus, loxodonta africana
@@ -55,10 +55,9 @@ stats_report:
 annotation:
   gerp:
     alignment: '43_mammals.epo'
-    species: 'sus_scrofa'
-
-parallelization:
-  blocks_per_split: 10000
+    #species: 'sus_scrofa'
+    n_chunks: '20'
+    tree: 'resources/tree_43_mammals.nwk'
 
 ###########
 ### vEP ###
