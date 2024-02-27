@@ -30,7 +30,7 @@ The VEP cache and program should be from the same release, hence care should be 
 """
 rule vep_cache:
     params:
-          version_species=config["vep"]["cache"]["install_params"]
+          version_species=config['annotation']["vep"]["cache"]["install_params"]
     output:
           directory(config["vep"]["cache"]["directory"])
     shell:
@@ -49,9 +49,9 @@ rule run_vep:
          vcf="{folder}/{file}.vcf.gz",
          script=workflow.source_path(SCRIPTS_5 + "vep.sh"),
          cache=rules.vep_cache.output if
-            config["vep"]["cache"]["should_install"] == "True" else []
+            config['annotation']["vep"]["cache"]["should_install"] == "True" else []
     params:
-          cache_dir=config["vep"]["cache"]["directory"],
+          cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
     conda:
          "../envs/annotation.yml"
@@ -86,32 +86,32 @@ rule process_vep:
          "-r {input.genome} -g {input.grantham} -o {output}"
 
 
-########## works up until here
-########## when check this one by one. 
+########### works up until here
+########### when check this one by one.
 
-"""
-Process whole genome variant VEP annotation with a lower priority.
-If the model is trained before the full genome variants have been fully processed,
-it can continuously schedule tasks without having to wait on the model training.
-"""
-use rule process_vep as process_genome_vep with:
-    input:
-         vcf="results/whole_genome_variants/{batch}/{file}.vcf.gz",
-         index="results/whole_genome_variants/{batch}/{file}.vcf.gz.tbi",
-         vep="results/whole_genome_variants/{batch}/{file}_vep_output.tsv",
-         genome=lambda wildcards: \
-            config["generate_variants"]["reference_genome_wildcard"].replace(
-                "{chr}",wildcards.file.split("_")[0][3:]), # check that this one works
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix.tsv"),
-         script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
-    priority: -8
-    output:
-          "results/whole_genome_variants/{batch}/{file}_vep.tsv"  # TODO make temporary
+#"""
+#Process whole genome variant VEP annotation with a lower priority.
+#If the model is trained before the full genome variants have been fully processed,
+#it can continuously schedule tasks without having to wait on the model training.
+#"""
+#use rule process_vep as process_genome_vep with:
+#    input:
+#         vcf="results/whole_genome_variants/{batch}/{file}.vcf.gz",
+#         index="results/whole_genome_variants/{batch}/{file}.vcf.gz.tbi",
+#         vep="results/whole_genome_variants/{batch}/{file}_vep_output.tsv",
+#         genome=lambda wildcards: \
+#            config["generate_variants"]["reference_genome_wildcard"].replace(
+#                "{chr}",wildcards.file.split("_")[0][3:]), # check that this one works
+#         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix.tsv"),
+#         script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
+#    priority: -8
+#    output:
+#          "results/whole_genome_variants/{batch}/{file}_vep.tsv"  # TODO make temporary
 
 
 ###########################
 ##### GERP ANNOTATION #####
-############
+###########################
 
 rule msa_converter: # script works in itself, not tested in pipeline
     """
@@ -159,7 +159,7 @@ checkpoint split_stats: # works in dryrun, skips gerp rule
 
 
 # adapted from generode [ref]
-rule compute_gerp: # untested
+rule compute_gerp: # script works in itself, not tested in pipeline
     """
     Compute GERP++ scores.
     Output only includes positions, no contig names.
@@ -185,7 +185,7 @@ rule compute_gerp: # untested
         '''
 
 # adapted from generode [ref]
-rule gerp2coords: # untested
+rule gerp2coords: # needed now or can be parsed later? 
     """
     Convert GERP-scores to the correct genomic coordinates. 
     Script currently written to output positions without contig names.
@@ -207,7 +207,8 @@ rule gerp2coords: # untested
        " mv {input.gerp} {output} 2>> {{log}} && "
        " echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
 
-def get_parts(wildcards):
+
+def get_parts(wildcards): # untested, collects logs instead of files
     alignment_name = config["mark_ancestor"]["ancestral_alignment"]
     checkpoints.split_stats.get(name=alignment_name)
     parts = glob_wildcards(f"results/annotation/gerp/{alignment_name}/chr{wildcards.chr}/{{part}}.fasta").part
@@ -218,7 +219,7 @@ Since GERP was computes per blocks, the scores need to be merged into a single f
 The chromosome was not extracted from the data so we add it back in here with sed find/replace.
 # check this was it really
 """
-rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue?
+rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue? solve when solved how to compile gerp scores
     input:
         get_parts
     output:
@@ -231,6 +232,79 @@ rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue?
         """
 
 
+################################
+##### PHAST ANNOTATION #########
+################################
+
+
+rule phylo_fit:
+    input:
+        fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
+    params:          
+        tree=config["annotation"]['gerp']["tree"],
+        precision=lambda wildcards: config["annotation"]['phast']["train_precision"],
+        out="results/annotation/phast/phylo_model/{name}/chr{chr}/{part}"
+    log:
+        "results/logs/{name}/chr{chr}_{part}_phylo_fit_log.txt"
+    conda:
+    	"../envs/annotation.yml" # TODO add container? 
+    output:
+         "results/phast/phylo_model/{name}/chr{chr}/{part}.mod"
+    shell:
+        "phyloFit"
+        " --tree `cat {params.tree}`"
+        " -p {params.precision}"
+        " --subst-mod REV"
+        " --out-root {params.out}"
+        " {input.fasta} 2> {log}"
+
+rule run_phastCons:
+    input:
+        fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
+        mod=lambda wildcards:
+         # make these the not merged, can it be run split or should it me merged first?
+         # change wildcard config path as well
+        config["phast"][wildcards.name].get("phast_cons_model",
+                                             f"results/phast/phylo_model_merged/{wildcards.name}.mod"),
+    params:
+        species_interest = config['species_name']
+        phast_params=lambda wildcards: config['annotation']["phast"]["phast_cons_params"]
+    output:
+         "results/annotation/phast/phastCons/{name}/chr{chr}/{part}.wig"
+    shell:
+         "phastCons --msa-format FASTA "
+         "--not-informative={params.species_interest} "
+         "{params.phast_params} {input.fasta} {input.mod} > {output}"
+
+rule run_phyloP:
+    input:
+        fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
+        mod=lambda wildcards:
+        # make these the not merged, can it be run split or should it me merged first?
+        # change wildcard config path as well
+        config["phast"][wildcards.name].get("phylo_p_model",
+                                             f"results/phast/phylo_model_merged/{wildcards.name}.mod"),
+    params:
+        species_interest = config['species_name']
+        phylo_params=lambda wildcards: config['annotation']["phast"]["phylo_p_params"]
+    benchmark:
+        "logs/phast/phyloP/{name}/chr{chr}/{part}.tsv"
+    output:
+          "results/annotation/phast/phyloP/{name}/chr{chr}/{part}.wig"
+    shell:
+    # what happens here changed and to test as input it no longer maf
+        "phyloP --msa-format FASTA "
+        "--chrom {wildcards.chr} --wig-scores "
+        "--not-informative={params.species_interest} "
+        "{params.phylo_params} {input.mod} "
+        "{input.fasta} > {output} "
+
+## add more phast things here??
+
+## needs to be collected and merged here later
+
+
+
 ###############################
 ##### BCFTOOLS ANNOTATION #####
 ###############################
@@ -241,295 +315,6 @@ rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue?
 #### oild versions ##############################
 #################################################
 
-'''
- Performs VEP on the derived and simulated variants. 
- The script iterates over the files and performs VEP using a commandline.
- Manual input:
-				'simulated',	path to folder with simulated variants
-				'derived',		path to folder with derived variants
-				'species',		species of interest (small letters separated by an underscore)
-'''
-rule vep_annotation:
-	input:
-		'output/start_step5.txt'
-	params:
-		script = SCRIPTS_5 + 'VEP_annotate.py',
-		simulated = 'output/simulated/',
-		derived = 'output/derived/',
-		species = 'sus_scrofa'
-	output:
-		'output/finished_VEP.txt'
-	shell:
-		'''
-		python {params.script} 
-		-v {params.simulated} \
-		-d {params.derived} \
-		-s {params.species}
-
-		mkdir output/VEP
-		mv *VEP-annotated.vcf output/VEP
-		'''
-		
-		
-'''
- Process the vcf files (the ones that are used for VEP annotation in the previous step) with bgzip and tabix.
- This is performed so that the next script could reformat the VEP output and add extra annotations.
- Note that these are the original files with simulated and derived variants, not the ones that have been annotated already.
-'''
-rule bgzip_and_tabix:
-	input:
-		'output/finished_VEP.txt'
-	output:
-		'output/finished_bgzip_tabix.txt'
-	shell:
-		'''
-		mkdir output/indexed
-		cp output/simulated/* output/indexed/
-		cp output/derived/* output/indexed/
-		for i in output/indexed/*; do bgzip -c $i  > ${i}.gz; tabix -p vcf ${i}.gz; done
-		rm output/indexed/*.vcf
-		
-		touch output/finished_bgzip_tabix.txt
-		'''
-		
-		
-'''
- Processes the VEP annotation file and returns a tab delimited, encoded file with additional basic annotations.
- Manual input:
-				'vep',			path to VEP annotation output
-				'reference',	path and prefix to reference chr
-				'vcf',			path to bgzipped & tabix index vcf source file 
-							   (original variant files with simulated and derived variants before annotation)
-				'grantham' 		path to Grantham score annotation file
-				'generate'		path to where the 'VEP_process.py' script is located
-				'clean'			remove previous VEP annotation files? (yes/no; default: no)
-'''
-rule VEP_processing:
-	input:
-		'output/finished_bgzip_tabix.txt'
-	params:
-		script = SCRIPTS_5 + 'wrapper_VEP_process.py',
-		vep = 'VEP/',
-		reference = 'genome/Sus_scrofa_ref_',
-		vcf = 'indexed/',
-		grantham = './grantham_matrix_formatted_correct.tsv',
-		generate = './',
-		clean = 'no'
-	output:
-		'output/finished_VEP_processing.txt'
-	shell:
-		'''
-		python {params.script} \
-		-v {params.vep} \
-		-r {params.reference} \
-		-s {params.vcf} \
-		-g {params.grantham} \
-		-t {params.generate} \
-		mkdir output/VEP-processed
-		mv *.vcf output/VEP-processed
-		'''
-
-#############################
-##### GERP CONSERVATION #####
-####### GERP ELEMENT ########
-#############################
-
-'''
- These GERP elements & GERP conservation scores should be downloaded from the ENSEMBL ftp database for the species of interest (bigwig format).  
- Then they are formatted to better merge with the rest of the annotations. 
-'''
-rule gather_Gerp_scores:
-	input:
-		'output/finished_VEP_processing.txt'
-	params:
-		GC_file = 'https://ftp.ensembl.org/pub/current_compara/conservation_scores/91_mammals.gerp_conservation_score/gerp_conservation_scores.sus_scrofa.Sscrofa11.1.bw',
-		GE_file = 'https://ftp.ensembl.org/pub/current_bed/ensembl-compara/91_mammals.gerp_constrained_element/gerp_constrained_elements.sus_scrofa.bb'
-
-	output:
-		'output/finished_GERP.txt'
-	shell:
-		'''
-		# 5.8Gb
-		wget {params.GC_file}
-		# 21Gb
-		bigWigToWig ${GC_file##*/} GERP_cons.wig
-		grep -v '#' GERP_cons.wig | awk '{print $1 "\t" $2 "\t" $4}' > GERP_cons.bed && rm GERP_cons.wig
-
-		wget {params.GE_file}
-		# 21Gb
-		bigbedtobed ${GE_file##*/} GERP_elem.bed
-
-		mkdir annotations
-		mv *.wig annotations/ && mv *.bed annotations/
-		'''
-
-'''
- Formats the GerpElem file so that it is easier to merge without the use of dicts.
- Manual input
- 					'gerp' 			path and name of gerp elements file
- 					'cons' 			path and name of gerp conservation file (without suffix)
- 					'tidy' 			remove wig files after reformatting? (default: no)
-'''
-rule format_gerp:
-	input:
-		'output/finished_GERP.txt'
-	params:
-		script = SCRIPTS_5 + 'GERP_format.py', 
-		gerp = 'annotations/GERP_elem.bed',
-		cons = 'annotations/GERP_cons',
-		tidy = 'no'
-	output:
-		'output/finished_format_GERP.txt'
-	shell:
-		'''
-		grep -v '#' {params.cons}.wig | awk '{print $1 "\t" $2 "\t" $4}' > {params.cons}.bed && rm {params.cons}.wig
-
-		python {params.script} \
-		-g {params.gerp} \
-		-t {params.tidy}
-
-		mv formatted*.tsv annotations/GERP_elem.bed
-		'''
-
-'''
-Splits the GERP files per chromosomes.
- Manual input
- 					'elem' 			path to formatted file containing GERP elements scores
- 					'gerp' 			path to formatted file containing GERP conservation scores
- 					'chromosomes'	list of considered chromosomes
- 					'tidy' 			remove genomewide files after reformatting? (default: no)
-'''
-rule split_gerp:
-	input:
-		'output/finished_format_GERP.txt'
-	params:
-		script = SCRIPTS_5 + 'GERP_split.py', 
-		gerp = 'annotations/GERP_elem.bed',
-		cons = 'annotations/GERP_cons.bed',
-		chromosomes = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,X',
-		tidy = 'no'
-	output:
-		'output/finished_split_GERP.txt'
-	shell:
-		'''
-		grep -v '#' {params.cons}.wig | awk '{print $1 "\t" $2 "\t" $4}' > {params.cons}.bed && rm {params.cons}.wig
-
-		python {params.script} \
-		-g {params.gerp} \
-		-t {params.tidy}
-
-		mkdir annotations/GERP
-		mv *GERP*.gz annotations/GERP
-		'''
-
-#############################
-######### PhastCons #########
-######### PhyloP    #########
-#############################
-
-								####################################################################################
-								######### HAS TO BE REDONE #########################################################
-								######### FORMAT LIFTOVER AND SPLIT IN MANY FILES THEN SPLIT AND MERGE    ##########
-								####################################################################################
-
-'''
- These PhastCons & PhyloP scores should be downloaded from the UCSC Genome Browser database for the alignment of interest (bigwig format). 
- The script reformats these scores so that it is easier to parse to the processed VEP output.
- It outputs two files containing the chromosome number, position and score.
- Manual input:		'pC_file', 		Path to phastCons bw file.
-					'pP_file', 		Path to PhyloP bw file.
-					'clean'			Remove wig files after reformatting? [yes/no]
-'''
-rule format_pC_pP_scores:
-	input:
-		'output/finished_split_GERP.txt'
-	params:
-		script = SCRIPTS_5 + 'PHAST_format.py',
-		pC_file = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/phastCons470way/hg38.phastCons470way.bw',
-		pP_file = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/phyloP470way/hg38.phyloP470way.bw',
-		clean = 'yes'
-	output:
-		'output/finished_format_wig.txt'
-	shell:
-		'''
-		# 4.8Gb
-		wget {params.pC_file}
-		# 17Gb
-		bigWigToWig ${pC_file##*/} phyloP.wig
-		# 11Gb
-		wget {params.pP_file}
-		# 13Gb
-		bigWigToWig ${pP_file##*/} phastCons.wig
-
-		mv *.wig annotations/
-
-		python {params.script}
-		-w annotations/
-		-c {params.clean}
-
-		mv *_scores.bed.gz annotations/
-		'''
-
-
-'''
- The PhastCons & PhyloP files are ordered based on the human reference genome, regardless of the species of interest included in the alignment. 
- This script lifts the files and the coordinates over from hg19/hg38 (depending on the input), with the help of a liftover chain file 
- (has to be downloaded) to the coordinates for the species of interest.
- Manual input:		'phast', 		Path to formatted PHAST files.
-					'liftover', 	Path (and name of) lift-over file
-					'tidy'			Remove files after reformatting? [yes/no]
-'''
-rule lift_pC_pP_scores:
-	input:
-		'output/finished_format_wig.txt'
-	params:
-		script = SCRIPTS_5 + 'PHAST_lifOver.py',
-		phast = 'annotations/',
-		liftOver = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/liftOver/hg38ToSusScr11.over.chain.gz',
-		clean = 'yes'
-	output:
-		'output/finished_phast_lifover.txt'
-	shell:
-		'''
-		wget {params.liftover}
-
-		python {params.script} \
-		-p {params.phast} \
-		-l {params.liftover} \
-		-t {params.clean}
-
-		mv {params.liftover} annotations/
-		mv {params.phast}_lifted.bed annotations/
-		'''
-
-'''
- Splits the PhyloP and PhastCons files per chromosomes
- Manual input:		'phast', 		Path to formatted PHAST files.
-					'liftover', 	Path (and name of) lift-over file
-					'tidy'			Remove files after reformatting? [yes/no]
-'''
-rule split_pC_pP_scores:
-	input:
-		'output/finished_phast_lifover.txt'
-	params:
-		script = SCRIPTS_5 + 'PHAST_lifOver.py',
-		phast = 'annotations/',
-		liftOver = 'http://hgdownload.cse.ucsc.edu/goldenpath/hg38/liftOver/hg38ToSusScr11.over.chain.gz',
-		clean = 'yes'
-	output:
-		'output/finished_phast_split.txt'
-	shell:
-		'''
-		wget {params.liftover}
-
-		python {params.script} \
-		-p {params.phast} \
-		-l {params.liftover} \
-		-t {params.clean}
-
-		mv {params.liftover} annotations/
-		mv {params.phast}_lifted.tsv annotations/
-		'''
 
 #############################
 ########## REPEATS ##########
