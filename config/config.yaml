@@ -55,21 +55,17 @@ stats_report:
 annotation:
   gerp:
     alignment: '43_mammals.epo'
-    #species: 'sus_scrofa'
     n_chunks: '20'
     tree: 'resources/tree_43_mammals.nwk'
-
-###########
-### vEP ###
-###########
-
-# later has to become optional steps, as there might be users that cannot 
-# annotate with vep, in case their species (or adjacent species)
-# does not have publicly available data deposited.
-
-vep:
-  cache:
-    directory: '$VEP_CACHE' # vep/111.0 $VEP_CACHE resources/vep
-    should_install: False # Should we install or assume that it has been installed by the user?
-    install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1" # Version, species and (optional: assembly).
-
+  phast:
+    train_precision: "HIGH"
+    phast_cons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
+    phylo_p_params: "--method=LRT --mode=CONACC"
+  # later has to become optional steps, as there might be users that cannot 
+  # annotate with vep, in case their species (or adjacent species)
+  # does not have publicly available data deposited.
+  vep:
+    cache:
+      directory: '$VEP_CACHE' # vep/111.0 $VEP_CACHE resources/vep
+      should_install: False # Should we install or assume that it has been installed by the user?
+      install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1" # Version, species and (optional: assembly).
