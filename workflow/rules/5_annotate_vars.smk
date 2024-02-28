@@ -161,9 +161,10 @@ checkpoint split_stats: # works in dryrun, skips gerp rule
 # adapted from generode [ref]
 rule compute_gerp: # script works in itself, not tested in pipeline
     """
-    Compute GERP++ scores.
-    Output only includes positions, no contig names.
-    This analysis is run as one job per genome chunk, but is internally run per contig.
+    Compute GERP++ (gerpcol) scores.
+    Output only includes scores, no bp positions, no contig names.
+    Column one is GERP_ExpSubst and the other one GERP_RejSubstScore.
+    This analysis is run as one job per genome chunk.
     """
     input:
         fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
@@ -173,17 +174,41 @@ rule compute_gerp: # script works in itself, not tested in pipeline
     params:
         reference_species = lambda wildcards: config['alignments'][wildcards.name]['name_species_interest']
     log:
-       "results/logs/{name}/chr{chr}_{part}_gerp_log.txt",
+       "results/logs/{name}/chr{chr}_{part}_gerpcol_log.txt",
     threads: 4
     singularity:
         "docker://quay.io/biocontainers/gerp:2.1--hfc679d8_0"
     shell:
         '''
-        gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2> {log} &&
+        gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log} &&
           mv {input.fasta}.rates {output} 2>> {log} &&
           echo "Computed GERP++ scores for" {input.fasta} >> {log}
         '''
 
+rule compute_gerpelem: # untested!!
+    """
+    Compute GERP constrained elements (gerpelem) scores.
+    Output only includes start	end	length	     RS-score (computed from gerpcol)	p-value.
+    This analysis is run as one job per genome chunk.
+    """
+    input:
+       gerpcol=lambda wildcards: f"results/annotation/gerp/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.rates",
+    output:
+       "results/annotation/gerp/{name}/chr{chr}/{part}.elems"
+    log:
+       "results/logs/{name}/chr{chr}_{part}_gerpelem_log.txt",
+    threads: 8
+    singularity:
+        "docker://quay.io/biocontainers/gerp:2.1--hfc679d8_0"
+    shell:
+        '''
+        gerpelem -v -f {input.gerpcol} 2>> {log} &&
+          mv {input.gerpcol}.elems {output} 2>> {log} &&
+          echo "Computed GERP++ scores for" {input.fasta} >> {log}
+        '''
+
+
+# merge it in another way? how to coords?
 # adapted from generode [ref]
 rule gerp2coords: # needed now or can be parsed later? 
     """
@@ -236,13 +261,13 @@ rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue? solve
 ##### PHAST ANNOTATION #########
 ################################
 
-
 rule phylo_fit:
     input:
         fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
     params:          
-        tree=config["annotation"]['gerp']["tree"],
-        precision=lambda wildcards: config["annotation"]['phast']["train_precision"],
+        tree=config["annotation"]['phast']["tree"],
+        tree_species=config['annotation']['phast']['tree_species']
+        precision=config["annotation"]['phast']["train_precision"],
         out="results/annotation/phast/phylo_model/{name}/chr{chr}/{part}"
     log:
         "results/logs/{name}/chr{chr}_{part}_phylo_fit_log.txt"
@@ -251,44 +276,39 @@ rule phylo_fit:
     output:
          "results/phast/phylo_model/{name}/chr{chr}/{part}.mod"
     shell:
+        "awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' < {input.fasta} | grep -E -A1 {params.tree_species} > tmp.fa && "
         "phyloFit"
-        " --tree `cat {params.tree}`"
+        " --tree {params.tree}"
         " -p {params.precision}"
         " --subst-mod REV"
         " --out-root {params.out}"
-        " {input.fasta} 2> {log}"
+        " {input.fasta} 2>> {log} && "
+        " rm tmp.fa"
 
 rule run_phastCons:
     input:
         fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
-        mod=lambda wildcards:
-         # make these the not merged, can it be run split or should it me merged first?
-         # change wildcard config path as well
-        config["phast"][wildcards.name].get("phast_cons_model",
-                                             f"results/phast/phylo_model_merged/{wildcards.name}.mod"),
+        mod=lambda wildcards: f"results/annotation/phast/phylo_model/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.mod",
     params:
         species_interest = config['species_name']
-        phast_params=lambda wildcards: config['annotation']["phast"]["phast_cons_params"]
+        phast_params=lambda wildcards: config['annotation']["phast"]["phastCons_params"]
     output:
          "results/annotation/phast/phastCons/{name}/chr{chr}/{part}.wig"
     shell:
-         "phastCons --msa-format FASTA "
-         "--not-informative={params.species_interest} "
+         "phastCons "
+         " --msa-format FASTA "
+         " --not-informative={params.species_interest} "
          "{params.phast_params} {input.fasta} {input.mod} > {output}"
 
 rule run_phyloP:
     input:
         fasta=lambda wildcards: f"results/alignment/fasta/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.fasta",
-        mod=lambda wildcards:
-        # make these the not merged, can it be run split or should it me merged first?
-        # change wildcard config path as well
-        config["phast"][wildcards.name].get("phylo_p_model",
-                                             f"results/phast/phylo_model_merged/{wildcards.name}.mod"),
+        mod=lambda wildcards: f"results/annotation/phast/phylo_model/{config['alignments'][wildcards.name]}/chr{{chr}}/{{part}}.mod",
     params:
         species_interest = config['species_name']
-        phylo_params=lambda wildcards: config['annotation']["phast"]["phylo_p_params"]
+        phylo_params=lambda wildcards: config['annotation']["phast"]["phyloP_params"]
     benchmark:
-        "logs/phast/phyloP/{name}/chr{chr}/{part}.tsv"
+        "logs/annotation/phast/phyloP/{name}/chr{chr}/{part}.tsv"
     output:
           "results/annotation/phast/phyloP/{name}/chr{chr}/{part}.wig"
     shell:
@@ -302,18 +322,15 @@ rule run_phyloP:
 ## add more phast things here??
 
 ## needs to be collected and merged here later
+## then impute and merge and rule add_annotations
 
-
-
-###############################
-##### BCFTOOLS ANNOTATION #####
-###############################
-# these ones have to be downloaded and also it is many of the things i 
-# have further down so it has to be implemented later
-
-#################################################
-#### oild versions ##############################
-#################################################
+'''
+ These fasta files containing repeats should be downloaded from the UCSC Genome Browser database for the species of interest. 
+ And should be put in the 'data/repeats/' directory. 
+ UCSC should have masked fasta files (repeats are in lower case) per chromosome for the species of interest. 
+ These files should be decompressed. 
+ The script creates per chromosome a output file containing a list of the position of its repeats. 
+'''
 
 
 #############################
@@ -334,11 +351,10 @@ rule run_phyloP:
  The script creates per chromosome a output file containing a list of the position of its repeats. 
  Manual input:		'path_rep', 		Path to masked fasta files (default = 'data/repeats/'). 
 '''
-rule get_repeat_position:
+rule get_repeats:
 	input:
-		'output/finished_phast_split.txt'
-	params:
 		script = SCRIPTS_5 + 'get_repeats.py',
+	params:
 		masked_folder = 'data/masked/',
 		masked_genome = 'https://ftp.ensembl.org/pub/current_fasta/sus_scrofa/dna/Sus_scrofa.Sscrofa11.1.dna_sm.toplevel.fa.gz',
 		nChromosomes = '18'
@@ -362,52 +378,4 @@ rule get_repeat_position:
 
 		mkdir data/repeats mv repeats_chr* data/repeats
 		'''
-
-#############################
-######### MERGE ALL #########
-######## ANOTATIONS #########
-#############################
-
-'''
- Adds the y (label) to the processed VEP files and adds for every variant the correct Gerp, phastCons, phyloP scores and repeat position. 
- This script can be expanded for more annotations (features). 
-				
-'''
-rule merge_features:
-	input:
-		'output/finished_get_repeat_position.txt'
-	params:
-		script = 'scripts/merge_all_annotationsV3.py',
-		path_vep = 'output/dir_vep_processing/',
-		path_gerp = 'output/dir_gerp_annotation/',
-		path_gerpE = 'output/dir_format_GerpElem/',
-		path_pC_pP = 'output/dir_split_pC_pP/',
-		path_repeats = 'output/dir_repeats/'
-	output:
-		'output/finished_merging.txt'
-	run:
-		shell('python {params.script} -v {params.path_vep} -g {params.path_gerp} -e {params.path_gerpE} -p {params.path_pC_pP} -r {params.path_repeats}')
-		shell('mkdir output/dir_merged_annotations')
-		shell('mv *merged_features.tsv output/dir_merged_annotations')
-
-
-'''
- It takes fully annotated variant files for simulated and derived variants respectively. 
- It handles missing values with imputation (based on the mean in simulated variants)
- and categorical featues with one-hot encoding. 
-'''
-rule handle_encoding_mv:
-	input:
-		'output/finished_merging.txt'
-	params:
-		script = 'scripts/encoding_mv_wrapper.py', 
-		path_merged_f = 'output/dir_merged_annotations/'
-	output:
-		'output/finished_encoding_mv.txt'
-	run:
-		shell('python {params.script} -i {params.path_merged_f}')
-		shell('mkdir output/dir_complete_dataset')
-		shell('mv *_enc_mv.csv output/dir_complete_dataset')
-
-
 
