@@ -58,9 +58,11 @@ annotation:
     n_chunks: '20'
     tree: 'resources/tree_43_mammals.nwk'
   phast:
+    tree: '(camelus_dromedarius,(catagonus_wagneri,(bos_taurus,ovis_aries_rambouillet)));' # exclude species of interest
+    tree_species: "sus_scrofa|camelus_dromedarius|catagonius_wagneri|bos_taurus|ovis_aries_rambouillet"
     train_precision: "HIGH"
-    phast_cons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
-    phylo_p_params: "--method=LRT --mode=CONACC"
+    phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
+    phyloP_params: "--method=LRT --mode=CONACC"
   # later has to become optional steps, as there might be users that cannot 
   # annotate with vep, in case their species (or adjacent species)
   # does not have publicly available data deposited.
