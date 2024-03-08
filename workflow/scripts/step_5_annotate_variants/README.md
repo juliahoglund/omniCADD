@@ -13,3 +13,10 @@ This is the collection of scripts that annotated the simulate dand derived varia
 |**R**|Regulatory_Region|**U5**|5Prime_UTR;|
 |**U3**|3Prime_UTR;|**I**|Intronic;|
 |**O**| Unknown|
+
+Dependencies
+- vep
+- PHAST
+- GERP
+- seqtk
+- msaconverter
