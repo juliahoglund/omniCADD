@@ -58,8 +58,8 @@ annotation:
     n_chunks: '20'
     tree: 'resources/tree_43_mammals.nwk'
   phast:
-    tree: '(camelus_dromedarius,(catagonus_wagneri,(bos_taurus,ovis_aries_rambouillet)));' # exclude species of interest
-    tree_species: "sus_scrofa|camelus_dromedarius|catagonius_wagneri|bos_taurus|ovis_aries_rambouillet"
+    tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus)(ovis_aries_rambouillet))'
+    tree_species: "sus_scrofa|camelus_dromedarius|catagonius_wagneri|bos_taurus|ovis_aries_rambouillet" # temporary file with limited taxa 
     train_precision: "HIGH"
     phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
     phyloP_params: "--method=LRT --mode=CONACC"
