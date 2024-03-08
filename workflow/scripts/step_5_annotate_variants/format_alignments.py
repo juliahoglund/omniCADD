@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
+# derived from:
+# split_fasta.py (assumes you have biopython installed, e.g. with pip install biopython)
+# from: https://thevirtuallaboratory.com/blog/splitting-a-multi-fasta
+# Author: Bram van Dijk
+
 # echo sus_scrofa > species.list
 # seqtk subseq results/alignment/fasta/43_mammals.epo/chr1_11.fasta species.list > test.fa
 # grep -v ">" test.fa | fold -w1 > chr10_11.fa
