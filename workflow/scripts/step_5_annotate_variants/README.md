@@ -19,4 +19,4 @@ Dependencies
 - PHAST
 - GERP
 - seqtk
-- msaconverter
+- biopython
