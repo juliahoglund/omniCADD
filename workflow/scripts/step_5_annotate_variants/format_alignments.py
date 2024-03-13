@@ -1,74 +1,57 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import os
+import sys
+from argparse import ArgumentParser
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+from collections import defaultdict
+   
+species = defaultdict(list)
+entries = defaultdict(list)
 
+ffile = sys.argv[1]
+output=sys.argv[2] # folder to save formatted chunks in
 
-# derived from:
-# split_fasta.py (assumes you have biopython installed, e.g. with pip install biopython)
-# from: https://thevirtuallaboratory.com/blog/splitting-a-multi-fasta
-# Author: Bram van Dijk
+if(len(sys.argv) != 3):
+        sys.exit("usage: split_fasta.py CONVERTED_MULTI_FASTA_FILE OUTPUT_FILE")
 
-# echo sus_scrofa > species.list
-# seqtk subseq results/alignment/fasta/43_mammals.epo/chr1_11.fasta species.list > test.fa
-# grep -v ">" test.fa | fold -w1 > chr10_11.fa
+# retrieve all species present in any block to get maximum number of aligned species
+for record in SeqIO.parse(ffile, "fasta"):
+    if record.id not in species:
+        species[record.id].append(SeqRecord(Seq(""), id=record.id, name=record.id))
+    entries[record.id].append(len(record))
+    species[record.id].append(record)
 
-# dependencies
-import sys, math
-import Bio
-from Bio import AlignIO
+# prepare additional dictionaries
+# ki = dict()
+ik = dict()
+for i, k in enumerate(entries):
+    # ki[k] = i   # dictionary index_of_key
+    ik[i] = k   # dictionary key_of_index
 
-def batch_iterator(iterator, batch_size):
-    """
-    This is a generator function, and it returns lists of the
-    entries from the supplied iterator.  Each list will have
-    batch_size entries, although the final list may be shorter.
-    (derived from https://biopython.org/wiki/Split_large_file)
-    """
-    entry = True  # Make sure we loop once
-    iter_object = iter(iterator)
-    while entry:
-        batch = []
-        while len(batch) < batch_size:
-            try:
-                entry = next(iter_object)
-            except StopIteration:
-                entry = None
-            if entry is None:
-                break # EOF = end of file
-            batch.append(entry)
-        if batch:
-            yield batch
+# add gaps fo the length of the block, where that specific species is lacking
+offset = 1
+for i in range(0, len(ik)-1):
+    next_species = ik[i + offset]
+    for j in range(0, len(entries[ik[0]])-1):
+        if j == len(entries[next_species])-1: 
+            entries[next_species].append(entries[ik[0]][j+1])
+            gaps = '-'*(entries[ik[0]][j+1])
+            species[next_species].append(SeqRecord(Seq(gaps)))
+        elif entries[ik[0]][j] == entries[next_species][j]:
+            continue
+        else:
+            entries[next_species].insert(j, entries[ik[0]][j])
+            gaps = '-'*(entries[ik[0]][j])
+            species[next_species].insert(j, SeqRecord(Seq(gaps)))
 
-
-if(len(sys.argv) != 5):
-        sys.exit("usage: split_fasta.py MULTI_FASTA_FILE N_CHUNKS OUTPUT_FOLDER_MAF OUTPUT_FOLDER_FASTA")
-
-ffile=sys.argv[1]  # maf file
-chunks=sys.argv[2] # number of chunks
-maf_folder=sys.argv[3] # folder to save chunks in
-fasta_folder=sys.argv[4] # folder to save converted chunks in
-
-to_keep = []
-
-# parse alignment
-for alignment in AlignIO.parse(ffile, "maf"):
-    print("Alignment of length %i" % alignment.get_alignment_length())
-    if "sus_scrofa" in str(alignment): 
-        print(alignment)
-        to_keep.append(alignment)
-
-nseq = len(to_keep)
-chunksize=math.ceil(nseq/int(chunks))
-start = 0
-chrom = ffile.split('.')[1].split('chr')[2]
-
-print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
-for i, batch in enumerate(batch_iterator(to_keep, chunksize)): # change
-    filename = str(maf_folder) + "chr" + str(chrom) + "_%i.maf" % (i + 1)
-    with open(filename, "w") as maf_handle:
-        count = Bio.AlignIO.write(batch, maf_handle, "maf")
-    print("Wrote %i sequences to %s" % (count, filename))
-
-    filename = str(fasta_folder) + "chr" + str(chrom) + "_%i.fasta" % (i + 1)
-    with open(filename, "w") as fasta_handle:
-        count = Bio.AlignIO.write(batch, fasta_handle, "fasta")
-    print("Wrote %i sequences to %s" % (count, filename))
+fasta_seq = open(output, 'w')
+for i in range(0, len(ik)-1):
+    for j in range(0, len(entries[ik[0]])):
+        if j == 0:
+            if i == 0:
+                fasta_seq.write('>' + ik[i] + '\n')
+            else: 
+                fasta_seq.write('\n>' + ik[i] + '\n')
+        else:
+            fasta_seq.write(str(species[ik[i]][j-1].seq))
