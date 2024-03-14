@@ -13,6 +13,7 @@
 
 # dependencies
 import sys, math
+import gzip
 import Bio
 from Bio import AlignIO
 
@@ -39,18 +40,21 @@ def batch_iterator(iterator, batch_size):
             yield batch
 
 
-if(len(sys.argv) != 5):
-        sys.exit("usage: split_fasta.py MULTI_FASTA_FILE N_CHUNKS OUTPUT_FOLDER_MAF OUTPUT_FOLDER_FASTA")
+if(len(sys.argv) != 4):
+        sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_FASTA")
 
-ffile=sys.argv[1]  # maf file
+mfile = sys.argv[1]  # maf file
+ofile = gzip.open(mfile, "rt") \
+                if mfile.endswith('.gz') else open(mfile, "r") # maf file
+
+
 chunks=sys.argv[2] # number of chunks
-maf_folder=sys.argv[3] # folder to save chunks in
-fasta_folder=sys.argv[4] # folder to save converted chunks in
+fasta_folder=sys.argv[3] # folder to save converted chunks in
 
 to_keep = []
 
 # parse alignment
-for alignment in AlignIO.parse(ffile, "maf"):
+for alignment in AlignIO.parse(ofile, "maf"):
     #print("Alignment of length %i" % alignment.get_alignment_length())
     if "sus_scrofa" in str(alignment): 
         #print(alignment)
@@ -59,7 +63,7 @@ for alignment in AlignIO.parse(ffile, "maf"):
 nseq = len(to_keep)
 chunksize=math.ceil(nseq/int(chunks))
 start = 0
-chrom = ffile.split('.')[1].split('chr')[2]
+chrom = mfile.split('.')[0].split('chr')[1]
 
 print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
 for i, batch in enumerate(batch_iterator(to_keep, chunksize)):
