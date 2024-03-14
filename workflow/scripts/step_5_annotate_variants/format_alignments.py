@@ -13,7 +13,7 @@ ffile = sys.argv[1]
 output=sys.argv[2] # folder to save formatted chunks in
 
 if(len(sys.argv) != 3):
-        sys.exit("usage: split_fasta.py CONVERTED_MULTI_FASTA_FILE OUTPUT_FILE")
+        sys.exit("usage: format_alignments.py CONVERTED_MULTI_FASTA_FILE OUTPUT_FILE")
 
 # retrieve all species present in any block to get maximum number of aligned species
 for record in SeqIO.parse(ffile, "fasta"):
