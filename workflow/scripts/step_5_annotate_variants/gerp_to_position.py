@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+# Author: Tom van der Valk
 
 from sys import argv
 from itertools import islice
@@ -38,10 +39,7 @@ def parse_gerp(fasta_file, gerp_file, species_name):
     for i in (seq):
         position += 1
         if i.upper() == "N":
-            outputfile.write("0" + "\n")
-            gerp_position += 1
-        elif i == "-":
-            outputfile.write("0" + "\n")
+            outputfile.write("0\t0" + "\n")
             gerp_position += 1
         else:
             if (position-gerp_position-1) < len(neutral_score):
@@ -56,4 +54,3 @@ if __name__ == "__main__":
     species_file = argv[2]
     species_name = argv[3]
     parse_gerp(filename, species_file, species_name)
-
