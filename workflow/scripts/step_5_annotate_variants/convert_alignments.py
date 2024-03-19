@@ -7,10 +7,6 @@
 # from: https://thevirtuallaboratory.com/blog/splitting-a-multi-fasta
 # Author: Bram van Dijk
 
-# echo sus_scrofa > species.list
-# seqtk subseq results/alignment/fasta/chr1/chr1_1.fasta species.list > test.fa
-# grep -v ">" test.fa | fold -w1 > chr1_11.fa
-
 # dependencies
 import sys, math
 import gzip
