@@ -36,8 +36,8 @@ def batch_iterator(iterator, batch_size):
             yield batch
 
 
-if(len(sys.argv) != 4):
-        sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_FASTA")
+if(len(sys.argv) != 6):
+        sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_FASTA OUTPUT_FOLDE_MAF REF_SPECIES")
 
 mfile = sys.argv[1]  # maf file
 ofile = gzip.open(mfile, "rt") \
@@ -46,25 +46,31 @@ ofile = gzip.open(mfile, "rt") \
 
 chunks=sys.argv[2] # number of chunks
 fasta_folder=sys.argv[3] # folder to save converted chunks in
+maf_folder=sys.argv[4] # folder to save maf chunks in
+ref_species=sys.argv[5]
 
 to_keep = []
 
 # parse alignment
 for alignment in AlignIO.parse(ofile, "maf"):
     #print("Alignment of length %i" % alignment.get_alignment_length())
-    if "sus_scrofa" in str(alignment): 
-        #print(alignment)
+    if ref_species in str(alignment):
         to_keep.append(alignment)
 
 nseq = len(to_keep)
 chunksize=math.ceil(nseq/int(chunks))
-start = 0
 chrom = mfile.split('.')[0].split('chr')[1]
 
+## add back maf, remove things above
 print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
 for i, batch in enumerate(batch_iterator(to_keep, chunksize)):
 
     filename = str(fasta_folder) + "chr" + str(chrom) + "_%i.fasta" % (i + 1)
     with open(filename, "w") as fasta_handle:
         count = Bio.AlignIO.write(batch, fasta_handle, "fasta")
+    print("Wrote %i sequences to %s" % (count, filename))
+
+    filename = str(maf_folder) + "chr" + str(chrom) + "_%i.maf" % (i + 1)
+    with open(filename, "w") as maf_handle:
+        count = Bio.AlignIO.write(batch, maf_handle, "fasta")
     print("Wrote %i sequences to %s" % (count, filename))
