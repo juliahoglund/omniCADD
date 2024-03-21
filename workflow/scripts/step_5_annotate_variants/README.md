@@ -20,3 +20,4 @@ Dependencies
 - GERP
 - seqtk
 - biopython
+- wig2bed (bedops)
