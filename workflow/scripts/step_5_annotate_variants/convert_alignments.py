@@ -36,8 +36,8 @@ def batch_iterator(iterator, batch_size):
             yield batch
 
 
-if(len(sys.argv) != 6):
-        sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_FASTA OUTPUT_FOLDE_MAF REF_SPECIES")
+if(len(sys.argv) != 5):
+        sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDE_MAF REF_SPECIES")
 
 mfile = sys.argv[1]  # maf file
 ofile = gzip.open(mfile, "rt") \
@@ -45,9 +45,8 @@ ofile = gzip.open(mfile, "rt") \
 
 
 chunks=sys.argv[2] # number of chunks
-fasta_folder=sys.argv[3] # folder to save converted chunks in
-maf_folder=sys.argv[4] # folder to save maf chunks in
-ref_species=sys.argv[5]
+maf_folder=sys.argv[3] # folder to save maf chunks in
+ref_species=sys.argv[4]
 
 to_keep = []
 start = []
@@ -60,7 +59,7 @@ for alignment in AlignIO.parse(ofile, "maf"):
         for seqrec in alignment:
             if ref_species in seqrec.id:
                 start.append(seqrec.annotations["start"])
-                end.append(seqrec.annotations["start"]+seqrec.annotations["size"])
+                end.append(seqrec.annotations["start"]+seqrec.annotations["size"]-1) # next start will be this end if not -1
                 # 0 based 1 based double check later
 
 
@@ -68,6 +67,7 @@ nseq = len(to_keep)
 chunksize=math.ceil(nseq/int(chunks))
 chrom = mfile.split('.')[0].split('chr')[1]
 
+print("creatung indices for base pair positionvstart and end per maf block.")
 for i, batch in enumerate(batch_iterator(start, chunksize)):
     indexfile = str(fasta_folder) + "/chr" + str(chrom) + "_%i.start" % (i +1)
     with open(indexfile, "w") as index_handle:
@@ -80,11 +80,6 @@ for i, batch in enumerate(batch_iterator(end, chunksize)):
 
 print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
 for i, batch in enumerate(batch_iterator(to_keep, chunksize)):
-
-    filename = str(fasta_folder) + "/chr" + str(chrom) + "_%i.fasta" % (i + 1)
-    with open(filename, "w") as fasta_handle:
-        count = Bio.AlignIO.write(batch, fasta_handle, "fasta")
-    print("Wrote %i sequences to %s" % (count, filename))
 
     filename = str(maf_folder) + "/chr" + str(chrom) + "_%i.maf" % (i + 1)
     with open(filename, "w") as maf_handle:
