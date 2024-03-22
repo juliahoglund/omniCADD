@@ -50,27 +50,43 @@ maf_folder=sys.argv[4] # folder to save maf chunks in
 ref_species=sys.argv[5]
 
 to_keep = []
+start = []
+end = []
 
 # parse alignment
 for alignment in AlignIO.parse(ofile, "maf"):
-    #print("Alignment of length %i" % alignment.get_alignment_length())
     if ref_species in str(alignment):
         to_keep.append(alignment)
+        for seqrec in alignment:
+            if ref_species in seqrec.id:
+                start.append(seqrec.annotations["start"])
+                end.append(seqrec.annotations["start"]+seqrec.annotations["size"])
+                # 0 based 1 based double check later
+
 
 nseq = len(to_keep)
 chunksize=math.ceil(nseq/int(chunks))
 chrom = mfile.split('.')[0].split('chr')[1]
 
-## add back maf, remove things above
+for i, batch in enumerate(batch_iterator(start, chunksize)):
+    indexfile = str(fasta_folder) + "/chr" + str(chrom) + "_%i.start" % (i +1)
+    with open(indexfile, "w") as index_handle:
+        index_handle.write('\n'.join([str(line) for line in batch]))
+
+for i, batch in enumerate(batch_iterator(end, chunksize)):
+    indexfile = str(fasta_folder) + "/chr" + str(chrom) + "_%i.stop" % (i +1)
+    with open(indexfile, "w") as index_handle:
+        index_handle.write('\n'.join([str(line) for line in batch]))
+
 print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
 for i, batch in enumerate(batch_iterator(to_keep, chunksize)):
 
-    filename = str(fasta_folder) + "chr" + str(chrom) + "_%i.fasta" % (i + 1)
+    filename = str(fasta_folder) + "/chr" + str(chrom) + "_%i.fasta" % (i + 1)
     with open(filename, "w") as fasta_handle:
         count = Bio.AlignIO.write(batch, fasta_handle, "fasta")
     print("Wrote %i sequences to %s" % (count, filename))
 
-    filename = str(maf_folder) + "chr" + str(chrom) + "_%i.maf" % (i + 1)
+    filename = str(maf_folder) + "/chr" + str(chrom) + "_%i.maf" % (i + 1)
     with open(filename, "w") as maf_handle:
-        count = Bio.AlignIO.write(batch, maf_handle, "fasta")
+        count = Bio.AlignIO.write(batch, maf_handle, "maf")
     print("Wrote %i sequences to %s" % (count, filename))
