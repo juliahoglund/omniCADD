@@ -84,6 +84,8 @@ rule process_vep:
 # mv results/derived_variants/singletons/*vep* results/annotation/vep/derived
 # mv results/simulated_variants/trimmed_snps/*vep* results/annotation/vep/simulated
 
+# TODO: double check later that is works in pipeline
+# rules have not been tested separately and together yet
 checkpoint split_alignment:
     """
     Splits the maf files in to chunks of size N. While the maf files are split in 
@@ -93,8 +95,7 @@ checkpoint split_alignment:
         maf="results/alignment/sorted/chr{chr}.maf.gz",
         script=workflow.source_path(SCRIPTS_5 + "convert_alignments.py")
     output:
-        folder=directory("results/alignment/fasta/chr{chr}/"), # TODO make temporary
-        maf=directory("results/alignment/maf/chr{chr}/"), # TODO make temporary
+        folder=directory("results/alignment/splitted/chr{chr}/"), # TODO make temporary
     params:
         n_chunks=config['annotation']['gerp']['n_chunks'],
         reference_species=config['species_name']
@@ -102,26 +103,7 @@ checkpoint split_alignment:
         "../env/annotation.yml"
     threads: 4
     shell:
-        "python3 {input.script} {input.maf} {params.n_chunks} {output.folder} {output.maf} {params.reference_species}"
-
-rule format_fasta:
-    """
-    Formats the fasta chunks to one line fasta sequences, one per species, instead of blocks.
-    Where species are lacking in the blocks, gaps are inserted.
-    """
-    input: # cannot recognise input from previous step but 
-        fasta = "results/alignment/fasta/chr{chr}/{part}.fasta",
-        script = workflow.source_path(SCRIPTS_5 + 'format_alignments.py')
-    output:
-        "results/alignment/fasta/chr{chr}/{part}.linearized.fasta"
-    conda:
-        "../env/annotation.yml"
-    threads: 4
-    shell:
-        r"sed -E 's/(>.+)\..+/\1/g' {input.fasta} | sed -E 's/(>.+)\..+/\1/g' > tmp.{wildcards.part}.fa && "
-        "python3 {input.script} tmp.{wildcards.part}.fa {output} && "
-        "rm tmp.{wildcards.part}.fa {input.fasta}"
-
+        "python3 {input.script} {input.maf} {params.n_chunks} {output.folder} {params.reference_species}"
 
 # adapted from generode [ref]
 rule compute_gerp:
@@ -132,7 +114,7 @@ rule compute_gerp:
     This analysis is run as one job per genome chunk.
     """
     input:
-        fasta="results/alignment/fasta/chr{chr}/{part}.linearized.fasta",
+        maf="results/alignment/splitted/chr{chr}/{part}.maf",
         tree=config["annotation"]['gerp']["tree"],
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates")
@@ -205,7 +187,7 @@ rule run_phastCons:
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
         species_interest = config['species_name'],
-        phast_params=lambda wildcards: config['annotation']["phast"]["phastCons_params"]
+        phast_params=config['annotation']["phast"]["phastCons_params"]
     conda:
         "../envs/annotation.yml" # TODO add container?
     output:
