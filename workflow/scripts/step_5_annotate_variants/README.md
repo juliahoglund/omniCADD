@@ -21,3 +21,4 @@ Dependencies
 - seqtk
 - biopython
 - wig2bed (bedops)
+- perl
