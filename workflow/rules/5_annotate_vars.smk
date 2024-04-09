@@ -105,6 +105,12 @@ checkpoint split_alignment:
     shell:
         "python3 {input.script} {input.maf} {params.n_chunks} {output.folder} {params.reference_species}"
 
+
+rule convert_alignment:
+    # add here mugsy maf2fasta.pl,
+    # https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl
+    # [REF]
+
 # adapted from generode [ref]
 rule compute_gerp:
     """
