@@ -22,7 +22,7 @@ if(len(sys.argv) != 4):
 for record in SeqIO.parse(ffile, "fasta"):
     record.id = record.id.split('.')[0]
     if record.id not in species:
-        species[record.id].append(SeqRecord(Seq(""), id=record.id, name=record.id, annotations=record.annotations))
+        species[record.id] = []
     entries[record.id].append(len(record))
     species[record.id].append(record)
 
@@ -34,6 +34,8 @@ for i, k in enumerate(entries):
     ik[i] = k   # dictionary key_of_index
 
 # add gaps fo the length of the block, where that specific species is lacking
+# make sure all species with lacking blocks gets a sequence of gaps corresponding to the
+# size of the block
 offset = 1
 for i in range(0, len(ik)-1):
     next_species = ik[i + offset]
@@ -46,13 +48,19 @@ for i in range(0, len(ik)-1):
             entries[next_species].append(entries[ik[0]][j+1])
             gaps = '-'*(entries[ik[0]][j+1])
             species[next_species].append(SeqRecord(Seq(gaps)))
+        else:
+            continue
 
-
-# rattus norvegicus last block 
-# sus scrofa versus rattus_norvegicus
-# 172 131593 131594 - unclear whys
-fasta_seq = open(output, 'w')
+# as of now hardcoded to trailing unwanted '=' characters'
 for i in range(0, len(ik)-1):
+    for j in range(0, len(entries[ik[0]])):
+        if '=' in species[ik[i]][j].seq:
+            species[ik[i]][j].seq = species[ik[i]][j].seq[:-1]
+
+# write linearized fasta sequence
+counter = defaultdict(int)
+fasta_seq = open(output, 'w')
+for i in range(0, len(ik)):
     for j in range(0, len(entries[ik[0]])):
         if j == 0:
             if i == 0:
@@ -60,8 +68,9 @@ for i in range(0, len(ik)-1):
             else: 
                 fasta_seq.write('\n>' + ik[i] + '\n')
         else:
-            fasta_seq.write(str(species[ik[i]][j-1].seq))
+            fasta_seq.write(str(species[ik[i]][j].seq))
 
+# make indexfile of bp positions in reference species
 index_out = open(indexfile, 'w')
 for j in range(1, len(species[ik[0]])):
     index_out.write(
