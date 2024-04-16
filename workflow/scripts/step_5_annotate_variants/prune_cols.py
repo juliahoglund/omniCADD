@@ -26,7 +26,7 @@ def prune_aln(ofile, fh_out):
                 if aln[0].seq[i]!='-':
                     keep_cols.append(i)
             for s in aln:
-                fh_out.write("> %s\n" %(s.id))
+                fh_out.write(">%s\n" %(s.id))
                 fh_out.write('%s\n' % ''.join([s.seq[i] for i in keep_cols]))
     except:
         pass
