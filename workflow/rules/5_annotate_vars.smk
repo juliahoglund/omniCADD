@@ -106,12 +106,61 @@ checkpoint split_alignment:
         "python3 {input.script} {input.maf} {params.n_chunks} {output.folder} {params.reference_species}"
 
 
+# script from mugsy [ref]; 
+# forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
 rule convert_alignment:
-    # add here mugsy maf2fasta.pl,
-    # https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl
-    # [REF]
+    input:
+        maf="results/alignment/splitted/chr{chr}/{part}.maf", # make temporary
+        script=workflow.source_path(SCRIPTS_5 + "maf2fasta.pl")    
+    output:
+        converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta")
+    conda:
+        "../env/annotation.yml"
+    shrell:
+        "perl {input.script} < {input.maf} > {output.converted}"
+
+
+rule format_alignment:
+    """
+    fasta files created in the previous step still contains blocks, and thus,
+    many index lines per species. this rule concatenates the blocks, by adding gap sequences
+    where species are missing in blocks. the output is a fully linearized sequence alignment,
+    one sequence per species, all of equal length. 
+    """
+    input:
+        fasta="results/alignment/fasta/chr{chr}/{part}.fasta", # make temporary
+        script=workflow.source_path(SCRIPTS_5 + "format_alignments.py") 
+    output:
+        formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
+        # does this work with wildcards? change if not.
+        index=temp("results/alignment/indexfiles/chr{chr}/{part}.index")
+    conda:
+        "../env/annotation.yml"    
+    shell:
+        "python3 {input.script} {input.fasta} {output.formatted} {output.index}"
+
+
+# modified version of script, originally written andreas wilm under the MIT License
+# original (ptyhon < 2.7 included in compbio-utils)
+# REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
+rule prune_columns:
+    """
+    prunes all columns with a gap in the reference species, leaving a continuous alignment
+    to better parse it with genomic positions after gerp scoring.
+    """
+    input:
+        fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
+        script=workflow.source_path(SCRIPTS_5 + "prune_cols.py") 
+    output:
+        pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta"
+    conda:
+        "../env/annotation.yml"    
+    shell:
+        "python3 {input.script} {input.fasta} {output.pruned}"
+
 
 # adapted from generode [ref]
+# https://github.com/NBISweden/GenErode
 rule compute_gerp:
     """
     Compute GERP++ (gerpcol) scores.
@@ -120,7 +169,7 @@ rule compute_gerp:
     This analysis is run as one job per genome chunk.
     """
     input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
+        fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
         tree=config["annotation"]['gerp']["tree"],
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates")
@@ -139,6 +188,7 @@ rule compute_gerp:
         '''
 
 # adapted from generode [ref]
+# https://github.com/NBISweden/GenErode
 rule gerp2coords: # needed now or can be parsed later? 
     """
     Convert GERP-scores to the correct genomic coordinates. 
@@ -146,7 +196,7 @@ rule gerp2coords: # needed now or can be parsed later?
     This analysis is run as one job per genome chunk, but is internally run per contig.
     """
     input:
-       fasta = "results/alignment/fasta/chr{chr}/{part}.linearized.fasta",
+       fasta = "results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
        gerp = "results/annotation/gerp/chr{chr}/{part}.rates",
        script = workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
     output:
