@@ -213,10 +213,9 @@ rule gerp2coords: # needed now or can be parsed later?
        " mv {input.gerp} {output} 2>> {{log}} && "
        " echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
           
-
 rule phylo_fit:
     input:
-        "results/alignment/maf/chr{chr}/{part}.maf"
+        "results/alignment/splitted/chr{chr}/{part}.maf"
     params:          
         tree=config["annotation"]['phast']["tree"],
         tree_species=config['annotation']['phast']['tree_species'],
@@ -239,7 +238,7 @@ rule phylo_fit:
 
 rule run_phastCons: 
     input:
-        fasta="results/alignment/fasta/chr{chr}/{part}.linearized.fasta",
+        maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
         species_interest = config['species_name'],
@@ -254,21 +253,31 @@ rule run_phastCons:
          " --msa-format FASTA "
          # computed using pig right now because cannot disregard reference, should i?
          #" --not-informative={params.species_interest} "
-         "{params.phast_params} {input.fasta} {input.mod} > {output}"
+         "{params.phast_params} {input.maf} {input.mod} > {output}"
+
+rule wig2bed_phastCons:
+    input:
+        "results/annotation/phast/phastCons/chr{chr}/{part}.wig",
+    conda:
+        "../envs/anotation.yml"
+    output:
+        "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"
+    shell:
+        "wig2bed < {input} > {output}"
 
 rule run_phyloP:
     input:
-        fasta="results/alignment/fasta/chr{chr}/{part}.linearized.fasta",
+        maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
         species_interest = config['species_name'],
         phylo_params=lambda wildcards: config['annotation']["phast"]["phyloP_params"]
     benchmark:
         "logs/annotation/phast/phyloP/chr{chr}/{part}.tsv"
+    conda:
+        "../envs/annotation.yml" # TODO add container?
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig")
-    conda:
-        "annotation.yml" # TODO add container?
     threads: 2
     shell:
         "phyloP --msa-format FASTA "
@@ -276,17 +285,31 @@ rule run_phyloP:
         "{params.phylo_params} {input.mod} "
         "{input.fasta} > {output} "
 
-# untested.
+rule wig2bed_phyloP:
+    input:
+        "results/annotation/phast/phyloP/chr{chr}/{part}.wig",
+    conda:
+        "../envs/anotation.yml"
+    output:
+        "results/annotation/phast/phastCons/chr{chr}/{part}.phast.bed"
+    shell:
+        "wig2bed < {input} > {output}"
+
+###############
+## TODO: change to get constraint output in def and one rule.
+###############
+
+# untested. additionaly: check if {type is found correctly.}
 def get_phast(wildcards):
     checkpoint_output = checkpoints.split_alignment.get(**wildcards).output[0]
-    parts = glob_wildcards(f"results/alignment/fasta/chr{wildcards.chr}/{{part}}.linearized.fasta").part
+    parts = glob_wildcards(f"results/alignment/splitted/chr{wildcards.chr}/{{part}}.maf").part
     return expand("results/annotation/phast/{{type}}/chr{{chr}}/{part}.wig", part=parts)
 
 rule gather_phast: # TODO: implement better with checkpoint and get parts.
     input:
         get_phast
     output: 
-        "results/annotation/phast/{type}/chr{chr}.wig"
+        "results/annotation/phast/{type}/chr{chr}.{type}.bed}"
     wildcard_constraints:
         type="[^/]+",
     shell:
@@ -307,7 +330,6 @@ rule gather_gerp:
         type="[^/]+",
     shell:
         "cat {input} > {output}"
-
 
 ################################################################################
 ############### NOT YET IMPLEMENTED ############################################
