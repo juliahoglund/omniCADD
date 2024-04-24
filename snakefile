@@ -20,13 +20,13 @@ SCRIPTS_2 = "scripts/step_2_derive_variants/"
 SCRIPTS_3 = "scripts/step_3_simulate_variants/"
 SCRIPTS_4 = "scripts/step_4_summary_report/"
 SCRIPTS_5 = "scripts/step_5_annotate_variants/"
+SCRIPTS_6 = "scripts/step_6_combine_annotations/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
-
+SCRIPTS_EMF2MAF = "workflow/emf2maf.pl"
 
 # change these to correct paths later. 
 CONVERSION_P = "../scripts/conversion_tools/"
-
 ANNOTATION_SOURCES = load_tsv_configuration(config["annotation_config"]["sources"])
 
 ##### load modules  #####
@@ -36,6 +36,7 @@ include: "rules/2_derive_variants.smk"		# step two
 include: "rules/3_simiulate_variants.smk"	# step three
 include: "rules/4_summary_report.smk"		# step three
 include: "rules/5_annotate_vars.smk" 		# step five
+include: "rules/step_6_combine_annotations" # step six
 
 ##### target rules #####
 rule all:
