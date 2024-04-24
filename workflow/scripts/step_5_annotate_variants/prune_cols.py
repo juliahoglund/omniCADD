@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-"""Prune certain columns from alignment
+"""
+Prune certain columns from alignment
 """
 
 
 import sys
-# optparse deprecated from Python 2.7 on, change to argparse
-# from optparse import OptionParser, SUPPRESS_HELP
 import Bio
 from Bio import AlignIO
                                    
