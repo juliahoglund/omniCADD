@@ -1,0 +1,64 @@
+# Configuration for the processing of annotations by data_preparation.py
+# Also used to determine which columns should be excluded from the model and scaling (isMetadata).
+
+# Order of annotations is not important for this file
+# All columns in the data file should be represented in this file,
+# an error will be returned when unexpected annotations occur.
+
+# Explanation by column:
+# Name: name/label of annotation column in dataset
+# type: datatype to read column as (use pandas supported type) e.g. float, int, object(for categorical), bool
+# isMetadata: will not be used in the ML model but is included in the data file, not scaled or imputed
+# missingIndicator: bool, should we add a new indicator column IND_[name] which is 1 for undifined, 0 for defined values
+# impute: imputation strategy, possible values:
+# - (float) e.g. 0.0, fill in zeros for missing values
+# - Mean, impute by mean of all derived variants
+# - None, don't impute, CAUTION: leaving in missing values will pose issues downstream
+#   Using None is sensible for object-type annotations, were we can use remap instead
+
+# The last two fields are only relevant to object-type categorical annotations:
+# Remap: remap values to another, NaN, True and False will be converted from string to keyword in the old values
+#   Form: old_key:new_key,old2:new2....
+# checkCategories: ensure that all columns are present, some may otherwise be missing in the generate_all_variants blocks
+#   Form: key,key2,key3...
+#   The new values in remap will automatically be checked to be present, so do not need to be specified again
+
+#	for later:
+# 	SIFTcat	object	False	False	None	tolerated:tolerated,tolerated_low_confidence:unknown,deleterious:deleterious,deleterious_low_confidence:unknown,NaN:UD
+#	SIFTval	float	False	True	0.0
+#	dnaHelT	float	False	False	Mean	# are these species blind?
+#	dnaMGW	float	False	False	Mean	# are these species blind?
+#	dnaProT	float	False	False	Mean	# are these species blind?
+#	dnaRoll	float	False	False	Mean	# are these species blind?
+#	isMasked	float	False	False	1.0	# check whether i have it
+#	gross_gerpRSpval	float	False	False	0.0
+
+# Do not edit header:
+Name	type	isMetadata	missingIndicator	impute	remap	checkCategories
+Chrom	object	True
+Pos	int	True
+Ref	object	False	False	None		A,C,G,T
+Alt	object	False	False	None		A,C,G,T
+isTv	bool	False	False	0.5
+Consequence	object	False	False	None		U3,U5,DN,IG,I,NC,NS,R,CS,S,SG,SL,SN,UP,O
+GC	float	False	False	Mean
+CpG	float	False	False	Mean
+motifECount	float	False	False	0.0
+motifEHIPos	object	True
+motifEScoreChng	float	True
+Domain	object	False	False	None	lcompl:lcompl,ndomain:ndomain,ncoils:ncoils,tmhmm:tmhmm,sigp:sigp,NaN:UD
+oAA	object	False	False	None	NaN:UD,P:P,V:V,G:G,I:I,F:F,E:E,N:N,T:T,Y:Y,L:L,C:C,S:S,A:A,K:K,H:H,R:R,D:D,Q:Q,*:*,M:M,W:W,U:U
+nAA	object	False	False	None	NaN:UD,P:P,V:V,G:G,I:I,F:F,E:E,N:N,T:T,Y:Y,L:L,C:C,S:S,A:A,K:K,H:H,R:R,D:D,Q:Q,*:*,M:M,W:W,U:U
+Grantham	float	False	True	0.0
+SIFTcat	object	True
+SIFTval	float	True
+cDNApos	float	False	True	0.0
+relcDNApos	float	False	False	0.0
+CDSpos	float	False	True	0.0
+relCDSpos	float	False	False	0.0
+protPos	float	False	True	0.0
+relprotPos	float	False	False	0.0
+GERP_NS	float	False	False	0.0
+GERP_RS	float	False	False	0.0
+phastCons	float	False	False	Mean
+phyloP	float	False	False	Mean
