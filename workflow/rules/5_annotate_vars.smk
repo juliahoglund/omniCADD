@@ -299,7 +299,7 @@ rule wig2bed_phyloP:
 ## TODO: change to get constraint output in def and one rule.
 ###############
 
-# untested. additionaly: check if {type is found correctly.}
+# untested. additionaly: check if {type} is found correctly.
 def get_phast(wildcards):
     checkpoint_output = checkpoints.split_alignment.get(**wildcards).output[0]
     parts = glob_wildcards(f"results/alignment/splitted/chr{wildcards.chr}/{{part}}.maf").part
