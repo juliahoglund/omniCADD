@@ -74,3 +74,108 @@ rule derive_impute_means:
         " -p {input.processing} "
         " -o {output}"
 
+
+###############################################
+
+ule column_analysis:
+    input:
+         derived=expand("results/derived_variants/singletons/chr{chr}_full_annotation.tsv",
+                        chr=config["chromosomes"]["train"]),
+         simulated=expand("results/simulated_variants/trimmed_snps/chr{chr}_full_annotation.tsv",
+                          chr=config["chromosomes"]["train"]),
+         script=workflow.source_path(ANNOTATE_P + "column_analysis.py")
+    conda:
+         "../envs/mainpython.yml"
+    params:
+         out_folder="results/figures/column_analysis/"
+    output:
+         relevance=report("results/figures/column_analysis/relevance.tsv",
+                          category="Column Analysis"),
+         derived_cor=report("results/figures/column_analysis/derived_variants_corr.tsv",
+                            category="Column Analysis"),
+         simulated_cor=report("results/figures/column_analysis/simulated_variants_corr.tsv",
+                              category="Column Analysis"),
+         combined_cor=report("results/figures/column_analysis/combined_variants_corr.tsv",
+                             category="Column Analysis")
+    shell:
+        """python3 {input.script} \
+        -s {input.simulated} \
+        -d {input.derived} \
+        -o {params.out_folder}"""
+
+# Helper functions for the prepare_data rule:
+def get_input_variants(wildcards):
+    """
+    Return the right file format based on the type of variant being processed
+    :param wildcards: namespace(like) at least containing wildcard file and variant
+    :return: str, required input file
+    """
+    if wildcards.variant == "derived":
+        return f"results/derived_variants/singletons/{wildcards.file}_full_annotation.tsv"
+    elif wildcards.variant == "simulated":
+        return f"results/simulated_variants/trimmed_snps/{wildcards.file}_full_annotation.tsv"
+    elif wildcards.variant == "validation":
+        return f"results/validation_variants/{wildcards.file}_full_annotation.tsv"
+    # TODO expand with whole genome inputs
+
+def get_y(wildcards):
+    """
+    Determine y value based on variant type.
+    :param wildcards: namespace(like) at least containing wildcard variant and file
+    :return: str, argument -y <value> or " " if no y is needed
+    """
+    if wildcards.variant == "derived":
+        return "-y 0.0"
+    elif wildcards.variant == "simulated":
+        return "-y 1.0"
+    elif wildcards.variant == "validation":
+        if wildcards.file.endswith("y0"):
+            return "-y 0.0"
+        return "-y 1.0"
+    # Not needed for whole_genome
+    return " "
+
+"""
+Prepare data takes the fully annotated variants and processes 
+it as defined in the processing config file.
+Means for imputation are already calculated and taken as an input.
+It is saved as a sparse matrix in npz format, since npz does not support
+column names they are in a separate file, metadata is also stored separately.
+"""
+rule prepare_data:
+    input:
+         data=get_input_variants,
+         imputaton="results/dataset/imputation_dict.txt",
+         processing=config["annotation_config"]["processing"],
+         interactions=config["annotation_config"]["interactions"],
+         script=workflow.source_path(ANNOTATE_P + "data_preparation.py"),
+    params:
+         derived_variants=lambda wildcards: "-d" if wildcards.variant == "derived" else " ",
+         y=lambda wildcards: get_y(wildcards)
+    output:
+         npz="results/dataset/{variant}_snps/{file}.npz",
+         meta="results/dataset/{variant}_snps/{file}.npz.meta.csv.gz",
+         cols="results/dataset/{variant}_snps/{file}.npz.columns.csv"
+    wildcard_constraints:
+        variant="(derived|simulated|validation)"
+    conda:
+         "../envs/mainpython.yml"
+    priority: 10
+    log:
+        report("results/logs/data_preparation/{variant}_{file}.log", category="Logs")
+    shell:
+         "python3 {input.script} -i {input.data} --npz {output.npz} "
+         "--processing-config {input.processing} "
+         "--interaction-config {input.interactions} "
+         "--imputation-dict {input.imputaton} "
+         "{params.derived_variants} {params.y} > {log}"
+
+
+
+
+
+
+
+
+
+ 
