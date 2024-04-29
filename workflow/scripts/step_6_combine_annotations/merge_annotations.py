@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
@@ -10,7 +9,7 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-v", "--vep",
-    help="Processed file (chromosome wide) with verp annotations", 
+    help="Processed file (chromosome wide) with vep annotations", 
     type=str, 
     required=True)
 parser.add_argument("-b", "--bed",
@@ -24,28 +23,26 @@ parser.add_argument("-o", "--outfile",
 
 args = parser.parse_args()
 
-    # combine vep and evolutionary constraint
-    vepfile = pd.read_csv(args.vep, 
-    	sep = "\t",
-    	low_memory = False)
+ # combine vep and evolutionary constraint
+vepfile = pd.read_csv(args.vep, 
+ 	sep = "\t",
+ 	low_memory = False)
 
-    bedfile = pd.read_csv(args.bed,
-    	sep = " ")
+bedfile = pd.read_csv(args.bed,
+ 	sep = " ")
 
-   # 1. remove some unwanted columns in bed file, 
-   #	like chrom end maybe more
-   bedfile = bedfile.drop(columns = ['chr', 'end'])
-   bedfile = bedfile.rename(columns={"start": "Pos"})
-   # 2. left outer join with vep versus bed
-   left_merged = pd.merge(vepfile, bedfile, how="left", on=["Pos"])
-   #	save output. 
+# 1. remove some unwanted columns in bed file, 
+#	like chrom end maybe more
+bedfile = bedfile.drop(columns = ['chr', 'end'])
+bedfile = bedfile.rename(columns={"start": "Pos"})
+# 2. left outer join with vep versus bed
+left_merged = pd.merge(vepfile, bedfile, how="left", on=["Pos"])
+#	save output. 
 
-   # add imputation here check previous scores
+## add more annotations here later
 
-   ## add more annotations here later
-   
-   # 3. write to file
-   left_merged.to_csv(args.outfile, index = False, sep = "\t")
+# 3. write to file
+left_merged.to_csv(args.outfile, index = False, sep = "\t")
 
 
 
