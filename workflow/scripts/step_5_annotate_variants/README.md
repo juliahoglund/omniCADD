@@ -14,7 +14,25 @@ This is the collection of scripts that annotated the simulate dand derived varia
 |**U3**|3Prime_UTR;|**I**|Intronic;|
 |**O**| Unknown|
 
-GERP scores the quesries from the ensemble API is now coded / implemented towards mammals (sätt referenser här till wllcome trust och embl?)
-the scripts for the api here (`getgerp.pl` and `getelem.pl`) copyrighted by wellcome trust and embl, and licensed under the apache license version 2.0¨
+Dependencies
+- vep
+- PHAST
+- GERP
+- seqtk
+- biopython
+- wig2bed (bedops)
+- perl
 
-dependencies conda snakemake perl internet??? bigwig something?
+Dependencies are all exported in the conda environment `annotation.yml`. The pipeline can be run within this environment, or with `snakemake --use-conda`
+
+#### scripts adapted from other software / pipelines:
+
+`maf2fasta.pl`: [mugsy alignment tool](https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl)
+`split_alignments.py`: [the virtual laboratory](https://thevirtuallaboratory.com/blog/splitting-a-multi-fasta)
+`gerp_to_position.py`: [GenErode pipeline](https://github.com/NBISweden/GenErode)
+`prune_cols.py`: [compbio-utils](https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py)
+
+
+## TODO
+- implement the unimplemented rules and annotations
+- solve pipeline issues

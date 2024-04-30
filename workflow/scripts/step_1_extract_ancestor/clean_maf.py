@@ -18,12 +18,14 @@ IUPAC_AMBIGUOUS = "RYSWKMBDHVryswkmbdhv"
 
 parser = ArgumentParser(description = __doc__)
 parser.add_argument("-i", "--input",
-                    help="Input MAF file to filter, can be gzipped",
-                    type=str, required=True)
+    help="Input MAF file to clean, can be gzipped",
+    type=str, 
+    required = True)
 parser.add_argument("-o", "--output",
-                    help="Output MAF file to filter, will be gzipped if "
-                         "input is (default: out.maf)",
-                    type=str, default="out.maf")
+    help="Name of cleaned output MAF file, will be gzipped if input is (default: out.maf)",
+    type=str, 
+    default = "out.maf")
+
 args = parser.parse_args()
 
 infile = gzip.open(args.input, "rt") \
