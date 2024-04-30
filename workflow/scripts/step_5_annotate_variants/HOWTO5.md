@@ -1,10 +1,7 @@
 # howto run it
-#### i.e. how i did it
+### i.e. how i did it
 ----
 
-# howto run it
-#### i.e. how i did it
-----
 0. Note (!)
 So far the rules are not fully functioning, 
 due to syntax uncertainty
