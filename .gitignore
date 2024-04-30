@@ -47,3 +47,16 @@ workflow/scripts/step_1_extract_ancestor/HOWTO1.md
 workflow/scripts/step_2_derive_variants/HOWTO2.md
 workflow/scripts/step_4_summary_report/HOWTO4.md
 workflow/scripts/step_5_annotate_variants/HOWTO5.md
+output/anc-coverage.svg
+output/anc-seq.svg
+output/derived_cow.pdf
+output/derived_elephant.pdf
+output/derived_horse.pdf
+output/derived_sheep.pdf
+output/omniCADD_Graph.png
+output/sim-der.svg
+output/simulated_cow.pdf
+output/simulated_elephant.pdf
+output/simulated_horse.pdf
+output/simulated_sheep.pdf
+output/venn_all_chr.pdf
