@@ -71,3 +71,7 @@ annotation:
       directory: '$VEP_CACHE' # vep/111.0 $VEP_CACHE resources/vep
       should_install: False # Should we install or assume that it has been installed by the user?
       install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1" # Version, species and (optional: assembly).
+
+annotation_config:
+  processing: "config/annotation_processing.tsv"
+  # interactions: "config/annotation_interactions.tsv"
