@@ -18,3 +18,13 @@ config/ensemblAPI.yml
 workflow/step_5_annotate_variants/scripts/getelem.pl
 howToPhast.md
 notes.md
+data/Ancestor.bed
+data/AncestorElephant.bed
+data/AncestorHorse.bed
+data/AncestorSheep.bed
+data/CDS.coverage.bed
+data/CDS.regions.bed
+data/graphs.RData
+data/graphsElephant.RData
+data/graphsHorse.RData
+data/graphsSheep.RData
