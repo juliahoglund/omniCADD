@@ -1,7 +1,19 @@
 '''
-info here later 
+ Module that annotates all variants and 
+ creates genome wide annotations of evolutionary constraint
+ based on the primary input multiple sequence alignment
 
+ :Author: Job van Schipstal
+ :Date: 23-9-2023
+
+ Based upon the work of Seyan Hu.
+
+ :Extension and modification: Julia Höglund
+ :Date: 01-03-2024
+
+ Params can be adjusted for any given species of interest. 
 '''
+
 import sys
 
 """
