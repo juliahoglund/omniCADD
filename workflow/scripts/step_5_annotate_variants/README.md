@@ -22,3 +22,17 @@ Dependencies
 - biopython
 - wig2bed (bedops)
 - perl
+
+Dependencies are all exported in the conda environment `annotation.yml`. The pipeline can be run within this environment, or with `snakemake --use-conda`
+
+#### scripts adapted from other software / pipelines:
+
+`maf2fasta.pl`: [mugsy alignment tool](https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl)
+`split_alignments.py`: [the virtual laboratory](https://thevirtuallaboratory.com/blog/splitting-a-multi-fasta)
+`gerp_to_position.py`: [GenErode pipeline](https://github.com/NBISweden/GenErode)
+`prune_cols.py`: [compbio-utils](https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py)
+
+
+## TODO
+- implement the unimplemented rules and annotations
+- solve pipeline issues
