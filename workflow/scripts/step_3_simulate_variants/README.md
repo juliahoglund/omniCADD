@@ -9,3 +9,5 @@ Python dependencies:
 
 Python-specific dependencies are all exported in the conda environment `simulation.yml`. The pipeline can be run within this environment, or with `snakemake --use-conda`
 
+The simulation script is the same as in the original paper, as written and published by [Kircher et al 2014](https://www.nature.com/articles/ng.2892)
+
