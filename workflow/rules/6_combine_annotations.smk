@@ -1,9 +1,20 @@
-##### combine annotations
-
 '''
-info here later 
+ Module that combines the annotation files,
+ matches the genom wide annotations to the simulated
+ and derived varant set, and later impute the annotations
+ based on a used provided configuration file.
 
+ :Author: Job van Schipstal
+ :Date: 23-9-2023
+
+ Based upon the work of Seyan Hu.
+
+ :Extension and modification: Julia Höglund
+ :Date: 30-04-2023
+
+ Params can be adjusted for any given species of interest. 
 '''
+
 import sys
 
 # untested rule, working script
