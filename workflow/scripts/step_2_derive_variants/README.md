@@ -36,5 +36,6 @@ Python-specific dependencies are all exported in the conda environment `simulati
 
 **To do**
 - add derived variant summary stats to the stats report
+- add alternative ways of deriving variants when pop. level data is not available
 
 
