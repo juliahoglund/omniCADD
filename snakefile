@@ -21,20 +21,20 @@ SCRIPTS_3 = "scripts/step_3_simulate_variants/"
 SCRIPTS_4 = "scripts/step_4_summary_report/"
 SCRIPTS_5 = "scripts/step_5_annotate_variants/"
 SCRIPTS_6 = "scripts/step_6_combine_annotations/"
-SCRIPTS_7 = "scripts/"
+SCRIPTS_7 = "scripts/step_7_train_test_model/"
 
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
 SCRIPTS_EMF2MAF = "workflow/emf2maf.pl"
 
 ##### load modules  #####
-include: "rules/common.smk"						# common rules	
-include: "rules/1_extract_ancestor.smk"			# step one
-include: "rules/2_derive_variants.smk"			# step two
-include: "rules/3_simiulate_variants.smk"		# step three
-include: "rules/4_summary_report.smk"			# step three
-include: "rules/5_annotate_vars.smk" 			# step five
-include: "rules/step_6_combine_annotations.smk" # step six
-include: "rules/step_7_"						# step seven
+include: "rules/common.smk"					# common rules	
+include: "rules/1_extract_ancestor.smk"		# step one
+include: "rules/2_derive_variants.smk"		# step two
+include: "rules/3_simiulate_variants.smk"	# step three
+include: "rules/4_summary_report.smk"		# step three
+include: "rules/5_annotate_vars.smk" 		# step five
+include: "rules/6_combine_annotations.smk" 	# step six
+include: "rules/7_train_test_model.smk"		# step seven
 
 ##### target rules #####
 rule all:
