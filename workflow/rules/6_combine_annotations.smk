@@ -126,25 +126,7 @@ rule column_analysis:
 #     elif wildcards.variant == "validation":
 #         return f"results/validation_variants/{wildcards.file}_full_annotation.tsv"
     # TODO expand with whole genome inputs
-
-# temporarily removed
 # TODO: find a way to incorporate validation if species lack publicly available data
-# def get_y(wildcards):
-#     """
-#     Determine y value based on variant type.
-#     :param wildcards: namespace(like) at least containing wildcard variant and file
-#     :return: str, argument -y <value> or " " if no y is needed
-#     """
-#     if wildcards.variant == "derived":
-#         return "-y 0.0"
-#     elif wildcards.variant == "simulated":
-#         return "-y 1.0"
-#     elif wildcards.variant == "validation":
-#         if wildcards.file.endswith("y0"):
-#             return "-y 0.0"
-#         return "-y 1.0"
-#     # Not needed for whole_genome
-#     return " "
 
 """
 Prepare data takes the fully annotated variants and processes 
@@ -166,7 +148,7 @@ rule prepare_data:
         script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
         derived_variants=lambda wildcards: "-d" if wildcards.type == "derived" else " ",
-        # y=lambda wildcards: get_y(wildcards)
+        y=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
     output:
         npz="results/dataset/{type}/{file}.npz",
         meta="results/dataset/{type}/{file}.npz.meta.csv.gz",
