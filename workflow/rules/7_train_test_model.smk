@@ -56,21 +56,21 @@ rule fold_data:
         script=workflow.source_path(MODEL_P + "fold_data.py"),
         lib=workflow.source_path(MODEL_P + "data_helper.py")
     conda: 
-         "../envs/model.yml"
+        "../envs/model.yml"
     priority: 20
     threads: 4
     resources:
         mem_mb=int(config["dataset_memory_mb"] * 2)
     output:
-          test=expand("results/dataset/fold_{fold}.npz",
+        test=expand("results/dataset/fold_{fold}.npz",
                       fold=get_folds()),
-          test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz",
+        test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz",
                         fold=get_folds()),
-          test_c=expand("results/dataset/fold_{fold}.npz.columns.csv",
+        test_c=expand("results/dataset/fold_{fold}.npz.columns.csv",
                         fold=get_folds())
     shell:
-         """python3 {input.script} \
-         -m {input.lib} \
-         -n {threads} \
-         -i {input.derived} {input.simulated} \
-         -o {output.test}"""
+        "python3 {input.script} "
+        " -m {input.lib} "
+        " -n {threads} "
+        " -i {input.derived} {input.simulated} "
+        " -o {output.test}"
