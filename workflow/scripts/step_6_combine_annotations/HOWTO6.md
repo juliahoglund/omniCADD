@@ -60,17 +60,19 @@ python3 column_analysis.py -d chr1_derived_annotated.tsv -s chr1_simulated_annot
 4. rule prepare_data:
 ```bash
 # simulated
-python3 prepare_annotated_data.py -i chr1_simulated_annotated.tsv \
+python3 ../scripts/prepare_annotated_data.py -i chr1_simulated_annotated.tsv \
 -c chr1_simulated \
 -n chr1_simulated \
---processing-config annot_processing_config.tsv \
---imputation-dict simulated_impute_dict.txt
+--processing-config ../annot_processing_config.tsv \
+--imputation-dict simulated_impute_dict.txt \
+-y 1.0
 
 # derived
-python3 prepare_annotated_data.py -i chr1_derived_annotated.tsv \
+python3 ../scripts/prepare_annotated_data.py -i chr1_derived_annotated.tsv \
 -c chr1_derived \
 -n chr1_derived \
---processing-config annot_processing_config.tsv \
+--processing-config ../annot_processing_config.tsv \
 --imputation-dict derived_impute_dict.txt \
+-y 0.0 \
 -d
 ```
