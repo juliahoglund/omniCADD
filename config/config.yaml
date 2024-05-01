@@ -1,6 +1,8 @@
 chromosomes:
   autosomes: [ '18' ]
   karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
+  train: [ '1' ]
+  test: [ '1' ]
 
 species_name: "sus_scrofa"
 
@@ -70,3 +72,8 @@ annotation:
 annotation_config:
   processing: "config/annotation_processing.tsv"
   # interactions: "config/annotation_interactions.tsv"
+
+## Model training ##
+# The set of derived and simulated variants is split in a train and test set using the rest ratio.
+model:
+  n_folds: 5
