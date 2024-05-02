@@ -20,11 +20,7 @@ import sys
 Global wildcard constraints, ease matching of wildcards in rules.
 """
 wildcard_constraints:   
-     part="[a-zA-Z0-9_]+",
-
-##########################
-##### VEP ANNOTATION #####
-##########################
+     part="[a-zA-Z0-9-]+",
 
 """
 Optional rule that installs the needed VEP cache using the vep_install tool
@@ -35,7 +31,7 @@ rule vep_cache:
     params:
           version_species=config['annotation']["vep"]["cache"]["install_params"]
     output:
-          directory(config["vep"]["cache"]["directory"])
+          directory(config['annotation']["vep"]["cache"]["directory"])
     shell:
          "vep_install -a cf -n {params.version_species} -c {output} --CONVERT"
 
@@ -81,20 +77,17 @@ rule process_vep:
          grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
-         "../envs/common.yml" # add in common?
+         "config/common.yml"
     output:
-          temp("{folder}/chr{chr}_vep.tsv")
+         "{folder}/chr{chr}_vep.tsv"
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
          "-r {input.genome} -g {input.grantham} -o {output}"
-
-
-### TODO : add this somewhere in a rule.
-# mkdir results/annotation/vep
-# mkdir results/annotation/vep/derived
-# mkdir results/annotation/vep/simulated
-# mv results/derived_variants/singletons/*vep* results/annotation/vep/derived
-# mv results/simulated_variants/trimmed_snps/*vep* results/annotation/vep/simulated
+         "mkdir results/annotation/vep "
+         "mkdir results/annotation/vep/derived "
+         "mkdir results/annotation/vep/simulated "
+         "mv results/derived_variants/singletons/*vep* results/annotation/vep/derived "
+         "mv results/simulated_variants/trimmed_snps/*vep* results/annotation/vep/simulated "
 
 # TODO: double check later that is works in pipeline
 # rules have not been tested separately and together yet
@@ -128,7 +121,7 @@ rule convert_alignment:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta")
     conda:
         "../env/annotation.yml"
-    shrell:
+    shell:
         "perl {input.script} < {input.maf} > {output.converted}"
 
 
@@ -306,42 +299,6 @@ rule wig2bed_phyloP:
         "results/annotation/phast/phastCons/chr{chr}/{part}.phast.bed"
     shell:
         "wig2bed < {input} > {output}"
-
-###############
-## TODO: change to get constraint output in def and one rule.
-###############
-
-# untested. additionaly: check if {type} is found correctly.
-def get_phast(wildcards):
-    checkpoint_output = checkpoints.split_alignment.get(**wildcards).output[0]
-    parts = glob_wildcards(f"results/alignment/splitted/chr{wildcards.chr}/{{part}}.maf").part
-    return expand("results/annotation/phast/{{type}}/chr{{chr}}/{part}.wig", part=parts)
-
-rule gather_phast: # TODO: implement better with checkpoint and get parts.
-    input:
-        get_phast
-    output: 
-        "results/annotation/phast/{type}/chr{chr}.{type}.bed}"
-    wildcard_constraints:
-        type="[^/]+",
-    shell:
-        """cat {input} | sed "s/chrom=(null)/chrom={wildcards.chr}/g" > {output}"""   
-
-def get_gerp(wildcards)         
-    checkpoint_output = checkpoints.split_alignment.get(**wildcards).output[0]
-    parts = glob_wildcards(f"results/alignment/fasta/chr{wildcards.chr}/{{part}}.linearized.fasta").part
-    return expand("results/annotation/gerp/chr{{chr}}/{part}.linearized.fasta.rates", part=parts)
-    # TODO: doublecheck actual name of output in gerp rule
-
-rule gather_gerp:
-    input:
-        get_phast
-    output: 
-        "results/annotation/gerp/chr{chr}.rates"
-    wildcard_constraints:
-        type="[^/]+",
-    shell:
-        "cat {input} > {output}"
 
 ################################################################################
 ############### NOT YET IMPLEMENTED ############################################
