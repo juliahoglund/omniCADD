@@ -77,7 +77,7 @@ rule process_vep:
          grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
-         "config/common.yml"
+         "../envs/common.yml"
     output:
          "{folder}/chr{chr}_vep.tsv"
     shell:
