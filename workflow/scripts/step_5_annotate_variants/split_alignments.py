@@ -61,7 +61,7 @@ chrom = mfile.split('.')[0].split('chr')[1]
 print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
 for i, batch in enumerate(batch_iterator(to_keep, chunksize)):
 
-    filename = str(maf_folder) + "chr" + str(chrom) + "_%i.maf" % (i + 1) # with or w/o
+    filename = str(maf_folder) + "chr" + str(chrom) + "-%i.maf" % (i + 1) # with or w/o
     with open(filename, "w") as maf_handle:
         count = Bio.AlignIO.write(batch, maf_handle, "maf")
     print("Wrote %i sequences to %s" % (count, filename))
