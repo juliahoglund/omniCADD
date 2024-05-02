@@ -13,7 +13,7 @@ Name, label and file may not contain /, they may not be sub-folders.
 """
 wildcard_constraints:   
      chr="[a-zA-Z0-9]+",
-     file="[^/]+",
+     file="[^/][a-zA-Z0-9_.]+",
      label="[^/]+",
      name="[^/]+"
 
