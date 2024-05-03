@@ -412,27 +412,3 @@ rule compute_gerpelem: # script works in itself, not tested in pipeline
           mv {input.gerpcol}.elems {output} 2>> {log} &&
           echo "Computed GERP++ scores for" {input.fasta} >> {log}
         '''
-
-# def get_parts(wildcards): # untested, collects logs instead of files
-#     alignment_name = config["mark_ancestor"]["ancestral_alignment"]
-#     checkpoints.split_stats.get(name=alignment_name)
-#     parts = glob_wildcards(f"results/annotation/gerp/{alignment_name}/chr{wildcards.chr}/{{part}}.fasta").part
-#     return expand("results/gerp/{{name}}/chr{{chr}}/{part}.gerp", part=parts)
-
-# """
-# Since GERP was computes per blocks, the scores need to be merged into a single file.
-# The chromosome was not extracted from the data so we add it back in here with sed find/replace.
-# # check this was it really
-# """
-# rule merge_gerp_chr: # works but merges the wrong input, checkpoint issue? solve when solved how to compile gerp scores
-#     input:
-#         get_parts
-#     output:
-#         "results/annotation/gerp/{name}/chr{chr}.gerp"
-#     wildcard_constraints:
-#         name="[^/]+"
-#     shell:
-#         """
-#         cat {input} | sed "s/chrom=(null)/chrom={wildcards.chr}/g" > {output}
-#         """
-
