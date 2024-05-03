@@ -108,22 +108,6 @@ rule column_analysis:
         " -d {input.derived} "
         " -o {params.out_folder} "
 
-# Helper functions for the prepare_data rule:
-# def get_input_variants(wildcards):
-#     """
-#     Return the right file format based on the type of variant being processed
-#     :param wildcards: namespace(like) at least containing wildcard file and variant
-#     :return: str, required input file
-#     """
-#     if wildcards.variant == "derived":
-#         return f"results/derived_variants/singletons/{wildcards.file}_full_annotation.tsv"
-#     elif wildcards.variant == "simulated":
-#         return f"results/simulated_variants/trimmed_snps/{wildcards.file}_full_annotation.tsv"
-#     elif wildcards.variant == "validation":
-#         return f"results/validation_variants/{wildcards.file}_full_annotation.tsv"
-    # TODO expand with whole genome inputs
-# TODO: find a way to incorporate validation if species lack publicly available data
-
 """
 Prepare data takes the fully annotated variants and processes 
 it as defined in the processing config file.
