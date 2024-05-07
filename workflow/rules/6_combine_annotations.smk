@@ -23,7 +23,7 @@ rule combine_constraint:
         phylo = "results/annotation/phast/phastCons/",
         phast = "results/annotation/phast/phastCons/",
         index = "results/alignment/indexfiles/",
-        script = workflow.source_path(SCRIPTS_6 + "combine_constraint_annot.R"),
+        script = workflow.source_path(SCRIPTS_6 + "combine_constraint_anno.R"),
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
     conda:
@@ -42,9 +42,9 @@ rule combine_constraint:
         -j {input.index} &&
 
         head -1 constraint.{wildcards.chr}_1.bed >> constraint_chr{wildcards.chr}.bed && 
-        for i in {{1..30}}; do grep -v "start" constraint.{wildcards.chr}_$i.bed >> constraint_chr{wildcards.chr}.bed;
-        done; awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr{wildcards.chr}.bed | sed 's/start G/end G/g' > tmp &&
-        mv tmp {output}; echo "chr" {wildcards.chr} "part" $i "done"; done
+        for i in {{1..30}}; do grep -v "start" constraint.{wildcards.chr}_$i.bed >> constraint_chr{wildcards.chr}.bed; done && 
+        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr{wildcards.chr}.bed | sed 's/start G/end G/g' > tmp &&
+        mv tmp {output}; echo "chr" {wildcards.chr} "done"
         '''
 
 rule intersect_bed:
