@@ -34,16 +34,16 @@ option_list = list(
               help="number of chunks", metavar="integer "),
   
   # to do, make more generic and if else
-  make_option(c("-f", "--phast-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/phastCons/",
+  make_option(c("-f", "--phast-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/phastCons",
               help="path to phastCons scores", metavar="character"),
   
-  make_option(c("-g", "--phylo-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/phyloP/",
+  make_option(c("-g", "--phylo-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/phyloP",
               help="path to phyloP scores", metavar="character"),
   
-  make_option(c("-i", "--gerp-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/gerp/",
+  make_option(c("-i", "--gerp-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/gerp",
               help="path to gerp scores", metavar="character"),
   
-  make_option(c("-j", "--index-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/indexfiles/",
+  make_option(c("-j", "--index-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/indexfiles",
               help="path to bp position index files", metavar="character")  
 )
 
@@ -54,17 +54,17 @@ for (i in 1:opt$`n-chunks`) {
   
   message('opening constraint annotations..', opt$chromosome, ':', i, '/', opt$`n-chunks`)
   
-  phastC <- fread(paste(opt$`phast-folder`, 'chr', opt$chromosome, '/chr', opt$chromosome, '_', i, '.phast.bed', sep=""), drop=c(1,4), header=FALSE) %>% 
+  phastC <- fread(paste(opt$`phast-folder`, '/chr', opt$chromosome, '/chr', opt$chromosome, '-', i, '.phast.bed', sep=""), drop=c(1,4), header=FALSE) %>% 
     rename('start' = V2, 'end' = V3, 'phastCons' = V5)
   
-  phyloP <- fread(paste(opt$`phylo-folder`, 'chr', opt$chromosome, '/chr', opt$chromosome, '_', i, '.phylo.bed', sep = ""), drop=c(1,4), header=FALSE) %>% 
+  phyloP <- fread(paste(opt$`phylo-folder`, '/chr', opt$chromosome, '/chr', opt$chromosome, '-', i, '.phylo.bed', sep = ""), drop=c(1,4), header=FALSE) %>% 
     rename('start' = V2, 'end' = V3, 'phyloP' = V5)
   
-  gerp  <- fread(paste(opt$`gerp-folder`, 'chr', opt$chromosome, '/chr', opt$chromosome, '_', i, '.rates.parsed', sep = ""), header=FALSE) %>% 
+  gerp  <- fread(paste(opt$`gerp-folder`, '/chr', opt$chromosome, '/chr', opt$chromosome, '-', i, '.rates.parsed', sep = ""), header=FALSE) %>% 
     rename('GERP_NS' = V1, 'GERP_RS' = V2)
   
   index <- 
-    fread(paste(opt$`index-folder`, 'chr', opt$chromosome, '/chr', opt$chromosome, '_', i, '.index', sep = ""), header = FALSE) %>% 
+    fread(paste(opt$`index-folder`, '/chr', opt$chromosome, '/chr', opt$chromosome, '-', i, '.index', sep = ""), header = FALSE) %>% 
     separate_wider_delim(cols=V1, delim=": ", names=c('V1', 'start')) %>% 
     separate_wider_delim(cols=V2, delim=": ", names=c('V2', 'size')) %>% 
     dplyr::select(start, size) %>% 
