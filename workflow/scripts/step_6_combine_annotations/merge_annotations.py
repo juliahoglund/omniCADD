@@ -29,7 +29,8 @@ vepfile = pd.read_csv(args.vep,
  	low_memory = False)
 
 bedfile = pd.read_csv(args.bed,
- 	sep = " ")
+ 	sep = " ",
+    low_memory = False)
 
 # 1. remove some unwanted columns in bed file, 
 #	like chrom end maybe more
