@@ -17,10 +17,12 @@
 
 import sys
 
+## TODO: solve location of directories and make files temporary
+## remove bed chunks after combining -> make temporary
 rule combine_constraint:
     input:
         gerp = "results/annotation/gerp/",
-        phylo = "results/annotation/phast/phastCons/",
+        phylo = "results/annotation/phast/phyloP/",
         phast = "results/annotation/phast/phastCons/",
         index = "results/alignment/indexfiles/",
         script = workflow.source_path(SCRIPTS_6 + "combine_constraint_anno.R"),
@@ -43,8 +45,8 @@ rule combine_constraint:
 
         head -1 constraint.{wildcards.chr}_1.bed >> constraint_chr{wildcards.chr}.bed && 
         for i in {{1..30}}; do grep -v "start" constraint.{wildcards.chr}_$i.bed >> constraint_chr{wildcards.chr}.bed; done && 
-        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr{wildcards.chr}.bed | sed 's/start G/end G/g' > tmp &&
-        mv tmp {output}; echo "chr" {wildcards.chr} "done"
+        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr{wildcards.chr}.bed | sed 's/start G/end G/g' > tmp.{wildcards.chr} &&
+        mv tmp.{wildcards.chr} {output}; rm constraint.{wildcards.chr}_*.bed; echo "chr" {wildcards.chr} "done"
         '''
 
 rule intersect_bed:
@@ -55,7 +57,7 @@ rule intersect_bed:
     params:
     conda:
         "../envs/annotation.yml" # change to common?
-    threads: 2
+    threads: 8
     output:
     	"results/dataset/{type}/chr{chr}_annotated.tsv"
     shell:
