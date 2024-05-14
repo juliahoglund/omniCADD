@@ -19,6 +19,7 @@ import sys
 
 ## TODO: solve location of directories and make files temporary
 ## remove bed chunks after combining -> make temporary
+## mv to outout creates duplicates -> change
 rule combine_constraint:
     input:
         gerp = "results/annotation/gerp/",
@@ -143,6 +144,6 @@ rule prepare_data:
         "--processing-config {input.processing} "
         # "--interaction-config {input.interactions} "
         "--imputation-dict {input.imputaton} "
-        "{params.derived_variants} {params.y} > {log}"
+        "{params.derived_variants} -y {params.y} > {log}"
 
  
