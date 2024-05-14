@@ -1,24 +1,5 @@
 #!/usr/bin/env Rscript
 
-# shell
-# '''
-# Rscript {input.script} \
-#         -c {input.raw_snps} \
-#         -n {input.filtered_snps} \
-#         -f {input.derived_vars}
-#         -g indexfile.txt \
-#         -h {input.ancestral_fa} \
-#         -i {input.parameter_log}
-# '''
-
-# module load R
-# module load R_packages 
-# gerp=results/annotation/gerp
-# phylo=results/annotation/phast/phyloP
-# phast=results/annotation/phast/phastCons
-# index=results/annotation/indexfiles
-# for i in {1..18} X; do Rscript combine_constraint_anno.R -c $i -n 30 -f $gerp -g $phast -h $phylo -i $index; done
-
 # load packages
 library(optparse)
 library(stringr)
@@ -34,16 +15,16 @@ option_list = list(
               help="number of chunks", metavar="integer "),
   
   # to do, make more generic and if else
-  make_option(c("-f", "--phast-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/phastCons",
+  make_option(c("-f", "--phast-folder"), type="character", default="results/annotation/phast/phastCons",
               help="path to phastCons scores", metavar="character"),
   
-  make_option(c("-g", "--phylo-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/phyloP",
+  make_option(c("-g", "--phylo-folder"), type="character", default="results/annotation/phast/phyloP",
               help="path to phyloP scores", metavar="character"),
   
-  make_option(c("-i", "--gerp-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/gerp",
+  make_option(c("-i", "--gerp-folder"), type="character", default="results/annotation/gerp",
               help="path to gerp scores", metavar="character"),
   
-  make_option(c("-j", "--index-folder"), type="character", default="/Users/juliahoglund/Documents/localCADD/testdata/indexfiles",
+  make_option(c("-j", "--index-folder"), type="character", default="results/alignment/indexfiles",
               help="path to bp position index files", metavar="character")  
 )
 
