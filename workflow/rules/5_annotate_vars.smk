@@ -332,7 +332,7 @@ rule run_dless:
 ##### SIFT AND SNPEFF ANNOTATION #########
 ##########################################
 
-rule ruf_sift:
+rule run_sift:
     input:
     params:
     conda:
@@ -340,6 +340,11 @@ rule ruf_sift:
     singularity:
         "docker://juliahoglund/sift4g:latest"
 
+rule run_polyphen:
+
+run alpha_missense:
+
+run_revel: 
 ## add more phast things here??
 
 ## needs to be collected and merged here later
