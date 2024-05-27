@@ -72,7 +72,7 @@ def load_data(file: str, cols: list, desired: Union[list, None], log: bool) \
 
         # Load metadata via pandas df and the actual data via scipy sparse.
     meta_data = pandas.read_csv(file + ".meta.csv.gz", sep=',',
-                                na_values=['-'], header=0)
+                                na_values=['-'], header=0, low_memory=False)
     npz = load_npz(file)
     if desired:
         npz, selected_cols = filter_matrix(desired, cols, npz)
@@ -170,7 +170,7 @@ def save_npz_with_meta(file, data_m, meta, cols, log=True) -> None:
         sys.stderr.write(f"## Writing data to "
                          f"{os.sep.join(file.split(os.sep)[-2:])}\n")
     save_npz(file, data_m, compressed=True)
-    meta.to_csv(file + ".meta.csv.gz", index=False, na_rep="-")
+    meta.to_csv(file + ".meta.csv.gz", index=False, na_rep="-", low_memory=False)
     # Write column names to file, since scipy sparse doesn't support them
     with open(file + ".columns.csv", "w") as f:
         f.write(",".join(cols))
