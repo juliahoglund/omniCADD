@@ -20,7 +20,6 @@
 wildcard_constraints:
     cols="[^/]+"
 
-# what are the folds?
 def get_folds(excluding = None) -> list:
     """
     Get list of numbers, one for each fold that is to be taken as input.
@@ -38,7 +37,6 @@ def get_folds(excluding = None) -> list:
 Loads the different dataset chunks and merges them.
 The dataset is then split into n_folds which are each written to disk
 """
-# change to fit file names later
 rule fold_data:
     input:
         derived = expand("results/dataset/derived/chr{chr}.npz",
@@ -54,14 +52,14 @@ rule fold_data:
         simulated_c = expand("results/dataset/simulated/chr{chr}.npz.columns.csv",
                       chr=config["chromosomes"]["train"]),
 
-        script=workflow.source_path(MODEL_P + "fold_data.py"),
-        lib=workflow.source_path(MODEL_P + "data_helper.py")
+        script=workflow.source_path(SCRIPTS_7 + "fold_data.py"),
+        lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
     conda: 
         "../envs/model.yml"
     priority: 20
     threads: 4
-    #resources:
-    #    mem_mb = int(config["dataset_memory_mb"] * 2)
+    resources:
+        mem_mb = int(config["dataset_memory_mb"] * 2)
     output:
         test = expand("results/dataset/fold_{fold}.npz",
                fold = get_folds()),
@@ -76,7 +74,6 @@ rule fold_data:
         " -i {input.derived} {input.simulated} "
         " -o {output.test}"
 
-# change to fit file names later
 rule train_model:
     input:
         test = "results/dataset/fold_{fold}.npz",
@@ -93,7 +90,7 @@ rule train_model:
         sel_cols = lambda wildcards: [] if wildcards.cols == "All" else \
                      config["model"]["column_subsets"][wildcards.cols],
         script = workflow.source_path(SCRIPTS_7 + "train_model.py"),
-        lib = workflow.source_path(MODEL_P + "data_helper.py")
+        lib = workflow.source_path(SCRIPTS_7 + "data_helper.py")
     params:
         c = config["model"]["test_params"]["c"],
         max_iter = config["model"]["test_params"]["max_iter"],
@@ -101,7 +98,7 @@ rule train_model:
         sel_cols = lambda wildcards: "All" if wildcards.cols == "All" else \
             config["model"]["column_subsets"][wildcards.cols]
     conda:
-        "../envs/mainpython.yml"
+        "../envs/model.yml"
     priority: 20
     resources:
         mem_mb = config["dataset_memory_mb"]
@@ -122,7 +119,8 @@ rule train_model:
                        iter=config["model"]["test_params"]["max_iter"]),
         scaler = "results/model/{cols}/fold_{fold}.scaler.pickle"
     shell:
-         """python3 {input.script} \
+         """
+         python3 {input.script} \
          -m {input.lib} \
          --train {input.train} \
          --test {input.test} \
@@ -132,4 +130,49 @@ rule train_model:
          --file-pattern {params.file_pattern} \
          -n {threads} \
          --save-weights \
-         --save-scaler {output.scaler}"""
+         --save-scaler {output.scaler}
+         """
+
+rule final_model:
+    input:
+          train=expand("results/dataset/fold_{fold}.npz",
+                       fold=get_folds()),
+          train_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz",
+                         fold=get_folds()),
+          train_c=expand("results/dataset/fold_{fold}.npz.columns.csv",
+                         fold=get_folds()),
+          sel_cols = lambda wildcards: [] if wildcards.cols == "All" else \
+            config["model"]["column_subsets"][wildcards.cols],
+          script=workflow.source_path(SCRIPTS_7 + "train_model.py"),
+          lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
+    params:
+        c=config["model"]["final_params"]["c"],
+        max_iter=config["model"]["final_params"]["max_iter"],
+        file_pattern="results/model/{cols}/full.mod",
+        sel_cols= lambda wildcards: "All" if wildcards.cols == "All" else \
+            config["model"]["column_subsets"][wildcards.cols]
+    conda:
+         "../envs/model.yml"
+    priority: 20
+    resources:
+        mem_mb=config["dataset_memory_mb"]
+    output:
+          model="results/model/{cols}/full.mod.pickle",
+          scaler="results/model/{cols}/full.scaler.pickle",
+          weights="results/model/{cols}/full.mod.weights.csv"
+    shell:
+         """
+         python3 {input.script} \
+         -m {input.lib} \
+         --train {input.train} \
+         --columns {params.sel_cols} \
+         -c {params.c} \
+         -i {params.max_iter} \
+         --file-pattern {params.file_pattern} \
+         --save-weights \
+         --save-scaler {output.scaler}
+         """
+
+
+
+
