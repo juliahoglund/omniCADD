@@ -56,7 +56,7 @@ annotation:
     tree: 'resources/tree_43_mammals.nwk'
   phast:
     tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus)(ovis_aries_rambouillet))' # sould sus be in or out
-    tree_species: "sus_scrofa|camelus_dromedarius|catagonius_wagneri|bos_taurus|ovis_aries_rambouillet" # temporary file with limited taxa 
+    tree_species: "sus_scrofa|camelus_dromedarius|catagoœnius_wagneri|bos_taurus|ovis_aries_rambouillet" # temporary file with limited taxa 
     train_precision: "HIGH"
     phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
     phyloP_params: "--method=LRT --mode=CONACC"
@@ -76,10 +76,24 @@ annotation_config:
 ## Model training ##
 # The set of derived and simulated variants is split in a train and test set using the rest ratio.
 model:
-  n_folds: 5    # check what works the best is this k fold cross validation?
-      c:        # check how to best tune
+  n_folds: 5
+  test_params:
+    c:
       - 0.1
       - 1.0
       - 10.0
-    max_iter:   # check what works best and tune
+    max_iter:
+#      - 10
       - 100
+#      - 1000
+  final_params:
+    c: 10.0
+    max_iter: 100
+  column_subsets:
+    All: "SPECIAL KEY, uses all columns"
+
+parallelization:
+  whole_genome_positions_per_file: 500000
+
+dataset_memory_mb: 60000
+
