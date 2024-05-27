@@ -18,6 +18,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 from joblib import Parallel, delayed
+import sklearn
 from sklearn.model_selection import StratifiedKFold
 
 parser = ArgumentParser(description=__doc__)
