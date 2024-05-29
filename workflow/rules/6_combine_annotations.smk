@@ -55,7 +55,6 @@ rule intersect_bed:
         vep = "results/annotation/vep/{type}/chr{chr}_vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
-    params:
     conda:
         "../envs/annotation.yml" # change to common?
     threads: 8
