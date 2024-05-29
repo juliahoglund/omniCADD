@@ -32,13 +32,13 @@ python3 ../fold_data.py \
 
 python3 ../train_model.py \
 	-m ../data_helper.py \
-	--train fold_2.npz fold_3.npz fold_4.npz fold_5.npz \
-	--test fold_1.npz \
+	--train fold_1.npz fold_2.npz fold_3.npz fold_4.npz \
+	--test fold_5.npz \
 	--columns All \
 	-c 0.1 1.0 10.0 \
 	-i 100 \
-	--file-pattern fold_1_[C]C_[ITER]iter.mod \
+	--file-pattern fold_5_[C]C_[ITER]iter.mod \
 	-n 6 \
 	--save-weights \
-	--save-scaler fold_1.scaler.pickle
+	--save-scaler fold_5.scaler.pickle
 ```
