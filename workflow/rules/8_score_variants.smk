@@ -10,7 +10,7 @@ wildcard_constraints:
 Generates all possible variants for a chromosome in blocks.
 The files are also directly bgzipped.
 """
-rule generate_all_variants:
+checkpoint generate_all_variants:
     input:
          reference=config["generate_variants"]["reference_genome_wildcard"],
          script=workflow.source_path(SCRIPTS_8 + "create_variants.py")
@@ -33,6 +33,10 @@ rule generate_all_variants:
            bgzip "$file"
          done
          """
+
+# NOTE!
+## VEP is currently skipped for no reason in the DAG and the 
+## pipeline is later crashing in the subsequent step as the input is missing.
 
 """
 Annotate a vcf file using Ensembl-VEP.
@@ -66,7 +70,7 @@ rule run_genome_vep:
 Processes VEP output into the tsv format used by the later steps.
 The VEP consequences are summarised and basic annotations are calculated here as well.
 """         
-rule process_genome_vep:
+run process_genome_vep:
     input:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
          index="results/whole_genome_variants/chr{chr}/{part}.vcf.gz.tbi",
@@ -76,32 +80,48 @@ rule process_genome_vep:
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          "../envs/common.yml"
-    priority: -8
     output:
          temp("results/whole_genome_variants/chr{chr}/{part}.vep.tsv")
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
          "-r {input.genome} -g {input.grantham} -o {output}"
 
-# split
-DOUBLE_MATCH = glob_wildcards("results/whole_genome_variants/chr{chr}/{part}.vep.tsv")
-# combines again, how does it know
-PARTS = expand("results/whole_genome_variants/chr{chr}/{part}.vep.tsv", zip, chr = DOUBLE_MATCH.chr, part = DOUBLE_MATCH.part )
 
-"""
-Merging is done for the whole variant set so they are first merged into one
-"""
+# Function to gather all outputs from checkpoint rule The output 
+# of the rule referring back to the checkpoint (gather_one, below) 
+# Must contain the all wildcards in the checkpoint rule To gather 
+# further (e.g. gather by sample rather than by run_id) An 
+# additional gather rule is required
+
+#The problem is the merge_realigned rule doesn't have a wildcard for 
+#chromosome to match, so you have to specify it in the input function. 
+#However, your rule depends on all chromosomes, so you have to get the 
+#outputs of all chromosomes first:
+CHROMSOME_LIST = config['chromosomes']['karyotype']
+
+def gather_from_checkpoint(wildcards):
+     for chrom in CHROMSOME_LIST:
+        checkpoints.generate_all_variants.get(chromosome=chrom, **wildcards).output
+
+     checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
+     return expand("results/whole_genome_variants/chr{chr}/{part}.vep.tsv",
+            chr=CHROMSOME_LIST,
+            part=glob_wildcards(os.path.join(checkpoint_output, "{part}.vep.tsv")).part)
+
+
+# Gathers all files by run_id But each sample is still divided 
+# into runs For my real-world analysis, this could represent a 
+# 'samtools merge bam'
 rule merge_genome_by_chr:
     input:
-        raw=lambda wildcards: expand("results/whole_genome_variants/chr{{chr}}}/{part}.vep.tsv",
-                                        part = DOUBLE_MATCH.part)
+        gather_from_checkpoint(wildcards.part)
     output:
-        raw=temp("results/whole_genome_variants/annotated/chr{chr}.vep.tsv")
+        "results/whole_genome_variants/annotated/chr{chr}.vep.tsv"
     shell:
         '''
-        echo "##fileformat=VCFv4.1" >> {output.raw}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
-        grep -vh "^#" {input.raw} >> {output.raw}
+        echo "##fileformat=VCFv4.1" >> {output}
+        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output}
+        grep -vh "^#" {input} >> {output}
         '''
 
 rule intersect_bed:
