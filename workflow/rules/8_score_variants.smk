@@ -1,4 +1,6 @@
-# add authors and info here later
+# TODO: add authors and info here later
+
+## TODO: add train test score constraint here for amount of chromosomes!
 
 """
 Global wildcard constraints, ease matching of wildcards in rules.
@@ -97,7 +99,7 @@ run process_genome_vep:
 #chromosome to match, so you have to specify it in the input function. 
 #However, your rule depends on all chromosomes, so you have to get the 
 #outputs of all chromosomes first:
-CHROMSOME_LIST = config['chromosomes']['karyotype']
+CHROMSOME_LIST = config['chromosomes']['score']
 
 def gather_from_checkpoint(wildcards):
      for chrom in CHROMSOME_LIST:
