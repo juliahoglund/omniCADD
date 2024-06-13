@@ -1,9 +1,9 @@
 chromosomes:
   autosomes: [ '18' ]
   karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
-  train: [ '1' ]
-  test: [ '1' ]
-
+  train: [ '1', '2', '3', '4', '5' ]
+  score: [ '1', '2', '3', '4', '5' ]
+  
 species_name: "sus_scrofa"
 
 alignments:
@@ -94,6 +94,7 @@ model:
 
 parallelization:
   whole_genome_positions_per_file: 500000
+  # change to how many batches?
 
 dataset_memory_mb: 60000
 
