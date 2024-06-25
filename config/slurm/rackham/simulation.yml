@@ -3,6 +3,20 @@ channels:
   - conda-forge
   - bioconda
   - defaults
+  - file:///sw/apps/conda/latest/rackham/local_repo/conda-forge
+  - file:///sw/apps/conda/latest/rackham/local_repo/scilifelab-lts
+  - file:///sw/apps/conda/latest/rackham/local_repo/r
+  - file:///sw/apps/conda/latest/rackham/local_repo/main
+  - file:///sw/apps/conda/latest/rackham/local_repo/bioconda
+  - file:///sw/apps/conda/latest/rackham/local_repo/free
+  - file:///sw/apps/conda/latest/rackham/local_repo/pro
+  - file:///sw/apps/conda/latest/rackham/local_repo/qiime2
+  - file:///sw/apps/conda/latest/rackham/local_repo/biocore
+  - file:///sw/apps/conda/latest/rackham/local_repo/dranew
+  - file:///sw/apps/conda/latest/rackham/local_repo/r2018.11
+  - file:///sw/apps/conda/latest/rackham/local_repo/nvidia
+  - file:///sw/apps/conda/latest/rackham/local_repo/pytorch
+  - file:///sw/apps/conda/latest/rackham/local_repo/anaconda
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -85,3 +99,4 @@ dependencies:
       - natsort==8.4.0
       - numpy==1.26.2
       - pysam==0.22.0
+prefix: /home/juliaha/.conda/envs/simulation
