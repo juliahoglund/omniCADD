@@ -26,7 +26,7 @@ it also handles moving the variants into the results folder.
 """
 
 
-# ruleorder: get_validation_variants > bgzip_tabix > tabix
+ruleorder: bgzip_tabix > tabix
 
 
 """  
@@ -75,7 +75,7 @@ rule bgzip_tabix:
      input:
           "{folder}/{file}.vcf"
      conda:
-          "../envs/mainpython.yml"
+          "../envs/common.yml"
      output:
           vcf=temp("{folder}/{file}.vcf.gz"),
           index=temp("{folder}/{file}.vcf.gz.tbi")
@@ -90,7 +90,7 @@ rule tabix:
      input:
           "{folder}/{file}.vcf.gz"
      conda:
-          "../envs/mainpython.yml"
+          "../envs/common.yml"
      output:
           temp("{folder}/{file}.vcf.gz.tbi")
      shell:
