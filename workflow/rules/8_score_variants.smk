@@ -1,12 +1,9 @@
 # TODO: add authors and info here later
 
 ## TODO: add train test score constraint here for amount of chromosomes!
-
-"""
-Global wildcard constraints, ease matching of wildcards in rules.
-"""
 wildcard_constraints:   
-     part="[a-zA-Z0-9-]+",
+     part="[chr][0-9a-zA-z_]+",
+
 
 """
 Generates all possible variants for a chromosome in blocks.
@@ -20,7 +17,6 @@ checkpoint generate_all_variants:
          blocksize=config["parallelization"]["whole_genome_positions_per_file"]
     conda:
          "../envs/score.yml"
-    priority: -10
     log:
         "results/whole_genome_variants/chr{chr}/stats.txt"
     output:
@@ -60,8 +56,9 @@ rule run_genome_vep:
          "../envs/annotation.yml"
     # Parts are at most a few million variants, 2 threads is already fast.
     threads: 2
+    priority: 1
     output:
-          temp("results/whole_genome_variants/chr{chr}/{part}_vep_output.tsv")
+         temp("results/whole_genome_variants/chr{chr}/{part}_vep_output.tsv")
     shell:
          "chmod +x {input.script} && "
          "{input.script} {input.vcf} {output} "
@@ -72,16 +69,16 @@ rule run_genome_vep:
 Processes VEP output into the tsv format used by the later steps.
 The VEP consequences are summarised and basic annotations are calculated here as well.
 """         
-run process_genome_vep:
+rule process_genome_vep:
     input:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
-         index="results/whole_genome_variants/chr{chr}/{part}.vcf.gz.tbi",
          vep="results/whole_genome_variants/chr{chr}/{part}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
          grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          "../envs/common.yml"
+    priority: 1
     output:
          temp("results/whole_genome_variants/chr{chr}/{part}.vep.tsv")
     shell:
@@ -89,26 +86,13 @@ run process_genome_vep:
          "-r {input.genome} -g {input.grantham} -o {output}"
 
 
-# Function to gather all outputs from checkpoint rule The output 
-# of the rule referring back to the checkpoint (gather_one, below) 
-# Must contain the all wildcards in the checkpoint rule To gather 
-# further (e.g. gather by sample rather than by run_id) An 
-# additional gather rule is required
-
-#The problem is the merge_realigned rule doesn't have a wildcard for 
-#chromosome to match, so you have to specify it in the input function. 
-#However, your rule depends on all chromosomes, so you have to get the 
-#outputs of all chromosomes first:
+# Function to gather all outputs from checkpoint 
 CHROMSOME_LIST = config['chromosomes']['score']
 
 def gather_from_checkpoint(wildcards):
-     for chrom in CHROMSOME_LIST:
-        checkpoints.generate_all_variants.get(chromosome=chrom, **wildcards).output
-
      checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-     return expand("results/whole_genome_variants/chr{chr}/{part}.vep.tsv",
-            chr=CHROMSOME_LIST,
-            part=glob_wildcards(os.path.join(checkpoint_output, "{part}.vep.tsv")).part)
+     part = glob_wildcards(os.path.join(checkpoint_output, "{part}.vep.tsv")).part
+     return expand(os.path.join(checkpoint_output, "{part}_vep_output.tsv"), part = part)
 
 
 # Gathers all files by run_id But each sample is still divided 
@@ -116,7 +100,7 @@ def gather_from_checkpoint(wildcards):
 # 'samtools merge bam'
 rule merge_genome_by_chr:
     input:
-        gather_from_checkpoint(wildcards.part)
+        gather_from_checkpoint
     output:
         "results/whole_genome_variants/annotated/chr{chr}.vep.tsv"
     shell:
@@ -202,7 +186,7 @@ rule score_variants:
         model="results/model/{cols}/full.mod.pickle",
         script=workflow.source_path(MODEL_P + "model_predict.py"),
     conda:
-         "../envs/mainpython.yml"
+         "../envs/common.yml"
     priority: -5
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/{file}.csv")
