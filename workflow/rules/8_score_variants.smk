@@ -4,6 +4,9 @@
 wildcard_constraints:   
      part="[chr][0-9a-zA-z_]+",
 
+# Function to gather all outputs from checkpoint 
+CHROMSOME_LIST = config['chromosomes']['score']
+
 
 """
 Generates all possible variants for a chromosome in blocks.
@@ -31,10 +34,6 @@ checkpoint generate_all_variants:
            bgzip "$file"
          done
          """
-
-# NOTE!
-## VEP is currently skipped for no reason in the DAG and the 
-## pipeline is later crashing in the subsequent step as the input is missing.
 
 """
 Annotate a vcf file using Ensembl-VEP.
@@ -84,10 +83,8 @@ rule process_genome_vep:
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
          "-r {input.genome} -g {input.grantham} -o {output}"
+    # TODO; redirect problem files somewhere else, not in ~/
 
-
-# Function to gather all outputs from checkpoint 
-CHROMSOME_LIST = config['chromosomes']['score']
 
 def gather_from_checkpoint(wildcards):
      checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
