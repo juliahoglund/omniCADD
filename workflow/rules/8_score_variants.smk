@@ -7,6 +7,12 @@ wildcard_constraints:
 # Function to gather all outputs from checkpoint 
 CHROMSOME_LIST = config['chromosomes']['score']
 
+# TODO: what to be temp. and what to save, more intermediate files that
+#.      can be removed?
+# TODO: move output of problem_out; see why problem and if they can be incorporated later
+# TODO: intermediate zipping?
+# 
+
 
 """
 Generates all possible variants for a chromosome in blocks.
