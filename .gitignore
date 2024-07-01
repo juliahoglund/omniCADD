@@ -34,6 +34,9 @@ workflow/scripts/step_2_derive_variants/HOWTO2.md
 workflow/scripts/step_4_summary_report/HOWTO4.md
 workflow/scripts/step_5_annotate_variants/HOWTO5.md
 workflow/scripts/step_6_combine_annotations/HOWTO6.md
+workflow/scripts/step_7_train_test_model/HOWTO7.md
+workflow/scripts/step_8_score_variants/HOWTO8.md
+
 
 output/anc-coverage.svg
 output/anc-seq.svg
@@ -51,4 +54,3 @@ output/venn_all_chr.pdf
 academic_cv_edit.docx
 omniCADD.docx
 ~$niCADD.docx
-workflow/scripts/step_8_score_variants/HOWTO8.md
