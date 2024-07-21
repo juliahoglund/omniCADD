@@ -109,7 +109,7 @@ rule merge_genome_by_chr:
     shell:
         '''
         echo "##fileformat=VCFv4.1" >> {output}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output}
+        echo "#Chrom\tPos\tRef\tAlt\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos/" >> {output}
         grep -vh "^#" {input} >> {output}
         '''
 
@@ -119,20 +119,17 @@ rule intersect_bed:
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
-        "../envs/annotation.yml" # change to common?
-    threads: 8
+        "../envs/score.yml" # change to common?
+    threads: 4
     output:
-        "results/whole_genome_variants/annotated/chr{chr}_annotated.tsv"
+        sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
+        annotated="results/whole_genome_variants/annotated/chr{chr}_annotated.tsv"
     shell:
-        "python3 {input.script} "
-        " -v {input.vep} "
-        " -b {input.bed} "
-        " -o {output}"
-
-
-
-
-
+        '''
+        picard SortVcf I={input.vep} O={output.sorted_vcf}
+        bcftools annotate -c Pos:=start, Chrom:=chr {input.bed}
+        bcftools annotate -a {input.bed} -c Chrom,Pos,-,GERP_NS,GERP_RS,phastCons,phyloP {output.annotated}       
+        '''
 
 
 
