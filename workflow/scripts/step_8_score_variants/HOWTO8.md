@@ -19,3 +19,6 @@ CHROMSOME_LIST = config['chromosomes']['score']
 - TODO: move output of problem_out; see why problem and if they can be incorporated later
 - TODO: intermediate zipping?
 
+
+pandas.errors.ParserError: Error tokenizing data. C error: Expected 8 fields in line 3, saw 23
+
