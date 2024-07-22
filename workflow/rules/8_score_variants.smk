@@ -119,7 +119,7 @@ rule intersect_bed:
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
-        "../envs/score.yml" # change to common?
+        "../envs/score.yml"
     threads: 4
     output:
         sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
