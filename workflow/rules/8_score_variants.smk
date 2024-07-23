@@ -1,6 +1,8 @@
 # TODO: add authors and info here later
 
 ## TODO: add train test score constraint here for amount of chromosomes!
+from natsort import natsorted, ns
+
 wildcard_constraints:   
      part="[chr][0-9a-zA-z_]+",
 
@@ -94,8 +96,8 @@ rule process_genome_vep:
 
 def gather_from_checkpoint(wildcards):
      checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-     part = glob_wildcards(os.path.join(checkpoint_output, "{part}.vep.tsv")).part
-     return expand(os.path.join(checkpoint_output, "{part}_vep_output.tsv"), part = part)
+     part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
+     return natsorted(expand(os.path.join(checkpoint_output, "{part}.vep.tsv"), part = part))
 
 
 # Gathers all files by run_id But each sample is still divided 
@@ -109,33 +111,29 @@ rule merge_genome_by_chr:
     shell:
         '''
         echo "##fileformat=VCFv4.1" >> {output}
-        echo "#Chrom\tPos\tRef\tAlt\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos/" >> {output}
+        echo "#CHROM\tPOS\tREF\tALT\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos/" >> {output}
         grep -vh "^#" {input} >> {output}
         '''
+
+## if this one is OOM killed, see if it is possible to annotate first, 
+# and gather and annotate later
 
 rule intersect_bed:
     input:
         vep = "results/whole_genome_variants/annotated/chr{chr}.vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
-        script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
         "../envs/score.yml"
-    threads: 4
+    threads: 8
     output:
-        sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
+        # sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
         annotated="results/whole_genome_variants/annotated/chr{chr}_annotated.tsv"
     shell:
         '''
-        picard SortVcf I={input.vep} O={output.sorted_vcf}
+        # sort -k 1,1 -k2,2n {input.vep} > {output.sorted_vcf}
         bcftools annotate -c Pos:=start, Chrom:=chr {input.bed}
-        bcftools annotate -a {input.bed} -c Chrom,Pos,-,GERP_NS,GERP_RS,phastCons,phyloP {output.annotated}       
+        bcftools annotate -a {input.bed} -c Chrom,Pos,-,GERP_NS,GERP_RS,phastCons,phyloP {input.vep} > {output.annotated}       
         '''
-
-
-
-
-
-
 
 
 
