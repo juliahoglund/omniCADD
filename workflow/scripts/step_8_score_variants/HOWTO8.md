@@ -34,7 +34,18 @@ for i in {1..5}; do cat results/whole_genome_variants/annotated/chr$i.vep.tsv | 
 as of now for some reason snakemake cannot create the conda environment for scoring (`score.yml`)
 so the environments has been activated first, and then snakemake has been run without `--use-conda`
 it worked and then i had to update and then it stopped working again and i dont know why.
+( `CondaError: Run 'conda init' before 'conda activate'`)
 
+so far the modules have been loaded with `ml bcftools picard` and the rule changed like so:
+```bash
+# Usage: java -jar $PICARD_ROOT/picard.jar command ...
+# changed in shell
+
+# params
+picard = "java -jar /sw/bioinfo/picard/2.27.5/rackham/picard.jar"
+# shell
+{picard} SortVcf I={input.vep} O={output.sorted_vcf}
+```
 
 ### restarting after checkpoint when check files are gone due to being temporary
 i dont know if this has to be fixed later but the checkpoints does not work properly unless the temporary vep files are there so for chr 1-5 i touched empty ones in the mean time.
