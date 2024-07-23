@@ -1,42 +1,33 @@
 name: score
 channels:
   - bioconda
+  - bioconda/label/cf201901
   - file:///sw/apps/conda/latest/rackham/local_repo/conda-forge
-  - file:///sw/apps/conda/latest/rackham/local_repo/scilifelab-lts
-  - file:///sw/apps/conda/latest/rackham/local_repo/r
-  - file:///sw/apps/conda/latest/rackham/local_repo/main
-  - file:///sw/apps/conda/latest/rackham/local_repo/bioconda
-  - file:///sw/apps/conda/latest/rackham/local_repo/free
-  - file:///sw/apps/conda/latest/rackham/local_repo/pro
-  - file:///sw/apps/conda/latest/rackham/local_repo/qiime2
-  - file:///sw/apps/conda/latest/rackham/local_repo/biocore
-  - file:///sw/apps/conda/latest/rackham/local_repo/dranew
-  - file:///sw/apps/conda/latest/rackham/local_repo/r2018.11
-  - file:///sw/apps/conda/latest/rackham/local_repo/nvidia
-  - file:///sw/apps/conda/latest/rackham/local_repo/pytorch
-  - file:///sw/apps/conda/latest/rackham/local_repo/anaconda
+  - conda-forge
   - defaults
 dependencies:
   - _libgcc_mutex=0.1
   - _openmp_mutex=4.5
   - archspec=0.2.3
-  - bcftools=1.2
+  - bcftools=1.8
   - bedtools=2.31.1
   - boltons=23.1.1
   - brotli-python=1.1.0
   - bzip2=1.0.8
   - c-ares=1.27.0
-  - ca-certificates=2024.7.2
+  - ca-certificates=2024.7.4
   - certifi=2024.7.4
   - cffi=1.16.0
   - charset-normalizer=3.3.2
   - colorama=0.4.6
-  - conda=24.3.0
-  - conda-libmamba-solver=24.1.0
+  - conda=23.3.1
+  - conda-libmamba-solver=23.3.0
   - conda-package-handling=2.2.0
   - conda-package-streaming=0.9.0
+  - cryptography=42.0.8
+  - curl=7.88.1
   - distro=1.9.0
-  - fmt=10.2.1
+  - fmt=9.1.0
   - gatk=3.6
   - icu=73.2
   - idna=3.6
@@ -44,18 +35,19 @@ dependencies:
   - jsonpatch=1.33
   - jsonpointer=2.4
   - keyutils=1.6.1
-  - krb5=1.21.2
+  - krb5=1.20.1
   - ld_impl_linux-64=2.40
-  - libarchive=3.7.2
-  - libcurl=8.7.1
+  - libarchive=3.6.2
+  - libcurl=7.88.1
+  - libdeflate=1.20
   - libedit=3.1.20191231
   - libev=4.33
   - libffi=3.4.2
   - libgcc-ng=13.2.0
   - libgomp=13.2.0
   - libiconv=1.17
-  - libmamba=1.5.8
-  - libmambapy=1.5.8
+  - libmamba=1.4.2
+  - libmambapy=1.4.2
   - libnghttp2=1.58.0
   - libnsl=2.0.1
   - libsolv=0.7.28
@@ -68,19 +60,18 @@ dependencies:
   - libzlib=1.2.13
   - lz4-c=1.9.4
   - lzo=2.10
-  - mamba=1.5.8
+  - mamba=1.4.2
   - menuinst=2.0.2
   - ncurses=6.4.20240210
-  - openjdk=8.0.152
-  - openssl=3.2.1
+  - openssl=3.3.1
   - packaging=24.0
-  - picard=2.20.4
   - pip=24.0
   - platformdirs=4.2.0
   - pluggy=1.4.0
   - pybind11-abi=4
   - pycosat=0.6.6
   - pycparser=2.21
+  - pyopenssl=24.2.1
   - pysocks=1.7.1
   - python=3.10.14
   - python_abi=3.10
@@ -88,17 +79,18 @@ dependencies:
   - reproc=14.2.4.post0
   - reproc-cpp=14.2.4.post0
   - requests=2.31.0
-  - ruamel.yaml=0.18.6
+  - ruamel.yaml=0.17.40
   - ruamel.yaml.clib=0.2.8
   - setuptools=69.2.0
   - tk=8.6.13
+  - toolz=0.12.1
   - tqdm=4.66.2
   - truststore=0.8.0
   - tzdata=2024a
   - urllib3=2.2.1
   - wheel=0.43.0
   - xz=5.2.6
-  - yaml-cpp=0.8.0
+  - yaml-cpp=0.7.0
+  - zlib=1.2.13
   - zstandard=0.22.0
   - zstd=1.5.5
-prefix: /cfs/klemming/projects/snic/snic2022-22-894/tools/conda_dirs/envs/score
