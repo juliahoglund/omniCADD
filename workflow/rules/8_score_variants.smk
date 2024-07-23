@@ -117,6 +117,9 @@ rule merge_genome_by_chr:
 
 ## if this one is OOM killed, see if it is possible to annotate first, 
 # and gather and annotate later
+        # sort -k 1,1 -k2,2n {input.vep} > {output.sorted_vcf}
+        # sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
+
 
 rule intersect_bed:
     input:
@@ -126,11 +129,9 @@ rule intersect_bed:
         "../envs/score.yml"
     threads: 8
     output:
-        # sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
         annotated="results/whole_genome_variants/annotated/chr{chr}_annotated.tsv"
     shell:
         '''
-        # sort -k 1,1 -k2,2n {input.vep} > {output.sorted_vcf}
         bcftools annotate -c Pos:=start, Chrom:=chr {input.bed}
         bcftools annotate -a {input.bed} -c Chrom,Pos,-,GERP_NS,GERP_RS,phastCons,phyloP {input.vep} > {output.annotated}       
         '''
