@@ -4,7 +4,7 @@
 from natsort import natsorted, ns
 
 wildcard_constraints:   
-     part="[chr][0-9a-zA-z_]+",
+     part="[0-9]+",
 
 # Function to gather all outputs from checkpoint 
 CHROMSOME_LIST = config['chromosomes']['score']
@@ -94,11 +94,26 @@ rule process_genome_vep:
     # TODO; redirect problem files somewhere else, not in ~/
 
 
-def gather_from_checkpoint(wildcards):
-     checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-     part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
-     return natsorted(expand(os.path.join(checkpoint_output, "{part}.vep.tsv"), part = part))
+rule intersect_bed:
+    input:
+        vep = "results/whole_genome_variants/chr{chr}/{part}.vep.tsv",
+        bed = "results/annotation/constraint/constraint_chr{chr}.bed",
+        script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
+    conda:
+        "../envs/score.yml"
+    threads: 8
+    output:
+        annotated="results/whole_genome_variants/chr{chr}/{part}_annotated.tsv"
+    shell:
+        "python3 {input.script} "
+        " -v {input.vep} "
+        " -b {input.bed} "
+        " -o {output.annotated}"
 
+def gather_from_checkpoint(wildcards):
+  checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
+  part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
+  return natsorted(expand("results/whole_genome_variants/chr{chr}/{part}_annotated.tsv", part = part, chr=wildcards.chr))
 
 # Gathers all files by run_id But each sample is still divided 
 # into runs For my real-world analysis, this could represent a 
@@ -107,118 +122,10 @@ rule merge_genome_by_chr:
     input:
         gather_from_checkpoint
     output:
-        "results/whole_genome_variants/annotated/chr{chr}.vep.tsv"
+        "results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv"
     shell:
         '''
         echo "##fileformat=VCFv4.1" >> {output}
         echo "#CHROM\tPOS\tREF\tALT\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos/" >> {output}
         grep -vh "^#" {input} >> {output}
         '''
-
-## if this one is OOM killed, see if it is possible to annotate first, 
-# and gather and annotate later
-        # sort -k 1,1 -k2,2n {input.vep} > {output.sorted_vcf}
-        # sorted_vcf=temp("results/whole_genome_variants/annotated/chr{chr}.sorted"),
-
-
-rule intersect_bed:
-    input:
-        vep = "results/whole_genome_variants/annotated/chr{chr}.vep.tsv",
-        bed = "results/annotation/constraint/constraint_chr{chr}.bed",
-    conda:
-        "../envs/score.yml"
-    threads: 8
-    output:
-        annotated="results/whole_genome_variants/annotated/chr{chr}_annotated.tsv"
-    shell:
-        '''
-        bcftools annotate -c Pos:=start, Chrom:=chr {input.bed}
-        bcftools annotate -a {input.bed} -c Chrom,Pos,-,GERP_NS,GERP_RS,phastCons,phyloP {input.vep} > {output.annotated}       
-        '''
-
-
-
-
-
-
-
-
-
-
-
-
-"""
-Run whole_genome with lower priority.
-Building the model has single-threaded elements so it is better to save these
-Final computations for last, when the main tasks are bottleneck or finished.
-"""
-rule prepare_whole_genome:
-    input:
-         data="results/whole_genome_variants/annotated/chr{chr}/chr{chr}_{part}_annotated.tsv",
-         imputaton="results/dataset/imputation_dict.txt",
-         processing=config["annotation_config"]["processing"],
-         # interactions=config["annotation_config"]["interactions"],
-         script=workflow.source_path(ANNOTATE_P + "data_preparation.py"),
-    params:
-         derived_variants=" ",
-         y=" "
-    priority: -7
-    output:
-         npz="results/dataset/whole_genome_snps/chr{chr}_{part}.npz",
-         meta="results/dataset/whole_genome_snps/chr{chr}_{part}.npz.meta.csv.gz",
-         cols="results/dataset/whole_genome_snps/chr{chr}_{part}.npz.columns.csv"
-    log:
-        "results/logs/data_preparation/whole_genome/{chr}_{part}.log"
-## check if prepare data is enough or if it needs more like column analysis and shit
-
-
-"""
-Scores the predicted probability for all possible variants to be of class 1,
-(proxy) deleterious. Saved as an csv with chr, pos, ref, alt and raw score.
-"""
-rule score_variants:
-    input:
-        data="results/dataset/whole_genome_snps/{file}.npz",
-        data_m="results/dataset/whole_genome_snps/{file}.npz.meta.csv.gz",
-        data_c="results/dataset/whole_genome_snps/{file}.npz.columns.csv",
-        scaler="results/model/{cols}/full.scaler.pickle",
-        model="results/model/{cols}/full.mod.pickle",
-        script=workflow.source_path(MODEL_P + "model_predict.py"),
-    conda:
-         "../envs/common.yml"
-    priority: -5
-    output:
-        temp("results/whole_genome_scores/raw_parts/{cols}/{file}.csv")
-    shell:
-        """python3 {input.script} \
-        -i {input.data} \
-        --model {input.model} \
-        --scaler {input.scaler} \
-        -o {output} \
-        --sort \
-        --no-header"""
-
-
-### is this one needed or is it same imputation dict as the other??
-"""
-Missing values are imputed based on the mean of all simulated variants 
-for some annotations, e.g. GC or GERP score. This script gathers all relevant 
-columns for the different chromosomes and outputs their means to a text file 
-so the next steps can be performed in parallel, for derived and simulated on 
-each chromosome, using the already determined means. Scaling also has to be 
-done centrally, so this is delayed till after the parallel processing.
-"""
-rule derive_impute_means:
-    input:
-        tsv=lambda wildcards: expand(
-        "results/simulated_variants/trimmed_snps/chr{chr}_full_annotation.tsv",
-        chr=config["chromosomes"]["train"]),
-        processing=config["annotation_config"]["processing"],
-        script=workflow.source_path(ANNOTATE_P + "derive_means.py"),
-    conda:
-         "../envs/mainpython.yml"
-    output:
-        imputation=report("results/dataset/imputation_dict.txt", category="Logs")
-    shell:
-        "python3 {input.script} -i {input.tsv} "
-        "--processing-config {input.processing} -o {output}"
