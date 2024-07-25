@@ -74,7 +74,7 @@ def get_chrom_from_file(chromosome, fasta_file, vb=False):
              f"{fasta_file}")
 
 
-def open_vcf_out(path, chrom, part, vb=False):
+def open_vcf_out(path, part, vb=False):
     """
     Opens a part file in the desired folder and writes VCF header.
 
@@ -125,7 +125,7 @@ if args.start_pos >= len(record.seq):
 
 # Open the first outfile, new ones will be opened when full
 outfile_iter = 1
-outfile = open_vcf_out(args.out_path, args.chrom, outfile_iter, args.verbose)
+outfile = open_vcf_out(args.out_path, outfile_iter, args.verbose)
 
 # Get sequence enumerator, starting at the desired position
 iter_enumerate = jump_to_pos(enumerate(record.seq),
@@ -150,8 +150,7 @@ for site_index, ref_allele in iter_enumerate:
         outfile.close()
         outfile_iter += 1
         remaining_size = args.size
-        outfile = open_vcf_out(args.out_path, args.chrom,
-                               outfile_iter, args.verbose)
+        outfile = open_vcf_out(args.out_path, outfile_iter, args.verbose)
 
 outfile.close()
 print(f"# Finished generating variants.\n"
