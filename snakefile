@@ -71,7 +71,7 @@ rule all:
                 #        type = ['simulated', 'derived'],
                 #        chr = config['chromosomes']['karyotype']),
                 #"results/model/All/full.mod.pickle", "results/model/All/full.scaler.pickle", "results/model/All/full.mod.weights.csv",
-                expand("results/whole_genome_variants/annotated/chr{chr}_annotated.tsv",
+                expand("results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
                          chr = config['chromosomes']['score']),
 
 
