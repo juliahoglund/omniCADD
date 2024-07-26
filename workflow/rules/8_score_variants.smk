@@ -43,6 +43,9 @@ checkpoint generate_all_variants:
          done
          """
 
+# Determine the {genome} for all downloaded files
+(CHRs,) = glob_wildcards("results/whole_genome_variants/chr{chr}")
+
 """
 Annotate a vcf file using Ensembl-VEP.
 The VEP cache can automatically be downloaded if should_install is True in the config, 
@@ -110,17 +113,118 @@ rule intersect_bed:
         " -b {input.bed} "
         " -o {output.annotated}"
 
-def gather_from_checkpoint(wildcards):
+"""
+Run whole_genome data preparaion.
+Building the model has single-threaded elements so it is better to save these
+Final computations for last, when the main tasks are bottleneck or finished.
+"""
+rule prepare_whole_genome:
+    input:
+         data="results/whole_genome_variants/chr{chr}/{part}_annotated.tsv",
+         imputaton="results/dataset/imputation_dict.txt",
+         processing=config["annotation_config"]["processing"],
+         # interactions=config["annotation_config"]["interactions"], # interactions so far not used
+         script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
+    params:
+         derived_variants=" ",
+         y=" "
+    output:
+         npz="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
+         meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv",
+         cols="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv"
+    log:
+        "results/logs/data_preparation/whole_genome/chr{chr}/{part}.log"
+
+"""
+Scores the predicted probability for all possible variants to be of class 1,
+(proxy) deleterious. Saved as an csv with chr, pos, ref, alt and raw score.
+"""
+rule score_variants:
+    input:
+        data="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
+        data_m="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv.gz",
+        data_c="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv",
+        scaler="results/model/{cols}/full.scaler.pickle",
+        model="results/model/{cols}/full.mod.pickle",
+        script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
+    conda:
+         "../envs/mainpython.yml"
+    priority:
+    output:
+        temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
+    shell:
+        """
+        python3 {input.script} \
+        -i {input.data} \
+        --model {input.model} \
+        --scaler {input.scaler} \
+        -o {output} \
+        --sort \
+        --no-header
+        """
+
+def gather_scores(wildcards):
   checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
   part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
-  return natsorted(expand("results/whole_genome_variants/chr{chr}/{part}_annotated.tsv", part = part, chr=wildcards.chr))
+  return natsorted(
+    expand("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv", 
+        part = part, chr=wildcards.chr, cols=wildcards.cols))
 
 # Gathers all files by run_id But each sample is still divided 
 # into runs For my real-world analysis, this could represent a 
 # 'samtools merge bam'
-rule merge_genome_by_chr:
+rule sort_raw_scores:
     input:
-        gather_from_checkpoint
+         gather_scores
+    threads: 8
+    resources:
+        mem_mb=200000
+    output:
+         "results/whole_genome_scores/RAW_scores_chr{chr}.csv"
+    shell:
+        """
+        LC_ALL=C sort \
+        --merge \
+        -t "," \
+        -k5gr \
+        -S {resources.mem_mb}M \
+        --parallel={threads} \
+         {input} > {output}
+        """
+
+# why are things hardcoded? can i make count better?
+rule assign_phred_scores:
+    input:
+        data="results/whole_genome_scores/RAW_scores_chr19.csv",
+        script=workflow.source_path(CADD_P + "assign_phred_scores.py")
+    params:
+        outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
+        chromosomes=config["chromosomes"]["score"],
+        variant_count=174660012
+
+    output:
+        expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+               chr=config["chromosomes"]["score"])
+    shell:
+        """
+        python3 {input.script} \
+        -i {input.data} \
+        -o {params.outmask} \
+        --chroms {params.chromosomes} \
+        --counts {params.variant_count}
+        """
+
+def gather_annotations(wildcards):
+     checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
+     part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
+     return natsorted(expand("results/whole_genome_variants/chr{chr}/{part}_annotated.tsv", part = part, chr=wildcards.chr))
+
+# Gathers all files by run_id But each sample is still divided 
+# into runs For my real-world analysis, this could represent a 
+# 'samtools merge bam'
+rule merge_annotations:
+    input:
+        gather_annotations
     output:
         "results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv"
     shell:
@@ -129,3 +233,39 @@ rule merge_genome_by_chr:
         echo "#CHROM\tPOS\tREF\tALT\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos/" >> {output}
         grep -vh "^#" {input} >> {output}
         '''
+
+rule cadd_consequence_bins:
+    input:
+        data="results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
+        annotaton="results/whole_genome_scores/phred/chr{chr}.tsv",
+        script=workflow.source_path(SCRIPTS_8 + "bin_consequences.py")
+    conda:
+         "../envs/common.yml"
+    output:
+        "results/consequence_bins/chr{chr}.csv"
+    shell:
+        """
+        python3 {input.script} \
+        -i {input.data} \
+        -a {input.annotaton} \
+        -o {output}
+        """
+
+# using default mask sequence right now.
+rule cadd_summaries:
+    input:
+        data="results/whole_genome_scores/phred/chr{chr}.tsv",
+        script=workflow.source_path(SCRIPTS_8 + "compute_summaries.py")
+    conda:
+         "../envs/common.yml"
+    output:
+        "results/cadd_summaries/chr{chr}.csv"
+    shell:
+        """
+        python3 {input.script} \
+        -i {input.data}
+        """
+
+
+
+
