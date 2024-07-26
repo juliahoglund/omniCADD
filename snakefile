@@ -65,13 +65,22 @@ rule all:
                 #expand("results/dataset/{type}/chr{chr}_annotated.tsv",
                 #       type = ['simulated', 'derived'],
                 #       chr = config['chromosomes']['karyotype']),
-                #"results/figures/column_analysis/relevance.tsv", "results/figures/column_analysis/derived_variants_corr.tsv", "results/figures/column_analysis/simulated_variants_corr.tsv", "results/figures/column_analysis/combined_variants_corr.tsv",
+                #"results/figures/column_analysis/relevance.tsv", 
+                #"results/figures/column_analysis/derived_variants_corr.tsv", 
+                #"results/figures/column_analysis/simulated_variants_corr.tsv", 
+                #"results/figures/column_analysis/combined_variants_corr.tsv",
                 #"results/dataset/imputation_dict.txt",
                 #expand("results/dataset/{type}/chr{chr}.npz",
                 #        type = ['simulated', 'derived'],
                 #        chr = config['chromosomes']['karyotype']),
                 #"results/model/All/full.mod.pickle", "results/model/All/full.scaler.pickle", "results/model/All/full.mod.weights.csv",
-                expand("results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
-                         chr = config['chromosomes']['score']),
-
-
+				expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+				               chr=config["chromosomes"]["score"]),
+				expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+				               chr=config["chromosomes"]["score"])
+				expand("results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv,"
+				               chr=config["chromosomes"]["score"]),
+				expand("results/consequence_bins/chr{chr}.csv",
+				               chr=config["chromosomes"]["score"])
+				expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+				               chr=config["chromosomes"]["score"])
