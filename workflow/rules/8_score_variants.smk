@@ -31,7 +31,7 @@ checkpoint generate_all_variants:
     log:
         "results/whole_genome_variants/chr{chr}/stats.txt"
     output:
-         out_dir=directory("results/whole_genome_variants/chr{chr}"),
+         out_dir=directory("results/whole_genome_variants/chr{chr}/"),
     shell:
          """
          python3 {input.script} -o {output.out_dir} \
@@ -149,7 +149,6 @@ rule score_variants:
         script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
     conda:
          "../envs/mainpython.yml"
-    priority:
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
     shell:
@@ -163,12 +162,13 @@ rule score_variants:
         --no-header
         """
 
+# hardcoded to all
 def gather_scores(wildcards):
   checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-  part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
+  part = glob_wildcards(os.path.join(checkpoint_output, "{part}.npz")).part
   return natsorted(
-    expand("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv", 
-        part = part, chr=wildcards.chr, cols=wildcards.cols))
+    expand("results/whole_genome_scores/raw_parts/All/chr{chr}/{part}.csv", 
+        part = part, chr=wildcards.chr))
 
 # Gathers all files by run_id But each sample is still divided 
 # into runs For my real-world analysis, this could represent a 
@@ -196,7 +196,7 @@ rule sort_raw_scores:
 rule assign_phred_scores:
     input:
         data="results/whole_genome_scores/RAW_scores_chr19.csv",
-        script=workflow.source_path(CADD_P + "assign_phred_scores.py")
+        script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py")
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
