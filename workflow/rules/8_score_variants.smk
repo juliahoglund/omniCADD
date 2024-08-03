@@ -20,7 +20,7 @@ CHROMSOME_LIST = config['chromosomes']['score']
 Generates all possible variants for a chromosome in blocks.
 The files are also directly bgzipped.
 """
-checkpoint generate_all_variants:
+rule generate_all_variants:
     input:
          reference=config["generate_variants"]["reference_genome_wildcard"],
          script=workflow.source_path(SCRIPTS_8 + "create_variants.py")
@@ -45,6 +45,22 @@ checkpoint generate_all_variants:
 
 # Determine the {genome} for all downloaded files
 (CHRs,) = glob_wildcards("results/whole_genome_variants/chr{chr}")
+
+
+"""
+Combines all log files for variant generation for all chromosomes.
+This rule also serves as a checkpoint, after which it is checked how 
+many blocks were generated for each chromosome and thus how many runs 
+of the annotation and scoring modules will be needed.
+"""
+checkpoint summarize_generation:
+    input:
+         expand("results/whole_genome_variants/chr{chr}/stats.txt",
+                chr=config["chromosomes"]["score"])
+    output:
+         report("results/logs/whole_genome_variants.txt", category="Logs")
+    shell:
+         "tail -n +2 {input} > {output}"
 
 """
 Annotate a vcf file using Ensembl-VEP.
@@ -130,7 +146,7 @@ rule prepare_whole_genome:
          y=" "
     output:
          npz="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
-         meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv",
+         meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv.gz",
          cols="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv"
     log:
         "results/logs/data_preparation/whole_genome/chr{chr}/{part}.log"
@@ -164,11 +180,12 @@ rule score_variants:
 
 # hardcoded to all
 def gather_scores(wildcards):
-  checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-  part = glob_wildcards(os.path.join(checkpoint_output, "{part}.npz")).part
+  checkpoints.summarize_generation.get()
+  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
   return natsorted(
-    expand("results/whole_genome_scores/raw_parts/All/chr{chr}/{part}.csv", 
-        part = part, chr=wildcards.chr))
+    expand(f"results/whole_genome_scores/raw_parts/All/chr{wildcards.chr}/{{part}}.csv",
+                  part=globed.part))
+
 
 # Gathers all files by run_id But each sample is still divided 
 # into runs For my real-world analysis, this could represent a 
