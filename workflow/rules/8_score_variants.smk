@@ -122,7 +122,7 @@ rule intersect_bed:
         "../envs/score.yml"
     threads: 8
     output:
-        annotated="results/whole_genome_variants/chr{chr}/{part}_annotated.tsv"
+        temp(annotated="results/whole_genome_variants/chr{chr}/{part}_annotated.tsv")
     shell:
         "python3 {input.script} "
         " -v {input.vep} "
@@ -144,12 +144,19 @@ rule prepare_whole_genome:
     params:
          derived_variants=" ",
          y=" "
+    threads: 5
     output:
          npz="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
          meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv.gz",
          cols="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv"
     log:
         "results/logs/data_preparation/whole_genome/chr{chr}/{part}.log"
+    shell:
+     "python3 {input.script} -i {input.data} --npz {output.npz} "
+     "--processing-config {input.processing} "
+    # "--interaction-config {input.interactions} "
+     "--imputation-dict {input.imputaton} "
+     "{params.derived_variants} {params.y} > {log}"
 
 """
 Scores the predicted probability for all possible variants to be of class 1,
@@ -165,6 +172,7 @@ rule score_variants:
         script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
     conda:
          "../envs/mainpython.yml"
+    threads: 4
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
     shell:
@@ -209,16 +217,42 @@ rule sort_raw_scores:
          {input} > {output}
         """
 
+"""
+Counts variants in the raw score files, to be passed in the phred scaling.
+"""
+rule count_positions:
+    input:
+        data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
+            chr=config["chromosomes"]["score"]),
+    output:
+        "results/whole_genome_scores/RAW_scores_chr{chr}.csv.count"
+    shell:
+        "grep -c '^[^#\S]' {input} > {output}"
+
+"""
+Sums counts of all per-chromosome RAW files in a folder.
+"""
+rule add_position_counts:
+    input:
+        expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv.count",
+               chr=config["chromosomes"]["score"])
+    output:
+        "results/whole_genome_scores/RAW.count",
+    shell:
+        '''
+        cat {input} | awk "{{s+=\$1}} END {{print s}}" > {output}
+        '''
+
 # why are things hardcoded? can i make count better?
 rule assign_phred_scores:
     input:
-        data="results/whole_genome_scores/RAW_scores_chr19.csv",
+        data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
+            chr=config["chromosomes"]["score"]),
+                variant_count="results/whole_genome_scores/RAW.count",
         script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py")
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
-        variant_count=174660012
-
     output:
         expand("results/whole_genome_scores/phred/chr{chr}.tsv",
                chr=config["chromosomes"]["score"])
@@ -228,13 +262,16 @@ rule assign_phred_scores:
         -i {input.data} \
         -o {params.outmask} \
         --chroms {params.chromosomes} \
-        --counts {params.variant_count}
+        --counts {input.variant_count}
         """
 
 def gather_annotations(wildcards):
-     checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-     part = glob_wildcards(os.path.join(checkpoint_output, "{part}_vep_output.tsv")).part
-     return natsorted(expand("results/whole_genome_variants/chr{chr}/{part}_annotated.tsv", part = part, chr=wildcards.chr))
+  checkpoints.summarize_generation.get()
+  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
+  return natsorted(
+    expand(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_annotated.tsv",
+                  part=globed.part))
+
 
 # Gathers all files by run_id But each sample is still divided 
 # into runs For my real-world analysis, this could represent a 
