@@ -222,8 +222,7 @@ Counts variants in the raw score files, to be passed in the phred scaling.
 """
 rule count_positions:
     input:
-        data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
-            chr=config["chromosomes"]["score"]),
+        "results/whole_genome_scores/RAW_scores_chr{chr}.csv",
     output:
         "results/whole_genome_scores/RAW_scores_chr{chr}.csv.count"
     shell:
@@ -248,8 +247,8 @@ rule assign_phred_scores:
     input:
         data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
             chr=config["chromosomes"]["score"]),
-                variant_count="results/whole_genome_scores/RAW.count",
-        script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py")
+        script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py"),
+        variant_count="results/whole_genome_scores/RAW.count",        
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
@@ -258,11 +257,12 @@ rule assign_phred_scores:
                chr=config["chromosomes"]["score"])
     shell:
         """
+        counts=`cat {input.variant_count}`
         python3 {input.script} \
         -i {input.data} \
         -o {params.outmask} \
         --chroms {params.chromosomes} \
-        --counts {input.variant_count}
+        --counts $counts
         """
 
 def gather_annotations(wildcards):
