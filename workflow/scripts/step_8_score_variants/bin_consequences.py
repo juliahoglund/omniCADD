@@ -44,7 +44,7 @@ if __name__ == '__main__':
     outfile = gzip.open(args.output, "wt") if args.output.endswith(".gz") \
         else open(args.output, "w")
 
-    df = pandas.read_csv(args.input, sep='\t', na_values=['-'])
+    df = pandas.read_csv(args.input, sep='\t', na_values=['-'], low_memory=False)
 
     cadd_tabix = pysam.Tabixfile(args.annotation, 'r')
 
