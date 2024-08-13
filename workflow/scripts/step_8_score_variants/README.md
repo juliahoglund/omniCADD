@@ -10,6 +10,6 @@ This is the most computationally heavy step, and takes a vast amount of storage.
 Dependencies:
 - biopython
 - vep
-
+- scikit-learn
 
 Dependencies are all exported in the conda environment `annotation.yml`. The pipeline can be run within this environment, or with `snakemake --use-conda`
