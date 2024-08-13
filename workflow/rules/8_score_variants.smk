@@ -1,19 +1,26 @@
-# TODO: add authors and info here later
+"""
+ Module to generate whole genome PHRED-like CADD scores.
+ First all possible variants are generated, these are then annotated and scored
+ using the annotate_variants and train_test_model modules of the workflow.
+ Afterwards the raw model scores are sorted in descending order and are
+ assigned the final PHRED-like CADD score. These are then again sorted by
+ chromosome and position. Finally the scores for each position,
+ are summarised by a mean, min and max value per position (not yet implemnted).
 
-## TODO: add train test score constraint here for amount of chromosomes!
+ :Author: Job van Schipstal
+ :Date: 01-11-2023
+ :Extension and modification: Julia Höglund
+ :Datwe: 13-08-2024
+
+ The scripts and workflow have been adopted from the work of Christian Gross.
+"""
+
 from natsort import natsorted, ns
 
 wildcard_constraints:   
      part="[0-9]+",
 
-# Function to gather all outputs from checkpoint 
 CHROMSOME_LIST = config['chromosomes']['score']
-
-# TODO: what to be temp. and what to save, more intermediate files that
-#.      can be removed?
-# TODO: move output of problem_out; see why problem and if they can be incorporated later
-# TODO: intermediate zipping?
-# 
 
 
 """
@@ -68,7 +75,10 @@ The VEP cache can automatically be downloaded if should_install is True in the c
 otherwise a path to an existing cache should be given.
 An indexed cache is faster than the standard one, so that is what the vep_cache rule provides.
 This rule expects SIFT scores to be available but this is not the case for many species,
-"""  # TODO make sift a config option
+"""  
+
+# TODO make sift a config option
+# TODO: move output of problem_out; see why problem and if they can be incorporated later
 rule run_genome_vep:
     input:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
@@ -112,7 +122,10 @@ rule process_genome_vep:
          "-r {input.genome} -g {input.grantham} -o {output}"
     # TODO; redirect problem files somewhere else, not in ~/
 
-
+"""
+Merges the annotations from VEP with the genome-wide generated annotation files for 
+phastCons, phyloP and GERP
+"""  
 rule intersect_bed:
     input:
         vep = "results/whole_genome_variants/chr{chr}/{part}.vep.tsv",
@@ -186,7 +199,7 @@ rule score_variants:
         --no-header
         """
 
-# hardcoded to all
+# hardcoded to All columns as of now
 def gather_scores(wildcards):
   checkpoints.summarize_generation.get()
   globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
@@ -194,10 +207,10 @@ def gather_scores(wildcards):
     expand(f"results/whole_genome_scores/raw_parts/All/chr{wildcards.chr}/{{part}}.csv",
                   part=globed.part))
 
-
-# Gathers all files by run_id But each sample is still divided 
-# into runs For my real-world analysis, this could represent a 
-# 'samtools merge bam'
+"""
+sorts all raw scores from highest to lowest, i.e. ranking them later for the
+PHRED score generation
+"""
 rule sort_raw_scores:
     input:
          gather_scores
@@ -242,7 +255,13 @@ rule add_position_counts:
         cat {input} | awk "{{s+=\$1}} END {{print s}}" > {output}
         '''
 
-# why are things hardcoded? can i make count better?
+"""
+Assigns phred scores to all variants, in addition to the raw scores.
+The phred scores are based on a genome-wide level; or as many chromosomes
+included in the analysis, rather than a chromosome wide ranking
+"""
+ ## (i think)
+
 rule assign_phred_scores:
     input:
         data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
@@ -253,72 +272,120 @@ rule assign_phred_scores:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
     output:
-        expand("results/whole_genome_scores/phred/chr{chr}.tsv",
-               chr=config["chromosomes"]["score"])
+        temp(expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+               chr=config["chromosomes"]["score"]))
     shell:
         """
+        echo "#Chrom,Pos,Ref,Alt,RAW" >> tmp
+        grep -vh "^#" {input.data} >> tmp
+
         counts=`cat {input.variant_count}`
         python3 {input.script} \
-        -i {input.data} \
+        -i tmp \
         -o {params.outmask} \
         --chroms {params.chromosomes} \
         --counts $counts
+
+        rm tmp
         """
 
-def gather_annotations(wildcards):
-  checkpoints.summarize_generation.get()
-  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
-  return natsorted(
-    expand(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_annotated.tsv",
-                  part=globed.part))
-
-
-# Gathers all files by run_id But each sample is still divided 
-# into runs For my real-world analysis, this could represent a 
-# 'samtools merge bam'
-rule merge_annotations:
+"""
+sort files based on genomic position instead of scores
+"""
+rule sort_phred_scores:
     input:
-        gather_annotations
+        "results/whole_genome_scores/phred/chr{chr}.tsv"
+    threads: 8
+    resources:
+        mem_mb=200000
     output:
-        "results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv"
-    shell:
-        '''
-        echo "##fileformat=VCFv4.1" >> {output}
-        echo "#CHROM\tPOS\tREF\tALT\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos/" >> {output}
-        grep -vh "^#" {input} >> {output}
-        '''
-
-rule cadd_consequence_bins:
-    input:
-        data="results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
-        annotaton="results/whole_genome_scores/phred/chr{chr}.tsv",
-        script=workflow.source_path(SCRIPTS_8 + "bin_consequences.py")
-    conda:
-         "../envs/common.yml"
-    output:
-        "results/consequence_bins/chr{chr}.csv"
+        "results/whole_genome_scores/phred/chr{chr}_sorted.tsv"
     shell:
         """
-        python3 {input.script} \
-        -i {input.data} \
-        -a {input.annotaton} \
-        -o {output}
+        LC_ALL=C sort \
+        --merge \
+        -t "," \
+        -k2gr \
+        -S {resources.mem_mb}M \
+        --parallel={threads} \
+         {input} > {output}
         """
 
-# using default mask sequence right now.
-rule cadd_summaries:
-    input:
-        data="results/whole_genome_scores/phred/chr{chr}.tsv",
-        script=workflow.source_path(SCRIPTS_8 + "compute_summaries.py")
-    conda:
-         "../envs/common.yml"
-    output:
-        "results/cadd_summaries/chr{chr}.csv"
-    shell:
-        """
-        python3 {input.script} \
-        -i {input.data}
-        """
+#################################################
+## Too memory exhausting right now, will be implemented later
+#################################################
+
+#rule index_phred_scores:
+#    input:
+#        "results/whole_genome_scores/phred/chr{chr}_sorted.tsv"
+#    threads: 8
+#    resources:
+#        mem_mb=200000
+#    output:
+#        compressed="results/whole_genome_scores/phred/chr{chr}_sorted.tsv.gz",
+#        index="results/whole_genome_scores/phred/chr{chr}_sorted.tsv.gz.tbi"
+#    conda:
+#        "../envs/score.yml" # TODO: check if tabix is here and bgzip
+#    shell:
+#          "bgzip -c {input} > {output.compressed} && "
+#          "tabix -f {output.compressed}"
+## [tabix] The file type not recognised and -p not given, using the preset [gff].
+#
+
+#def gather_annotations(wildcards):
+#  checkpoints.summarize_generation.get()
+#  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
+#  return natsorted(
+#    expand(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_annotated.tsv",
+#                  part=globed.part))
+#
+
+## Gathers all files by run_id But each sample is still divided 
+## into runs For my real-world analysis, this could represent a 
+## 'samtools merge bam'
+#rule merge_annotations:
+#    input:
+#        gather_annotations
+#    output:
+#        "results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv"
+#    shell:
+#        '''
+#        echo "##fileformat=VCFv4.1" >> {output}
+#        echo "#Chrom\tPos\tRef\tAlt\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos\tGERP_NS\tGERP_RS\tphastCons\tphyloP" >> {output}
+#        grep -vh "^#" {input} >> {output}
+#        '''
+
+#rule cadd_consequence_bins:
+#    input:
+#        data="results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
+#        annotaton="results/whole_genome_scores/phred/chr{chr}_sorted.tsv.gz",
+#        script=workflow.source_path(SCRIPTS_8 + "bin_consequences.py")
+#    conda:
+#         "../envs/common.yml"
+#    output:
+#        "results/consequence_bins/chr{chr}.csv"
+#    shell:
+#        """
+#        python3 {input.script} \
+#        -i {input.data} \
+#        -a {input.annotaton} \
+#        -o {output}
+#        """
+
+## using default mask sequence right now.
+#rule cadd_summaries:
+#    input:
+#        data="results/whole_genome_scores/phred/chr{chr}.tsv",
+#        script=workflow.source_path(SCRIPTS_8 + "compute_summaries.py")
+#    conda:
+#         "../envs/common.yml"
+#    output:
+#        "results/cadd_summaries/chr{chr}.csv"
+#    shell:
+#        """
+#        python3 {input.script} \
+#        -i {input.data}
+#        """
 
 
 
