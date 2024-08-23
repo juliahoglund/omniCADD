@@ -15,6 +15,7 @@ alignments:
       # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
     filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
       # bos_taurus, ovis_aries_rambouillet, equus_caballus, loxodonta_africana
+      # balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,felis_catus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,mus_spretus,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries_rambouillet,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris,sus_scrofa
     exclude_patterns: [ "scaffold", "epo.Y" ] 
       # Files including these strings will not be processed
     name_species_interest: "sus_scrofa"
