@@ -44,7 +44,7 @@ include: "rules/8_score_variants.smk"  			# step eight
 rule all:
         input:
                 #expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
-                #       ancestor = config["mark_ancestor"]["ancestral_alignment"], 
+                #       ancestor = config["mark_ancestor"]["name_ancestor"], 
                 #       chr = config["chromosomes"]["karyotype"], allow_missing=True),
                 #expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
                 #expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
