@@ -14,5 +14,4 @@ Dependencies
 Dependencies are all exported in the conda environment `model.yml`. The pipeline can be run within this environment, or with `snakemake --use-conda`
 
 ## TODO:
-- test rules and makesure they work
 - add possibility of validation set if available

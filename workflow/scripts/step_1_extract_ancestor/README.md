@@ -14,3 +14,5 @@ as on now, it depends on having an alignment that includes the reference species
 
 **To do**
 - update it with a rule with the possibilty of adding reference sequences to a prealigned MSA
+- update mark_outgroup to align with mark_ancestor in terms of input to conform to snakerule,
+		*or* add additional rule
