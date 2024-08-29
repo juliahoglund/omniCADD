@@ -14,11 +14,15 @@ configfile: "config.yaml"
 
 ##### PARAMS #####
 REFERENCE = "../resources/genome/"
-SCRIPTS_1 = "scripts/"
+SCRIPTS_1 = "../workflow/scripts/"
 
 SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
 
 ##### load modules  #####
-include: "rules/common.smk"             # common functions
+include: "../rules/common.smk"             # common functions
 include: "GERP_anotation.smk"
 
+##### target rules #####
+rule all:
+  input:
+    "results/logs/hal_conversion.txt"
