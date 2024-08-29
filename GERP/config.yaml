@@ -19,7 +19,5 @@ alignments:
 mark_ancestor:
   ancestral_alignment: "43_mammals.epo"
   name_ancestor: 'Ancestor_Elephant'
-  sp1_tree_ab: 'Lafr'
-  sp2_tree_ab: 'Pman'
   reference_genome: 'resources/genome/Loxodonta_africana_ref.fa'
   alignment_reference: 'homo_sapiens'
