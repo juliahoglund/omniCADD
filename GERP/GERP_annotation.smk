@@ -48,8 +48,6 @@ rule mark_refgroup:
 		f"{workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')}"
 	params:
 		ancestor = config['mark_ancestor']['name_ancestor'],
-		sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
-		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
 		name_sp1 = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
 		"../workflow/envs/ancestor.yml"
@@ -62,10 +60,7 @@ rule mark_refgroup:
 		" -i {input.maf}"
 		" -o {output}"
 		" -a {params.ancestor}"
-		" -l {log}"
 		" --sp1-label {params.name_sp1}"
-		" --sp1-ab {params.sp1_ab}"
-		" --sp2-ab {params.sp2_ab}"
 
 
 def get_df_input_maf(alignment):
@@ -108,7 +103,7 @@ rule maf_df:
 """
 rule maf_str:
 	input:
-		"results/alignment/merged/{alignment}/{part}.maf.gz"
+		"results/alignment/dedup/{alignment}/{part}.maf.gz"
 	params:
 		species_label = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
@@ -138,11 +133,12 @@ checkpoint maf2hal:
 		"maf2hal {input} {output} --refGenome {params.refGenome}"
 
 
-def gather_part_files:
+def gather_part_files(wildcards):
 	checkpoints.maf2hal.get()
 	globed = glob_wildcards(f"results/alignment/stranded/{wildcards.alignment}/{{part}}.maf.gz")
 	return expand(f"results/alignment/stranded/{wildcards.alignment}/{{part}}.hal",
-				part=globed.part)
+				part=globed.part, 
+				alignment=globed.alignment)
 
 rule collect_for_rule_all:
     input:
