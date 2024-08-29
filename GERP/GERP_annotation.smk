@@ -5,7 +5,6 @@
  :Date: 21-9-2023
 '''
 
-
 import sys
 
 """
@@ -20,10 +19,9 @@ rule clean_ambiguous:
 		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
 		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
 	conda:
-		"../../envs/ancestor.yml"
+		"../workflow/envs/ancestor.yml"
 	output:
 		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
-		# create temporary files and dirs
 	shell:
 		"python3 {input.script} -i {input.maf} -o {output}"
 
@@ -48,14 +46,13 @@ rule mark_refgroup:
 		script = lambda wildcards: workflow.source_path(SCRIPTS_1 + 'mark_ancestor.py')
 		if config["alignments"][wildcards.alignment]["ancestor"] == "True" else
 		f"{workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')}"
-
 	params:
 		ancestor = config['mark_ancestor']['name_ancestor'],
 		sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
 		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
 		name_sp1 = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
-		"../envs/ancestor.yml"
+		"../workflow/envs/ancestor.yml"
 	log:
 		"results/logs/{alignment}/{part}_mark_ancestor_log.txt"
 	output:
@@ -98,10 +95,10 @@ rule maf_df:
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	conda:
-		"../../envs/ancestor.yml"
+		"../workflow/envs/ancestor.yml"
 	threads: 2
 	output:
-		temp("results/alignment/dedup/{alignment}/{part}.maf.lz4")
+		temp("results/alignment/dedup/{alignment}/{part}.maf.gz")
 	shell:
 		"gzip -dc {input} | mafDuplicateFilter --maf /dev/stdin | lz4 -f stdin {output}"
 
@@ -111,16 +108,16 @@ rule maf_df:
 """
 rule maf_str:
 	input:
-		"results/alignment/merged/{alignment}/chr{chr}.maf.gz"
+		"results/alignment/merged/{alignment}/{part}.maf.gz"
 	params:
 		species_label = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
 	conda:
-		"../envs/ancestor.yml"
+		"../workflow/envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 6
 	output:
-		temp("results/alignment/stranded/{alignment}/chr{chr}.maf.gz")
+		temp("results/alignment/stranded/{alignment}/{part}.maf.gz")
 	shell:
 		"gzip -dc {input} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + | gzip > {output} && gzip -9 {input}"
 
@@ -128,11 +125,32 @@ rule maf_str:
 """	
  Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand. 
 """
-rule maf2hal:
+checkpoint maf2hal:
+	input:
+		"results/alignment/stranded/{alignment}/{part}.maf.gz"
+	params:
+		refGenome = config['mark_ancestor']['alignment_reference']
+#	container:
+#		"cactus_v2.2.0-gpu.sif"
+	output: 
+		"results/alignment/hal/{alignment}/{part}.hal"
+	shell:
+		"maf2hal {input} {output} --refGenome {params.refGenome}"
 
-shell:
-	"maf2hal 1_1.stranded.maf 1_1.hal --refGenome homo_sapiens"
 
+def gather_part_files:
+	checkpoints.maf2hal.get()
+	globed = glob_wildcards(f"results/alignment/stranded/{wildcards.alignment}/{{part}}.maf.gz")
+	return expand(f"results/alignment/stranded/{wildcards.alignment}/{{part}}.hal",
+				part=globed.part)
+
+rule collect_for_rule_all:
+    input:
+         gather_part_files
+    output:
+         report("results/logs/hal_conversion.txt", category="Logs")
+    shell:
+         "tail -n +2 {input} > {output}"
 
 """
 here fix add animal
