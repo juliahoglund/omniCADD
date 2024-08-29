@@ -6,25 +6,20 @@ species_name: "loxodonta_africana"
 
 alignments:
   43_mammals.epo:
-    path: 'resources/alignment/'
+    path: '../resources/alignment/'
     type: 'maf.gz'
     clean_maf: 'True'
     ancestral_label: "Ancestor_Elephant" 
-      # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
     filter_order: "loxodonta_africana,Ancestor_Elephant,peromyscus_maniculatus_bairdii,balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,felis_catus,gorilla_gorilla,homo_sapiens,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,mus_spretus,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries_rambouillet,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,phocoena_sinus,physeter_catodon,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris,sus_scrofa"
-      # bos_taurus, ovis_aries_rambouillet, equus_caballus, loxodonta_africana
     exclude_patterns: [ "scaffold", "epo.Y" ] 
       # Files including these strings will not be processed
     name_species_interest: "loxodonta_africana"
-    chrom_prefix: "chr" # prefix of chromosome in sequence label: mm39.chr[CHR]
-    # is this needed later if not in sort by chr?
     ancestor: "False"
 
 mark_ancestor:
   ancestral_alignment: "43_mammals.epo"
   name_ancestor: 'Ancestor_Elephant'
-    # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
   sp1_tree_ab: 'Lafr'
   sp2_tree_ab: 'Pman'
-    # Btau, Oram, Ecab, Lafr
   reference_genome: 'resources/genome/Loxodonta_africana_ref.fa'
+  alignment_reference: 'homo_sapiens'
