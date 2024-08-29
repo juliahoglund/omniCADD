@@ -20,7 +20,7 @@ SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
 
 ##### load modules  #####
 include: "../rules/common.smk"             # common functions
-include: "GERP_anotation.smk"
+include: "GERP_annotation.smk"
 
 ##### target rules #####
 rule all:
