@@ -85,8 +85,6 @@ def main(args):
 		elif lines.startswith(name_ancestor):
 			newline = lines.strip().split('.')[1]
 			outfile.write('s\tAncestor_' + args.ancestor + '.' + ('\t').join(newline.split()) + '\n')
-		elif lines.startswith('##maf'):
-			next
 		else:
 			outfile.write(('\t').join(lines.split()) + '\n')
 
