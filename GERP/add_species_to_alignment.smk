@@ -12,9 +12,7 @@
 import sys
 
 """
-Global wildcard constraints, ease matching of wildcards in rules.
-Chr is constrained to only be numbers or letters.
-Name, label and file may not contain /, they may not be sub-folders.
+change later to match what is needed
 """
 wildcard_constraints:   
      chr="[a-zA-Z0-9]+",
@@ -22,15 +20,9 @@ wildcard_constraints:
      label="[^/]+",
      name="[^/]+"
 
-"""
-Bgzip_tabix combines bgzip and the tabix rule to reduce overhead.
-This prioritises the combined rule over just tabix,
-desired since they produce the same output.
-Bgzip_validation_variants has the highest priority since 
-it also handles moving the variants into the results folder.
-"""
 ruleorder: index_reference > map_to_reference
 
+#### rules
 
 rule outgroups2fastq:
     """
@@ -91,6 +83,7 @@ rule map_to_reference:
 		"aligner.yml"
 	shell:
 		"bwa mem -t 32 -B 3 -O 4,4 {input.reference} {input.fastq} > {outgroup}"
+		## update till bwa mem 2 whats the difference?
 
 
 
