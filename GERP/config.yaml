@@ -25,3 +25,14 @@ mark_ancestor:
   sp2_tree_ab: 'Lafr'
   # rename here, these have to be something, and the thing making it the outermost one, otherwise 
   # it cannot find the node and renames the actual species of interest if that one is the "outgorup"
+
+
+
+# New, non-cactus version to be updated with
+  ###########
+  realignment:
+    alignment_reference: "eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz"
+    seq_path: "seqdir/"
+    reference_genome: 'eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz
+
+
