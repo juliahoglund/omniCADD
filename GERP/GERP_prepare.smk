@@ -15,6 +15,48 @@
 import sys
 
 """
+ Identifies the most recent common ancestor between two given species and marks it with an identifier.
+ Config input:
+    "ancestor", 	what to name the ancestral node of interest (example: Mouse_Rat)
+    "sp1_ab",		name of sp1 in the tree 
+    				(how it is named in the alignment file tree section)
+    "sp2_ab", 		name of sp2 in the tree (the ancestor of sp1 and 2 will be selected)
+    "name_sp1", 	name/label of the species of interest 
+    				(how it is named in the alignment file alignment section)
+"""
+#rule mark_refgroup:
+#	input:
+#		maf = lambda wildcards: 
+#		"results/alignment/cleaned_maf/{alignment}/{part}.maf"
+#		if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
+#		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
+#
+#		script = lambda wildcards: workflow.source_path(SCRIPTS_1 + 'mark_ancestor.py')
+#		if config["alignments"][wildcards.alignment]["ancestor"] == "True" else
+#		f"{workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')}"
+#
+#	params:
+#		ancestor = config['mark_ancestor']['name_ancestor'],
+#		sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
+#		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
+#		name_sp1 = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
+#	conda:
+#		"../config/ancestor.yml"
+#	log:
+#		"results/logs/{alignment}/{part}_mark_ancestor_log.txt"
+#	output:
+#		temp("results/alignment/marked_ancestor/{alignment}/{part}.maf")
+#	shell:
+#		"python3 {input.script}"
+#		" -i {input.maf}"
+#		" -o {output}"
+#		" -a {params.ancestor}"
+#		" -l {log}"
+#		" --sp1-label {params.name_sp1}"
+#		" --sp1-ab {params.sp1_ab}"
+#		" --sp2-ab {params.sp2_ab}"
+
+"""
  Parse MAF file and removes ambiguous nucleotides from the alignment.
  All 11 ambiguous symbols are converted to N.
  Only needs to be used if directly processing the .maf files in maftools results in errors.
@@ -33,43 +75,6 @@ rule clean_ambiguous:
 		"python3 {input.script} -i {input.maf} -o {output}"
 
 
-"""
- Identifies the most recent common ancestor between two given species and marks it with an identifier.
- Config input:
-    "ancestor", 	what to name the ancestral node of interest (example: Mouse_Rat)
-    "sp1_ab",		name of sp1 in the tree 
-    				(how it is named in the alignment file tree section)
-    "sp2_ab", 		name of sp2 in the tree (the ancestor of sp1 and 2 will be selected)
-    "name_sp1", 	name/label of the species of interest 
-    				(how it is named in the alignment file alignment section)
-"""
-rule mark_refgroup:
-	input:
-		maf = lambda wildcards: 
-		"results/alignment/cleaned_maf/{alignment}/{part}.maf"
-		if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
-		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf",
-
-		script = lambda wildcards: workflow.source_path(SCRIPTS_1 + 'mark_ancestor.py')
-		if config["alignments"][wildcards.alignment]["ancestor"] == "True" else
-		f"{workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')}"
-	params:
-		ancestor = config['mark_ancestor']['name_ancestor'],
-		name_sp1 = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
-	conda:
-                "../config/ancestor.yml"
-	log:
-		"results/logs/{alignment}/{part}_mark_ancestor_log.txt"
-	output:
-		temp("results/alignment/marked_ancestor/{alignment}/{part}.maf")
-	shell:
-		"python3 {input.script}"
-		" -i {input.maf}"
-		" -o {output}"
-		" -a {params.ancestor}"
-		" --sp1-label {params.name_sp1}"
-
-
 def get_df_input_maf(alignment):
 	"""
 	Input based on configuration. If ancestor must be marked that rule is input, if not and also no cleaning is needed,
@@ -80,8 +85,9 @@ def get_df_input_maf(alignment):
 	"""
 
 	if config["mark_ancestor"]["ancestral_alignment"] == alignment:
-		return "results/alignment/marked_ancestor/{alignment}/{part}.maf"
-
+		#return "results/alignment/marked_ancestor/{alignment}/{part}.maf"
+		return f"{config['alignments'][alignment]['path']}{{part}}.maf"
+		
 	if config["alignments"][alignment]["clean_maf"] == "True":
 		return "results/alignment/cleaned_maf/{alignment}/{part}.maf"
 
@@ -135,25 +141,3 @@ checkpoint maf2hal:
 		"results/alignment/hal/{alignment}/{part}.hal"
 	shell:
 		"maf2hal {input} {output} --refGenome {params.refGenome}"
-
-
-"""
-prepares all info needed for running cactus and updatng the alignment
-"""
-rule cactus_prepare:
-	input:
-		hal = "results/alignment/hal/{alignment}/{part}.hal"
-		seq = "input-seq.txt" 			# TODO: change to "/PATH/TO/INOUT/IN/CONFIG" 
-	params:
-		genome = "Eutheria"				# TODO: change to "NAME/OF/NODE/IN/CONFIG"
-	container:
-		"cactus_v2.2.0-gpu.sif"			# TODO: change this to path in config file, and mayeb if not wget else use??
-	threads: 2
-	output:
-		outDir = "./steps"				# TODO: change to config, have these as defult in some way?
-		jobStore = "./jobStore"
-	shell:
-		"cactus-update-prepare add node {input.hal} {input.seq}"
-		" --genome {params.genome}"
-		" --outDir {output.outDir}"
-		" --jobStore {output.jobStore}"
