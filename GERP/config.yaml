@@ -30,9 +30,14 @@ mark_ancestor:
 
 # New, non-cactus version to be updated with
   ###########
+species_name: "elephas_maximus"
+
   realignment:
-    alignment_reference: "eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz"
+    alignment_reference: "eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz" 
+    # combine this and the other one
     seq_path: "seqdir/"
-    reference_genome: 'eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz
+    reference_genome: 'eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz'
+    exclude_patterns: ['NW_']
+    # todo: incorporate this
 
 
