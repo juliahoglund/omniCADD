@@ -158,7 +158,7 @@ def gather_part_files(alignment):
 	infiles = expand(
 		f"results/alignment/row_ordered/{alignment}/{{part}}.maf.lz4", part = parts_filtered)
 
-	# If no files were found fail because the rule cannot be run
+# If no files were found fail because the rule cannot be run
 	if len(infiles) == 0:
 		sys.exit(f"No alignment parts found in the form {input_pattern}")
 
