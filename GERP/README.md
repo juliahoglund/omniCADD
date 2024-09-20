@@ -6,7 +6,7 @@
 ml bioinfo-tools mafTools
 ml PDC apptainer hal
 module unload python
-ml python3
+ml python3 snakemake
 # ml cactus
 ```
 
