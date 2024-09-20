@@ -1,0 +1,43 @@
+chromosomes:
+  autosomes: [ '27' ]
+  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', 'X']
+  
+species_name: "loxodonta_africana"
+
+alignments:
+  43_mammals.epo:
+    path: '../resources/alignment/'
+    type: 'maf.gz'
+    clean_maf: 'True'
+    ancestral_label: "Ancestor_Elephant" 
+    filter_order: "loxodonta_africana,Ancestor_Elephant,peromyscus_maniculatus_bairdii,balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,felis_catus,gorilla_gorilla,homo_sapiens,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,mus_spretus,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries_rambouillet,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,phocoena_sinus,physeter_catodon,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris,sus_scrofa"
+    exclude_patterns: [ "scaffold", "epo.Y" ] 
+      # Files including these strings will not be processed
+    name_species_interest: "mus_musculus" # rename this here
+    ancestor: "True"
+
+mark_ancestor:
+  ancestral_alignment: "43_mammals.epo"
+  name_ancestor: 'Ancestor_Elephant'
+  reference_genome: 'resources/genome/Loxodonta_africana_ref.fa'
+  alignment_reference: 'homo_sapiens'
+  sp1_tree_ab: 'Mmus'
+  sp2_tree_ab: 'Lafr'
+  # rename here, these have to be something, and the thing making it the outermost one, otherwise 
+  # it cannot find the node and renames the actual species of interest if that one is the "outgorup"
+
+
+
+# New, non-cactus version to be updated with
+  ###########
+species_name: "elephas_maximus"
+
+  realignment:
+    alignment_reference: "eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz" 
+    # combine this and the other one
+    seq_path: "seqdir/"
+    reference_genome: 'eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz'
+    exclude_patterns: ['NW_']
+    # todo: incorporate this
+
+

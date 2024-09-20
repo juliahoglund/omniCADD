@@ -1,0 +1,28 @@
+
+from snakemake.utils import min_version
+from glob import glob
+import os
+
+##### pipeline version ######
+GERP_version = "1.0.0"
+
+##### set minimum snakemake version #####
+min_version("7.21.0")
+
+##### Load config #####
+configfile: "config.yaml"
+
+##### PARAMS #####
+REFERENCE = "../resources/genome/"
+SCRIPTS_1 = "../workflow/scripts/"
+
+SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
+
+##### load modules  #####
+include: "../rules/common.smk"             # common functions
+include: "GERP_annotation.smk"
+
+##### target rules #####
+rule all:
+  input:
+    "results/logs/hal_conversion.txt"
