@@ -191,6 +191,3 @@ rule concat_scaffolds: # sort by chromosome
 	shell:
 		"cat {input} >> {output}"
 
-###### WHY ARE ONLY 35 OUT OF 43 ALIGNED?? doesnt matter but still. 
-## --> LATER EXTRACT FROM ALIGNMENT? OR REALIGN FROM START AND THEN ANCESTOR ONLY FROM CACTUS?
-
