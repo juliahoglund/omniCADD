@@ -1,0 +1,46 @@
+# TODO: make this incorporated in the config file or a separate config
+
+GENETIC_CODE_TABLE=1
+# https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi
+GENETIC_CODE_TABLENAME=Standard
+# not used, only as reminder to user what table is used
+MITO_GENETIC_CODE_TABLE=2
+MITO_GENETIC_CODE_TABLENAME=Vertebrate Mitochondrial
+# reminder (not used)
+
+PARENT_DIR=../../resources/SIFT4G
+# where to direct output, note that the rule enters the location of the sift scripts,
+# dont change
+ORG=sus_scrofa # needs to match the other config file, fix later
+# organism name, one word, no special characters
+ORG_VERSION=Sus_scrofa11.1
+# organism version, final prediction database will be in parent_dir/organism_version
+# have to match config link later
+
+# Running SIFT 4G
+SIFT4G_PATH=sift4g
+# path to sift4g executable, /sift4g/bin/sift4g if running with Docker
+# where if conda? check
+PROTEIN_DB=/bigdrive/SIFT_databases/uniprot_sprot.fasta
+# path to protein database
+
+
+# Sub-directories, don't need to change
+GENE_DOWNLOAD_DEST=gene-annotation-src
+CHR_DOWNLOAD_DEST=chr-src
+LOGFILE=Log.txt
+ZLOGFILE=Log2.txt
+FASTA_DIR=fasta
+SUBST_DIR=subst
+ALIGN_DIR=SIFT_alignments
+SIFT_SCORE_DIR=SIFT_predictions
+SINGLE_REC_BY_CHR_DIR=singleRecords
+SINGLE_REC_WITH_SIFTSCORE_DIR=singleRecords_with_scores
+DBSNP_DIR=dbSNP
+
+# Doesn't need to change
+FASTA_LOG=fasta.log
+INVALID_LOG=invalid.log
+PEPTIDE_LOG=peptide.log
+ENS_PATTERN=ENS
+SINGLE_RECORD_PATTERN=:change:_aa1valid_dbsnp.singleRecord
