@@ -332,13 +332,69 @@ rule run_dless:
 ##### SIFT AND SNPEFF ANNOTATION #########
 ##########################################
 
-rule run_sift:
+'''
+SIFT only uses gtf so if only gff is available, 
+this rule have to be run
+TODO: make codnitional with [stats_report][is_gtf] True/False
+'''
+rule convert_gff:
     input:
-    params:
+        annotation=f"{config['stats_report']['gff']}"
+    output:
+        f"{config['stats_report']['gtf']}" # TODO: make neater, compress on the go
+    conda:
+        "../envs/annotation.yml"
+    shell:
+        '''
+        gunzip -c {input} > tmp.gff3
+        out=`echo {output} | sed 's/.gz//'`
+        gffread tmp.gff3 -T -o $out
+        gzip $out
+        rm tmp.gff3
+        '''
+
+rule prepare_database:
+    input:
+        config="../config/sift4g_config.yaml",
+        script = workflow.source_path(SCRIPTS_SIFT + 'make-SIFT-db-all.pl')
+    output: # check what comes else log file
+        temp("sift_create_database.txt")
     conda:
         "../envs/annotation.yml"
     singularity:
         "docker://juliahoglund/sift4g:latest"
+    shell:
+        "perl {input.script} -config {input.config} &&"
+        "echo finished creating database for SIFT4g > {output}"
+
+
+rule run_sift:
+    input:
+        vcf="{folder}/chr{chr}.vcf.gz", # make sure it finds both simulated and 
+                                        # derived from the correct folders
+                parent=f"resources/SIFT4G/{config['species_name']}",
+        annotation=f"{config['stats_report']['gtf']}",
+        genome=config['mark_ancestor']['reference_genome'],
+        # database: "<parent_dir>/dbSNP/compressed_dbSNP_vcf.vcf.gz", # TODO: make optional
+        # protein: "<parent_dir>/gene-annotation-src/compressed_protein_file.pep.all.fa.gz", # TODO: make optional
+    params: 
+        annotator: "resources/SIFT4G_Annotator.jar"
+        genome_target: f"resources/SIFT4G/{config['species_name']}/chr-src/{{file}}.fa.gz" # does it have to start with chr.nr
+    conda:
+        "../envs/annotation.yml"
+    singularity:
+        "docker://juliahoglund/sift4g:latest"
+    shell:
+        ""
+        "java -jar {params.annotator} " 
+        "-c -i <Path to input vcf file> "¨
+        "-d <Path to SIFT4G database directory> "
+        "-r <Path to your results folder> -t"
+
+
+
+
+
 
 rule run_polyphen:
 
