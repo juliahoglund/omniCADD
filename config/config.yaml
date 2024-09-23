@@ -3,8 +3,10 @@ chromosomes:
   karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
   train: [ '1', '2', '3', '4', '5' ]
   score: [ '1', '2', '3', '4', '5' ]
-  
+
+# TODO: reorder config and re-implement for better flow
 species_name: "sus_scrofa"
+genome_version: "Sus_scrofa11.1"
 
 alignments:
   43_mammals.epo:
@@ -44,6 +46,11 @@ generate_variants:
 stats_report:
   annotation: 'True'
   gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
+  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
+  # if gtf is available, put its path here (compressed), 
+  # if not, put the desired name of converted file here
+  is_gtf: 'False'
+  # change to match gtf/gff availablility
   prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
   tree: 'resources/tree_43_mammals.nh'
   ingroup: 'sus scrofa' # has to be small letters only
@@ -69,6 +76,8 @@ annotation:
       directory: '$VEP_CACHE' # vep/111.0 $VEP_CACHE resources/vep
       should_install: False # Should we install or assume that it has been installed by the user?
       install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1" # Version, species and (optional: assembly).
+  sift:
+
 
 annotation_config:
   processing: "config/annotation_processing.tsv"
