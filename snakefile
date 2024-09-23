@@ -25,6 +25,7 @@ SCRIPTS_6 = "scripts/step_6_combine_annotations"
 SCRIPTS_7 = "scripts/step_7_train_test_model"
 SCRIPTS_8 = "scripts/step_8_score_variants"
 
+SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
 SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
 SCRIPTS_HELPER = "workflow/data_helper.py"
@@ -45,10 +46,10 @@ rule all:
         input:
                 #expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
                 #       ancestor = config["mark_ancestor"]["name_ancestor"], 
-                #       chr = config["chromosomes"]["karyotype"], allow_missing=True),
+                #       chr = config["chromosomes"]["karyotype"]),
                 #expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
                 #expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
-                #"results/visualisation/raw_summary.log", "results/visualisation/filtered_summary.log", "results/visualisation/parameter_summary.log"
+                #"results/visualisation/raw_summary.log", "results/visualisation/filtered_summary.log", "results/visualisation/parameter_summary.log"   
                 #"results/visualisation/stats_report.html"
                 #expand("results/annotation/vep/{type}/chr{chr}_vep.tsv", 
                 #       chr = config["chromosomes"]["karyotype"],
@@ -61,26 +62,19 @@ rule all:
                 #        part=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]),
                 #expand("results/annotation/gerp/chr{chr}/chr{chr}-{part}.rates.parsed",
                 #        chr=config["chromosomes"]["karyotype"],
-                #        part=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]),
+                #        part=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]),              
                 #expand("results/dataset/{type}/chr{chr}_annotated.tsv",
                 #       type = ['simulated', 'derived'],
                 #       chr = config['chromosomes']['karyotype']),
-                #"results/figures/column_analysis/relevance.tsv", 
-                #"results/figures/column_analysis/derived_variants_corr.tsv", 
-                #"results/figures/column_analysis/simulated_variants_corr.tsv", 
-                #"results/figures/column_analysis/combined_variants_corr.tsv",
+                #"results/figures/column_analysis/relevance.tsv", "results/figures/column_analysis/derived_variants_corr.tsv", "results/figures/column_analysis/simulated_variants_corr.tsv", "results/figures/column_analysis/combined_variants_corr.tsv",
                 #"results/dataset/imputation_dict.txt",
                 #expand("results/dataset/{type}/chr{chr}.npz",
                 #        type = ['simulated', 'derived'],
                 #        chr = config['chromosomes']['karyotype']),
-                #"results/model/All/full.mod.pickle", "results/model/All/full.scaler.pickle", "results/model/All/full.mod.weights.csv",
-				expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
-				               chr=config["chromosomes"]["score"]),
-				expand("results/whole_genome_scores/phred/chr{chr}.tsv",
-				               chr=config["chromosomes"]["score"])
-				expand("results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv,"
-				               chr=config["chromosomes"]["score"]),
-				expand("results/consequence_bins/chr{chr}.csv",
-				               chr=config["chromosomes"]["score"])
-				expand("results/whole_genome_scores/phred/chr{chr}.tsv",
-				               chr=config["chromosomes"]["score"])
+                #"results/model/All/full.mod.pickle", "results/model/All/full.scaler.pickle", "results/model/All/full.mod.weights.csv", 
+                #expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+                #        chr = config['chromosomes']['karyotype']),
+                #expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+                #        chr=config["chromosomes"]["score"]),
+                #expand("results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
+                #         chr=config["chromosomes"]["score"]),
