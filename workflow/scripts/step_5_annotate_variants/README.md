@@ -18,6 +18,7 @@ Dependencies
 - vep
 - PHAST
 - GERP
+- SIFT
 - seqtk
 - biopython
 - wig2bed (bedops)
@@ -31,8 +32,8 @@ Dependencies are all exported in the conda environment `annotation.yml`. The pip
 `split_alignments.py`: [the virtual laboratory](https://thevirtuallaboratory.com/blog/splitting-a-multi-fasta)
 `gerp_to_position.py`: [GenErode pipeline](https://github.com/NBISweden/GenErode)
 `prune_cols.py`: [compbio-utils](https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py)
+`make-SIFT-db-all.pl`: [pauline-ng;SIFT4G_Create_Genomic_DB](https://github.com/pauline-ng/SIFT4G_Create_Genomic_DB)
 
 
 ## TODO
 - implement the unimplemented rules and annotations
-- solve pipeline issues
