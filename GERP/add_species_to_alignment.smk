@@ -179,15 +179,81 @@ def gather_scaffolds(scaffold):
 
 	return infiles
 
-
 """
 description later
 """
-rule concat_scaffolds: # sort by chromosome
+rule concat_scaffolds:
 	input:
-		lambda wildcards: gather_scaffolds(wildcards.scaffold), # TODO: exclude non wanted scaffolds
+		outgroups = lambda wildcards: gather_scaffolds(wildcards.scaffold), # TODO: exclude non wanted scaffolds
+		reference = 
 	output:
-		f"results/alignment/{{scaffold}}_{config['species_name']}.fasta"
+		temp(f"results/alignment/{{scaffold}}_{config['species_name']}.fasta")
 	shell:
-		"cat {input} >> {output}"
+		"cat {input.outgroups} >> {output}"
+
+"""
+rule split ref to chromosomes,
+untested
+"""
+rule split_reference:
+	input:
+		reference=config['realignment']['reference_genome']
+	params:
+		target_dir="resources/scaffolds"
+	output:
+		temp("split_reference_.txt"),
+	shell:
+		'''
+		mkdir -p {params.target_dir}
+		if (file yourTestFile | grep -q compressed ) ; then
+     		gunzip -c {input.reference} > tmp.fa
+		fi
+		
+		faidx --split-files tmp.fa
+		rm tmp.fa
+
+		echo splitting {input.reference} done > {output}
+		'''
+
+"""
+adds the reference species to the alignment file
+add more description later
+untested
+"""
+rule add_reference:
+	input:
+		reference = "resources/scaffolds/{scaffold}.fa",
+		outgroups = f"results/alignment/{{scaffold}}_{config['species_name']}.fasta"
+	output: 
+		f"results/alignment/{{scaffold}}_{config['species_name']}_multiway.fasta"
+	shell:
+		"cat {input.reference} {input.outgroups} > {output}"
+
+"""
+description later
+RAXML tree generation.
+"""
+rule make_tree:
+	input:
+		f"results/alignment/{{scaffold}}_{config['species_name']}_multiway.fasta"
+	params:
+		prefix = f"{{scaffold}}_{config['annotation']['raxml']['out_prefix']}",
+		bs_threshold = config['annotation']['raxml']['bootstrap_threshold'],
+		bs_iter = config['annotation']['raxml']['bootstrap_iterations'],
+		model = config['annotation']['raxml']['model'],
+	output:
+		# prefix + nwk (?)
+	threads: 10
+	conda:
+		"aligner.yml"
+	shell:
+		"raxmlHPC-PTHREADS "
+		"-b 12345 -p 12345 "
+		"-s {input} "
+		"-m  {params.model} "
+		"-n {params.prefix} "
+		"-T {threads} "
+		" -B {params.bs_threshold} "
+		" -N {params.bs_iter} "
+
 
