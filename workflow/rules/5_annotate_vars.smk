@@ -353,10 +353,18 @@ rule convert_gff:
         rm tmp.gff3
         '''
 
+# TODO make copies files temporary or soft link it!!
+# reference genome needs to be multiline for 
+# perl limitations, if not, then change.
 rule prepare_database:
     input:
-        config="../config/sift4g_config.yaml",
-        script = workflow.source_path(SCRIPTS_SIFT + 'make-SIFT-db-all.pl')
+        genome=config['generate_variants']['reference_genome_wildcard'],
+        annotation=f"{config['stats_report']['gtf']}",
+        config="../../config/sift4g_config.yaml",
+    params:
+        genome_dir=f"resources/SIFT4G/{config['species_name']}/chr-src/"
+        annotation_dir=f"resources/SIFT4G/{config['species_name']}/gene-annotation-src/"
+        sift_dir=workflow.source_path(SCRIPTS_SIFT)
     output: # check what comes else log file
         temp("sift_create_database.txt")
     conda:
@@ -364,7 +372,12 @@ rule prepare_database:
     singularity:
         "docker://juliahoglund/sift4g:latest"
     shell:
-        "perl {input.script} -config {input.config} &&"
+        "for file in {input.genome}; do "
+        "name=`echo $file | grep -o '[^/]*$'`; "
+        "tr "\t" "\n" < $file | fold -w 60 > {params.genome_dir}$name"
+        "gzip {params.genome_dir}*"
+        "cp {input.annotation} {params.annotation_dir}" 
+        "perl make-SIFT-db-all.pl -config {input.config} && "
         "echo finished creating database for SIFT4g > {output}"
 
 
