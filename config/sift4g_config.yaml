@@ -1,16 +1,16 @@
 # TODO: make this incorporated in the config file or a separate config
 
 GENETIC_CODE_TABLE=1
-# https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi
+# for code explanation see: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi
 GENETIC_CODE_TABLENAME=Standard
 # not used, only as reminder to user what table is used
 MITO_GENETIC_CODE_TABLE=2
+# for information, see link above
 MITO_GENETIC_CODE_TABLENAME=Vertebrate Mitochondrial
 # reminder (not used)
 
 PARENT_DIR=../../resources/SIFT4G
-# where to direct output, note that the rule enters the location of the sift scripts,
-# dont change
+# where to direct, keep unchanged
 ORG=sus_scrofa # needs to match the other config file, fix later
 # organism name, one word, no special characters
 ORG_VERSION=Sus_scrofa11.1
@@ -20,9 +20,9 @@ ORG_VERSION=Sus_scrofa11.1
 # Running SIFT 4G
 SIFT4G_PATH=sift4g
 # path to sift4g executable, /sift4g/bin/sift4g if running with Docker
-# where if conda? check
+# only sift4g if running in conda env 
 PROTEIN_DB=/resources/SIFT4G/uniref90.fasta.gz
-# path to protein database
+# path to protein database, keep unchanged
 # recommnded: ftp://ftp.ebi.ac.uk/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
 
 
