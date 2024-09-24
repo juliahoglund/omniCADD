@@ -355,7 +355,8 @@ rule convert_gff:
 
 # TODO make copies files temporary or soft link it!!
 # reference genome needs to be multiline for 
-# perl limitations, if not, then change.
+# perl limitations, if not, then change. -> make an ifelse
+# make ifelse to download protein database
 rule prepare_database:
     input:
         genome=config['generate_variants']['reference_genome_wildcard'],
