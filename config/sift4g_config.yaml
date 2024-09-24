@@ -21,8 +21,9 @@ ORG_VERSION=Sus_scrofa11.1
 SIFT4G_PATH=sift4g
 # path to sift4g executable, /sift4g/bin/sift4g if running with Docker
 # where if conda? check
-PROTEIN_DB=/bigdrive/SIFT_databases/uniprot_sprot.fasta
+PROTEIN_DB=/resources/SIFT4G/uniref90.fasta.gz
 # path to protein database
+# recommnded: ftp://ftp.ebi.ac.uk/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
 
 
 # Sub-directories, don't need to change
