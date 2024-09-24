@@ -32,12 +32,16 @@ mark_ancestor:
   ###########
 species_name: "elephas_maximus"
 
-  realignment:
-    alignment_reference: "eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz" 
-    # combine this and the other one
-    seq_path: "seqdir/"
-    reference_genome: 'eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz'
-    exclude_patterns: ['NW_']
-    # todo: incorporate this
+realignment:
+  reference_genome: 'eleMax/GCF_024166365.1_mEleMax1_primary_haplotype_genomic.fna.gz'
+  seq_path: "seqdir/"
+  exclude_patterns: ['NW_']
+  # todo: incorporate this
 
+annotation:
+  raxml:
+    tree_prefix: '43_mammals'
+    no_iterations: 1000
+    bootstrap_threshold: 0.03 # default; recommended
+    model: 'GTRGAMMA' # GTR hardcoded in variant simulation
 
