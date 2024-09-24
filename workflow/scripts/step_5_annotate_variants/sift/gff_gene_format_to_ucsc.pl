@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 use strict;
 use Class::Struct;
-use Switch;
+#use Switch;
+use feature 'switch';
 #require 'common-utils.pl';
 use File::Basename;
 use Cwd qw(abs_path);
@@ -303,6 +304,7 @@ sub check_chr_orientation
         }
 }
 
+# changed from switch / case to given / when
 sub add_info_to_transcript
 {
         my ($tx, $line) = @_;
@@ -311,13 +313,14 @@ sub add_info_to_transcript
         my $beg = $fields[3] - 1;
         my $end = $fields[4];
         check_chr_orientation ($tx, $fields[0], $fields[6]);
-        switch ($fields[2]) {
-                case "exon" {
+        given ($fields[2]) 
+        {
+                when ("exon") {
                         push (@{$tx->exon_starts}, $beg);
                         push (@{$tx->exon_ends}, $end);
                         #print "entered exon $line \n";         
                  }
-                case "CDS" {
+                when ("CDS") {
                         push (@{$tx->cds_starts}, $beg);
                         push (@{$tx->cds_ends}, $end);
 			if ($line =~ /exon_number \"1\"/) {
@@ -325,17 +328,17 @@ sub add_info_to_transcript
                         #print "entered CDS $line \n";  
 			}
                 }
-                case "stop_codon" {
+                when ("stop_codon") {
                         $tx->stop_beg ( $beg);
                         $tx->stop_end ( $end);
                         #print "entered stop codon $line \n";  
                 }
-                case "start_codon" {
+                when ("start_codon") {
                         $tx->start_beg ( $beg);
                         $tx->start_end ($end);
                         #print "stop codon $line \n";  
                 }
-                else {
+                default {
                         #print "did not process $line";
 		}
         } # end switch statement
@@ -449,3 +452,9 @@ foreach my $tx_id (keys %transcript_hash) {
 close (OUT);
 close (NONCOD); 
 exit (0); 
+
+# given is experimental at scripts/sift/gff_gene_format_to_ucsc.pl line 316.
+# when is experimental at scripts/sift/gff_gene_format_to_ucsc.pl line 318.
+# when is experimental at scripts/sift/gff_gene_format_to_ucsc.pl line 323.
+# when is experimental at scripts/sift/gff_gene_format_to_ucsc.pl line 331.
+# when is experimental at scripts/sift/gff_gene_format_to_ucsc.pl line 336.
