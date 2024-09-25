@@ -215,6 +215,8 @@ rule split_reference:
 		echo splitting {input.reference} done > {output}
 		'''
 
+### RENAME TO SPECIES NAME IN FILE BEFORE CONCAT
+
 """
 adds the reference species to the alignment file
 add more description later
