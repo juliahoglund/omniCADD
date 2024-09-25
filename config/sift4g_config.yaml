@@ -21,7 +21,7 @@ ORG_VERSION=Sus_scrofa11.1
 SIFT4G_PATH=sift4g
 # path to sift4g executable, /sift4g/bin/sift4g if running with Docker
 # only sift4g if running in conda env 
-PROTEIN_DB=/resources/SIFT4G/uniref90.fasta.gz
+PROTEIN_DB=resources/SIFT4G/uniref90.fasta.gz
 # path to protein database, keep unchanged
 # recommnded: ftp://ftp.ebi.ac.uk/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
 
