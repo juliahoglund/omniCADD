@@ -22,6 +22,12 @@ Global wildcard constraints, ease matching of wildcards in rules.
 wildcard_constraints:   
      part="[a-zA-Z0-9-]+",
 
+
+
+###############
+##### VEP #####
+###############
+
 """
 Optional rule that installs the needed VEP cache using the vep_install tool
 included with VEP. It is used with the -n no update flag and a set version for reproducibility.
@@ -89,8 +95,10 @@ rule process_vep:
          "mv results/derived_variants/singletons/*vep* results/annotation/vep/derived "
          "mv results/simulated_variants/trimmed_snps/*vep* results/annotation/vep/simulated "
 
-# TODO: double check later that is works in pipeline
-# rules have not been tested separately and together yet
+################
+##### GERP #####
+################
+
 checkpoint split_alignment:
     """
     Splits the maf files in to chunks of size N. While the maf files are split in 
@@ -217,7 +225,11 @@ rule gerp2coords: # needed now or can be parsed later?
        "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {{log}} && "
        " mv {input.gerp} {output} 2>> {{log}} && "
        " echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
-          
+
+################################
+##### PHYLOP and PHASTCONS #####
+################################
+
 rule phylo_fit:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf"
@@ -328,9 +340,9 @@ rule run_dless:
     	"dless "
     	" [alignment] [tree.mod???] > [out.gff]"
 
-##########################################
-##### SIFT AND SNPEFF ANNOTATION #########
-##########################################
+################
+##### SIFT #####
+################
 
 '''
 SIFT only uses gtf so if only gff is available, 
@@ -386,7 +398,7 @@ rule run_sift:
     input:
         vcf="{folder}/chr{chr}.vcf.gz", # make sure it finds both simulated and 
                                         # derived from the correct folders
-                parent=f"resources/SIFT4G/{config['species_name']}",
+        parent=f"resources/SIFT4G/{config['species_name']}",
         annotation=f"{config['stats_report']['gtf']}",
         genome=config['mark_ancestor']['reference_genome'],
         # database: "<parent_dir>/dbSNP/compressed_dbSNP_vcf.vcf.gz", # TODO: make optional
@@ -406,9 +418,25 @@ rule run_sift:
         "-r <Path to your results folder> -t"
 
 
+#################################
+##### SNPEFF ANNOTATION #########
+#################################
+
+# create database:
+# put reference sequence in /path/to/snpEff/data/genomes and make sure is it only called [species].fa
+# put gff in in data/[species] and unzip and make sure it is only called genes.gff
+# fins the protein file somewhere (check later if needed)
+# create config file, in this case : mEleMax1.genome : Elephant, means species have to be mEleMax1 above
+# make sure scaffolds have same name in gff as in reference
+# run: snpEff build -gff3 -v -c snpEff.config mEleMax1 to create database!
+
+rule snpeff_create_database:
+
+rule run_snpeff:
 
 
-
+######################
+######################
 
 rule run_polyphen:
 
