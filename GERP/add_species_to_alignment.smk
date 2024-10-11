@@ -36,14 +36,14 @@ rule outgroups2fastq:
     That are to be mapped / aligned to the focal species in a later step.
     """
     input:
-        infile = f"{config['realignment']['seq_path']}{{outgroup}}.dna_sm.toplevel.fa.gz"
+        infile = f"{config['realignment']['seq_path']}{{outgroup}}.dna.toplevel.fa.gz"
     output:
         fastq=temp("results/fastqdir/{outgroup}.fastq"),
     conda:
     	"aligner.yml" # change path later
     params:
     	qfake=40,
-    	fastareadlen=5000,
+    	fastareadlen=150,
     	qout=64,
     	addcolon='t',
     	trimreaddescription='t',
@@ -52,7 +52,7 @@ rule outgroups2fastq:
     	# or just hardcode down in shell if not really important to be modifieable
     shell:
         "reformat.sh -Xmx32g in={input.infile} out1={output.fastq} "
-        "qfake=40 fastareadlen=5000 qout=64 "
+        "qfake=40 fastareadlen=150 qout=64 "
         "addcolon=t trimreaddescription=t int=t "
 
 rule index_reference:
@@ -154,25 +154,24 @@ rule split2scaffolds:
 	params:
 		target_dir="results/scaffolds"
 	output:
-		temp("split2scaffolds_{outgroup}.txt"),
+		"results/logs/split2scaffolds_{outgroup}.txt",
 	shell:
 		'''
 		mkdir -p {params.target_dir}
 		bash {input.script} {input.file} {params.target_dir}
 		echo splitting {input.file} done > {output}
-		mv *.fasta {params.target_dir}
 		'''
 
 def gather_scaffolds(scaffold):
-	input_pattern = f"results/scaffolds/{scaffold}:{{outgroup}}.fasta"
-	parts = glob_wildcards(input_pattern).outgroup
-	scaffold_parts = []
-	for part in parts:
-		scaffold_parts.append(part)
+	input_pattern = "results/logs/split2scaffolds_{outgroup}.txt"
+	outgroups = glob_wildcards(input_pattern).outgroup
+	outgroup_files = []
+	for file in outgroups:
+		outgroup_files.append(file)
 
 	# Formulate filenames as output from the previous step
 	infiles = expand(
-		f"results/scaffolds/{scaffold}:{{outgroup}}.fasta", outgroup = scaffold_parts)
+		f"results/scaffolds/{scaffold}:{{outgroup}}.fasta", outgroup = outgroup_files)
 
 	if len(infiles) == 0:
 		sys.exit(f"No alignment parts found in the form {input_pattern}")
@@ -185,7 +184,6 @@ description later
 rule concat_scaffolds:
 	input:
 		outgroups = lambda wildcards: gather_scaffolds(wildcards.scaffold), # TODO: exclude non wanted scaffolds
-		reference = 
 	output:
 		temp(f"results/alignment/{{scaffold}}_{config['species_name']}.fasta")
 	shell:
@@ -197,25 +195,14 @@ untested
 """
 rule split_reference:
 	input:
-		reference=config['realignment']['reference_genome']
+		reference=config['realignment']['reference_genome'],
+		script=workflow.source_path("split_reference.sh")
 	params:
-		target_dir="resources/scaffolds"
+		target_dir="resources/reference_scaffolds"
 	output:
-		temp("split_reference_.txt"),
+		"results/logs/split_reference.txt",
 	shell:
-		'''
-		mkdir -p {params.target_dir}
-		if (file yourTestFile | grep -q compressed ) ; then
-     		gunzip -c {input.reference} > tmp.fa
-		fi
-		
-		faidx --split-files tmp.fa
-		rm tmp.fa
-
-		echo splitting {input.reference} done > {output}
-		'''
-
-### RENAME TO SPECIES NAME IN FILE BEFORE CONCAT
+		"bash {input.script} {input.reference} {params.target_dir} {output}ll"
 
 """
 adds the reference species to the alignment file
@@ -224,7 +211,7 @@ untested
 """
 rule add_reference:
 	input:
-		reference = "resources/scaffolds/{scaffold}.fa",
+		reference = "resources/reference_scaffolds/{scaffold}.fa",
 		outgroups = f"results/alignment/{{scaffold}}_{config['species_name']}.fasta"
 	output: 
 		f"results/alignment/{{scaffold}}_{config['species_name']}_multiway.fasta"
@@ -235,27 +222,27 @@ rule add_reference:
 description later
 RAXML tree generation.
 """
-rule make_tree:
-	input:
-		f"results/alignment/{{scaffold}}_{config['species_name']}_multiway.fasta"
-	params:
-		prefix = f"{{scaffold}}_{config['annotation']['raxml']['out_prefix']}",
-		bs_threshold = config['annotation']['raxml']['bootstrap_threshold'],
-		bs_iter = config['annotation']['raxml']['bootstrap_iterations'],
-		model = config['annotation']['raxml']['model'],
-	output:
-		# prefix + nwk (?)
-	threads: 10
-	conda:
-		"aligner.yml"
-	shell:
-		"raxmlHPC-PTHREADS "
-		"-b 12345 -p 12345 "
-		"-s {input} "
-		"-m  {params.model} "
-		"-n {params.prefix} "
-		"-T {threads} "
-		" -B {params.bs_threshold} "
-		" -N {params.bs_iter} "
+# rule make_tree:
+# 	input:
+# 		f"results/alignment/{{scaffold}}_{config['species_name']}_multiway.fasta"
+# 	params:
+# 		prefix = f"{{scaffold}}_{config['annotation']['raxml']['out_prefix']}",
+# 		bs_threshold = config['annotation']['raxml']['bootstrap_threshold'],
+# 		bs_iter = config['annotation']['raxml']['bootstrap_iterations'],
+# 		model = config['annotation']['raxml']['model'],
+# 	output:
+# 		# prefix + nwk (?)
+# 	threads: 10
+# 	conda:
+# 		"aligner.yml"
+# 	shell:
+# 		"raxmlHPC-PTHREADS "
+# 		"-b 12345 -p 12345 "
+# 		"-s {input} "
+# 		"-m  {params.model} "
+# 		"-n {params.prefix} "
+# 		"-T {threads} "
+# 		" -B {params.bs_threshold} "
+# 		" -N {params.bs_iter} "
 
 
