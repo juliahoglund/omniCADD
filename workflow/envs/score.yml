@@ -1,22 +1,24 @@
 name: score
 channels:
-  - bioconda
   - bioconda/label/cf201901
   - file:///sw/apps/conda/latest/rackham/local_repo/conda-forge
   - conda-forge
   - defaults
+  - bioconda
+  - pytorch
 dependencies:
   - _libgcc_mutex=0.1
   - _openmp_mutex=4.5
   - archspec=0.2.3
   - bcftools=1.8
   - bedtools=2.31.1
+  - biopython=1.84
   - boltons=23.1.1
   - brotli-python=1.1.0
   - bzip2=1.0.8
   - c-ares=1.27.0
-  - ca-certificates=2024.7.4
-  - certifi=2024.7.4
+  - ca-certificates=2024.8.30
+  - certifi=2024.8.30
   - cffi=1.16.0
   - charset-normalizer=3.3.2
   - colorama=0.4.6
@@ -38,21 +40,30 @@ dependencies:
   - krb5=1.20.1
   - ld_impl_linux-64=2.40
   - libarchive=3.6.2
+  - libblas=3.9.0
+  - libcblas=3.9.0
   - libcurl=7.88.1
   - libdeflate=1.20
   - libedit=3.1.20191231
   - libev=4.33
   - libffi=3.4.2
-  - libgcc-ng=13.2.0
-  - libgomp=13.2.0
+  - libgcc=14.1.0
+  - libgcc-ng=14.1.0
+  - libgfortran=14.1.0
+  - libgfortran-ng=14.1.0
+  - libgfortran5=14.1.0
+  - libgomp=14.1.0
   - libiconv=1.17
+  - liblapack=3.9.0
   - libmamba=1.4.2
   - libmambapy=1.4.2
   - libnghttp2=1.58.0
   - libnsl=2.0.1
+  - libopenblas=0.3.27
   - libsolv=0.7.28
   - libsqlite=3.45.2
   - libssh2=1.11.0
+  - libstdcxx=14.1.0
   - libstdcxx-ng=13.2.0
   - libuuid=2.38.1
   - libxcrypt=4.4.36
@@ -63,7 +74,8 @@ dependencies:
   - mamba=1.4.2
   - menuinst=2.0.2
   - ncurses=6.4.20240210
-  - openssl=3.3.1
+  - numpy=2.1.2
+  - openssl=3.3.2
   - packaging=24.0
   - pip=24.0
   - platformdirs=4.2.0
