@@ -47,10 +47,10 @@ def parse_gerp(fasta_file, gerp_file, species_name):
                     RS_score[position - gerp_position -1] + "\n")
 
     outputfile.close()
-    print('file ' + str(filename) + ' done.')
+    print('file ' + str(fasta_file) + ' done.')
 
 if __name__ == "__main__":
-    filename = argv[1]
-    species_file = argv[2]
+    fasta_file = argv[1]
+    gerp_file = argv[2]
     species_name = argv[3]
-    parse_gerp(filename, species_file, species_name)
+    parse_gerp(fasta_file, gerp_file, species_name)
