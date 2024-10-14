@@ -47,6 +47,7 @@ rule generate_all_variants:
          for file in {output.out_dir}/*.vcf
          do
            bgzip "$file"
+           tabix "$file"
          done
          """
 
@@ -89,12 +90,12 @@ rule run_genome_vep:
           cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
     conda:
-         "../envs/annotation.yml"
+         "../envs/score.yml"
     # Parts are at most a few million variants, 2 threads is already fast.
     threads: 2
     priority: 1
     output:
-         temp("results/whole_genome_variants/chr{chr}/{part}_vep_output.tsv")
+         temp("results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv")
     shell:
          "chmod +x {input.script} && "
          "{input.script} {input.vcf} {output} "
@@ -108,7 +109,7 @@ The VEP consequences are summarised and basic annotations are calculated here as
 rule process_genome_vep:
     input:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
-         vep="results/whole_genome_variants/chr{chr}/{part}_vep_output.tsv",
+         vep="results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
          grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
@@ -116,7 +117,7 @@ rule process_genome_vep:
          "../envs/common.yml"
     priority: 1
     output:
-         temp("results/whole_genome_variants/chr{chr}/{part}.vep.tsv")
+         temp("results/whole_genome_annotations/chr{chr}/{part}.vep.tsv")
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
          "-r {input.genome} -g {input.grantham} -o {output}"
@@ -128,14 +129,14 @@ phastCons, phyloP and GERP
 """  
 rule intersect_bed:
     input:
-        vep = "results/whole_genome_variants/chr{chr}/{part}.vep.tsv",
+        vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv"
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
         "../envs/score.yml"
     threads: 8
     output:
-        temp(annotated="results/whole_genome_variants/chr{chr}/{part}_annotated.tsv")
+        annotated="results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv"
     shell:
         "python3 {input.script} "
         " -v {input.vep} "
@@ -149,7 +150,7 @@ Final computations for last, when the main tasks are bottleneck or finished.
 """
 rule prepare_whole_genome:
     input:
-         data="results/whole_genome_variants/chr{chr}/{part}_annotated.tsv",
+         data="results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv",
          imputaton="results/dataset/imputation_dict.txt",
          processing=config["annotation_config"]["processing"],
          # interactions=config["annotation_config"]["interactions"], # interactions so far not used
@@ -184,7 +185,7 @@ rule score_variants:
         model="results/model/{cols}/full.mod.pickle",
         script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
     conda:
-         "../envs/mainpython.yml"
+         "../envs/common.yml"
     threads: 4
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
@@ -202,7 +203,7 @@ rule score_variants:
 # hardcoded to All columns as of now
 def gather_scores(wildcards):
   checkpoints.summarize_generation.get()
-  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
+  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}.vcf.gz")
   return natsorted(
     expand(f"results/whole_genome_scores/raw_parts/All/chr{wildcards.chr}/{{part}}.csv",
                   part=globed.part))
