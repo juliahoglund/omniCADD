@@ -238,23 +238,30 @@ rule count_positions:
     input:
         "results/whole_genome_scores/RAW_scores_chr{chr}.csv",
     output:
-        "results/whole_genome_scores/RAW_scores_chr{chr}.csv.count"
+        "results/whole_genome_scores/counts/chr{chr}.txt"
     shell:
-        "grep -c '^[^#\S]' {input} > {output}"
+        "wc -l {input} > {output}"
 
-"""
-Sums counts of all per-chromosome RAW files in a folder.
-"""
-rule add_position_counts:
+
+rule merge_raw_scores:
     input:
-        expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv.count",
-               chr=config["chromosomes"]["score"])
+         expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+         chr=config["chromosomes"]["score"])
+    threads: 8
+    resources:
+        mem_mb=200000,
     output:
-        "results/whole_genome_scores/RAW.count",
+         "results/whole_genome_scores/full_RAW_scores.csv"
     shell:
-        '''
-        cat {input} | awk "{{s+=\$1}} END {{print s}}" > {output}
-        '''
+        """
+        LC_ALL=C sort \
+        --merge \
+        -t "," \
+        -k5gr \
+        -S {resources.mem_mb}M \
+        --parallel={threads} \
+         {input} > {output}
+        """
 
 """
 Assigns phred scores to all variants, in addition to the raw scores.
@@ -311,82 +318,6 @@ rule sort_phred_scores:
         --parallel={threads} \
          {input} > {output}
         """
-
-#################################################
-## Too memory exhausting right now, will be implemented later
-#################################################
-
-#rule index_phred_scores:
-#    input:
-#        "results/whole_genome_scores/phred/chr{chr}_sorted.tsv"
-#    threads: 8
-#    resources:
-#        mem_mb=200000
-#    output:
-#        compressed="results/whole_genome_scores/phred/chr{chr}_sorted.tsv.gz",
-#        index="results/whole_genome_scores/phred/chr{chr}_sorted.tsv.gz.tbi"
-#    conda:
-#        "../envs/score.yml" # TODO: check if tabix is here and bgzip
-#    shell:
-#          "bgzip -c {input} > {output.compressed} && "
-#          "tabix -f {output.compressed}"
-## [tabix] The file type not recognised and -p not given, using the preset [gff].
-#
-
-#def gather_annotations(wildcards):
-#  checkpoints.summarize_generation.get()
-#  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_vep_output.tsv")
-#  return natsorted(
-#    expand(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}_annotated.tsv",
-#                  part=globed.part))
-#
-
-## Gathers all files by run_id But each sample is still divided 
-## into runs For my real-world analysis, this could represent a 
-## 'samtools merge bam'
-#rule merge_annotations:
-#    input:
-#        gather_annotations
-#    output:
-#        "results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv"
-#    shell:
-#        '''
-#        echo "##fileformat=VCFv4.1" >> {output}
-#        echo "#Chrom\tPos\tRef\tAlt\tisTv\tConsequence\tGC\tCpG\tmotifECount\tmotifEHIPos\tmotifEScoreChng\tDomain\toAA\tnAA\tGrantham\tSIFTcat\tSIFTval\tcDNApos\trelcDNApos\tCDSpos\trelCDSpos\tprotPos\trelprotPos\tGERP_NS\tGERP_RS\tphastCons\tphyloP" >> {output}
-#        grep -vh "^#" {input} >> {output}
-#        '''
-
-#rule cadd_consequence_bins:
-#    input:
-#        data="results/whole_genome_variants/annotated/chr{chr}_anno_full.tsv",
-#        annotaton="results/whole_genome_scores/phred/chr{chr}_sorted.tsv.gz",
-#        script=workflow.source_path(SCRIPTS_8 + "bin_consequences.py")
-#    conda:
-#         "../envs/common.yml"
-#    output:
-#        "results/consequence_bins/chr{chr}.csv"
-#    shell:
-#        """
-#        python3 {input.script} \
-#        -i {input.data} \
-#        -a {input.annotaton} \
-#        -o {output}
-#        """
-
-## using default mask sequence right now.
-#rule cadd_summaries:
-#    input:
-#        data="results/whole_genome_scores/phred/chr{chr}.tsv",
-#        script=workflow.source_path(SCRIPTS_8 + "compute_summaries.py")
-#    conda:
-#         "../envs/common.yml"
-#    output:
-#        "results/cadd_summaries/chr{chr}.csv"
-#    shell:
-#        """
-#        python3 {input.script} \
-#        -i {input.data}
-#        """
 
 
 
