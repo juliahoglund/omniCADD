@@ -1,4 +1,4 @@
-'''
+ '''
  Module that annotates all variants and 
  creates genome wide annotations of evolutionary constraint
  based on the primary input multiple sequence alignment
