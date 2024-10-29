@@ -274,8 +274,9 @@ rule assign_phred_scores:
     input:
         data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
             chr=config["chromosomes"]["score"]),
+        counts=expand("results/whole_genome_scores/counts/chr{chr}.txt",
+                      chr=config["chromosomes"]["score"]),
         script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py"),
-        variant_count="results/whole_genome_scores/RAW.count",        
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
@@ -284,17 +285,11 @@ rule assign_phred_scores:
                chr=config["chromosomes"]["score"]))
     shell:
         """
-        echo "#Chrom,Pos,Ref,Alt,RAW" >> tmp
-        grep -vh "^#" {input.data} >> tmp
-
-        counts=`cat {input.variant_count}`
         python3 {input.script} \
-        -i tmp \
+        -i {input.data} \
         -o {params.outmask} \
         --chroms {params.chromosomes} \
-        --counts $counts
-
-        rm tmp
+        --count-file {input.counts}
         """
 
 """
@@ -307,7 +302,7 @@ rule sort_phred_scores:
     resources:
         mem_mb=200000
     output:
-        "results/whole_genome_scores/phred/chr{chr}_sorted.tsv"
+        "results/whole_genome_scores/phred/sorted/chr{chr}.tsv"
     shell:
         """
         LC_ALL=C sort \
