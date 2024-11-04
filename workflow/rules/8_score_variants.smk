@@ -272,8 +272,7 @@ included in the analysis, rather than a chromosome wide ranking
 
 rule assign_phred_scores:
     input:
-        data=expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv", 
-            chr=config["chromosomes"]["score"]),
+        data="results/whole_genome_scores/full_RAW_scores.csv",
         counts=expand("results/whole_genome_scores/counts/chr{chr}.txt",
                       chr=config["chromosomes"]["score"]),
         script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py"),
@@ -281,8 +280,8 @@ rule assign_phred_scores:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
     output:
-        temp(expand("results/whole_genome_scores/phred/chr{chr}.tsv",
-               chr=config["chromosomes"]["score"]))
+        expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+               chr=config["chromosomes"]["score"])
     shell:
         """
         python3 {input.script} \
