@@ -25,7 +25,7 @@ option_list = list(
   make_option(c("-d", "--derived"), type = "character", default = "results/derived_variants/singletons/all_chr.vcf",
               help="vcf with derived SNPs", metavar="character"),
 
-  make_option(c("-r", "--reference"), type="character", default="indexfile.txt",
+  make_option(c("-r", "--reference"), type="character", default="results/visualisation/indexfile.txt",
               help="reference genome fasta index", metavar="character"),
   
   make_option(c("-a", "--ancestor"), type="character", default="results/ancestral_seq/",
