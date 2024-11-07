@@ -36,12 +36,11 @@ mark_ancestor:
 
 generate_variants:
   reference_genome_wildcard: "resources/genome/Sus_scrofa_ref_{chr}.fa"
-  population_vcf:  "pig/chr{chr}.fa" #resources/pop_freq... #ON ANNUNA
+  population_vcf:  "pig/chr{chr}.vcf" #resources/pop_freq... 
   derive:
     frequency_threshold: 0.9
   simulate:
     overestimation_factor: 5 
-    # doublecheck later based on what this is   
 
 stats_report:
   annotation: 'True'
