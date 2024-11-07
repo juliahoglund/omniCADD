@@ -95,7 +95,7 @@ def main(args):
 
 	ancestor_record = ancestor_fasta.references[0]
 
-	if '.%s' % args.chrom in ancestor_record or 'chr%s' % args.chrom in ancestor_record:
+	if '.%s' % args.chrom in ancestor_record or 'chr%s' % args.chrom in ancestor_record or 'chr_%s' % args.chrom in ancestor_record:
 		anc_length = ancestor_fasta.get_reference_length(ancestor_fasta.references[0])
 	else:
 		sys.exit(
