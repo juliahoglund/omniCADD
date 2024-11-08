@@ -12,7 +12,7 @@ params:
   coverage: data/CDS.coverage.bed
   ingroup: sus scrofa
   outgroup: bos taurus
-  path: ~/Documents/GitHub/omniCADD/
+  path: ~/Documents/203.2 localCADD/
 ---
 
 ```{r setup, include = FALSE}
@@ -26,9 +26,9 @@ if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.
 new.bioconductor <- list.of.bioconductor[!(list.of.bioconductor %in% installed.packages()[,"Package"])]
 if(length(new.packages)) BiocManager::install(new.bioconductor, force = TRUE)
 
-remotes::install_github('coolbutuseless/cssparser') # Handles CSS styling
-remotes::install_github('coolbutuseless/svgparser')
-remotes::install_github('coolbutuseless/ggsvg')
+# remotes::install_github('coolbutuseless/cssparser') # Handles CSS styling
+# remotes::install_github('coolbutuseless/svgparser')
+# remotes::install_github('coolbutuseless/ggsvg')
 
 library(tidyverse)
 library(tidytree)
@@ -53,7 +53,7 @@ library(RIdeogram)
 library(imager)
 load.fontawesome()
 
-load(paste(params$path, "data/graphsElephant.RData", sep = ""))
+load(paste(params$path, "data/graphs.RData", sep = ""))
 ancestorset <- ancestorset[-20,]
 derivedset <- derivedset[-20,]
 fullset <- fullset[-20,]
