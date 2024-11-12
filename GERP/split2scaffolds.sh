@@ -18,3 +18,5 @@ echo formatting sequence labels ..
 for file in *$prefix*; do sed -i "s/^>.*/>$prefix/" $file; done
 echo finishing formatting names and labels ..
 for file in *$prefix*; do name=`echo $file | sed -r 's/(.*)_[[:digit:]]+/\1.fasta/'`; mv $file $name; mv $name $output; done
+
+
