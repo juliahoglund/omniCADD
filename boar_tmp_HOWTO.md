@@ -192,8 +192,6 @@ cat indexfile.txt | grep -v 'scaffold' | sed 's/_pilon//g' | sed 's/chr_//g' > t
 
 for i in {1..14} 15_17 16 18; do augustus --species=human --protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on --exonnames=on --gff3=on --UTR=on resources/genome/Wild_Boar_chr$i.fa > results/gene_prediction/chr$i_gene_pred.gff3; done
 
-```
-
 ## 1 snpeff
 # 1.1 put reference sequence in /path/to/snpEff/data/genomes and make sure is it only called [species].fa; data/nameofreference
 # structure:
@@ -209,10 +207,15 @@ nano snpEff.config
 cd snpEff
 snpEff build -gff3 -v -c snpEff.config wild_boar
 
+# if file > 1 million lines do
+# split -n l/10 -d --additional-suffix=.vcf results/derived_variants/singletons/chr$i.vcf chr$i\_ann
+# and the loop over those
+# else loop
+
+# for i in {0..9}; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar chr1_ann0$i.vcf > derived_chr1_$i\_ann.vcf; done
+
 for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/derived_variants/singletons/chr$i.vcf > results/annotation/snpEff/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/simulated_variants/trimmed_snps/chr$i.vcf > results/annotation/snpEff/simulated/chr$i\_ann.vcf; done
-
-
-
+```
 
 
 ## then prepare phylo and gerp and phast
@@ -287,8 +290,7 @@ for file in `ls results/alignment/fastafiles`; do bash scripts/split2scaffolds.s
 ## it is the cutting in thr fieds!! make sure it is correct later when incorporated!
 ## AND TAKE AWAY SCAFFOLDS
 
-# 9 for i in {1..14} 15_17 16 18; do cat results/gene_prediction/chr$i\_gene_pred.gff3 >> snpEff/data/wild_boar/genes.gff; done
-
-# 10 add reference
-
+# 9 concat chromosomes and add reference
+for i in {1..14} 15_17 16 18; do cat resources/genome/Wild_Boar_chr$i.fa results/alignment/chr_$i* >> results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa; done
 ```
+
