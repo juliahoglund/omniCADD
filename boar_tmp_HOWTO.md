@@ -209,7 +209,7 @@ nano snpEff.config
 cd snpEff
 snpEff build -gff3 -v -c snpEff.config wild_boar
 
-for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats derived_boar.html wild_boar results/derived_variants/singletons/chr$i.vcf > results/annotation/snpEff/derived/chr$i.ann; snpEff -v -c snpEff/snpEff.config -stats simulated_boar.html wild_boar results/simulated_variants/trimmed_snps/chr$i.vcf > results/annotation/snpEff/simulated/chr$i.ann; done
+for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/derived_variants/singletons/chr$i.vcf > results/annotation/snpEff/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/simulated_variants/trimmed_snps/chr$i.vcf > results/annotation/snpEff/simulated/chr$i\_ann.vcf; done
 
 
 
@@ -273,12 +273,22 @@ bwa index infofiles/Wild_Boar_Assembly.fasta
 # 4 align species
 for file in `ls results/alignment/fastq`; do out=`echo $file | cut -d'.' -f1`; bwa mem -t 32 -B 3 -O 4,4 infofiles/Wild_Boar_Assembly.fasta results/alignment/fastq/$file > results/alignment/samfiles/$out.sam; done
 
-# 5 trim ansd clean alignments
+# 5 trim and clean alignments
 for file in `ls results/alignment/samfiles`; do out=`echo $file | cut -d'.' -f1`; samtools view -F 2048 -bq 2 -h -o results/alignment/bamfiles/$out.bam results/alignment/samfiles/$file; done
 
-# 6 dort bamfiles
+# 6 sort bamfiles
 for file in `ls results/alignment/bamfiles`; do out=`echo $file | cut -d'.' -f1`; samtools sort -o results/alignment/bamfiles/$out\_sorted.bam results/alignment/bamfiles/$file; done
 
 # 7 convert2fasta
 for file in `ls results/alignment/bamfiles/*sorted*`; do out=`echo $file | cut -d'.' -f1 | cut -d'/' -f4`; htsbox/htsbox pileup -f infofiles/Wild_Boar_Assembly.fasta -R -q 30 -Q 30 -l 35 -s 1 $file > results/alignment/fastafiles/$out.fasta; done
+
+# 8 split2scaffolds.sh
+for file in `ls results/alignment/fastafiles`; do bash scripts/split2scaffolds.sh results/alignment/fastafiles/$file results/alignment; done
+## it is the cutting in thr fieds!! make sure it is correct later when incorporated!
+## AND TAKE AWAY SCAFFOLDS
+
+# 9 for i in {1..14} 15_17 16 18; do cat results/gene_prediction/chr$i\_gene_pred.gff3 >> snpEff/data/wild_boar/genes.gff; done
+
+# 10 add reference
+
 ```
