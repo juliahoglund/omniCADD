@@ -294,3 +294,13 @@ for file in `ls results/alignment/fastafiles`; do bash scripts/split2scaffolds.s
 for i in {1..14} 15_17 16 18; do cat resources/genome/Wild_Boar_chr$i.fa results/alignment/chr_$i* >> results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa; done
 ```
 
+################
+##### GERP #####
+################
+
+```bash
+# 1. split_alignment.py, this one is made for fasta, original is made for maf,
+# make sure to change that as some point or make it like as an input what type i wannna have
+for i in {1..14} 15_17 16 18; do python3 scripts/split_alignments.py results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa 20 results/alignment/splitted/ wild_boar
+
+
