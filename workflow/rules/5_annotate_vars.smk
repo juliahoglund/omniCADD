@@ -230,6 +230,7 @@ rule gerp2coords: # needed now or can be parsed later?
 ##### PHYLOP and PHASTCONS #####
 ################################
 
+## TODO: clean up, formats are inconclusive
 rule phylo_fit:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf"
