@@ -292,6 +292,8 @@ for file in `ls results/alignment/fastafiles`; do bash scripts/split2scaffolds.s
 
 # 9 concat chromosomes and add reference
 for i in {1..14} 15_17 16 18; do cat resources/genome/Wild_Boar_chr$i.fa results/alignment/chr_$i* >> results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa; done
+
+for i in {1..14} 15_17 16 18; do sed -i "s/chr_$i/wild_boar/" results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa; done 
 ```
 
 ################
@@ -299,8 +301,23 @@ for i in {1..14} 15_17 16 18; do cat resources/genome/Wild_Boar_chr$i.fa results
 ################
 
 ```bash
-# 1. split_alignment.py, this one is made for fasta, original is made for maf,
-# make sure to change that as some point or make it like as an input what type i wannna have
-for i in {1..14} 15_17 16 18; do python3 scripts/split_alignments.py results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa 20 results/alignment/splitted/ wild_boar
+# 1. make it one line. gerp can do the full thing in ~100Gb ram but will benefit from chopping
+for i in {1..14} 15_17 16 18; do awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' < results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa > tmp; sed '1d' -i tmp; mv tmp results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa; done
 
 
+for i in {1..14} 15_17 16 18; do python3 scripts/split_fasta.py results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa 50; mv chr* results/alignment/chopped/chr$i; done
+
+# 1. GERP. 
+# needs like 50Gb, chr1 like 121Gb - check good way to chop up
+for i in {1..14} 15_17 16 18; do GERPplusplus/gerpcol -v -f results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa -t resources/tree_43_mammals.nwk -a -e wild_boar; done
+
+# 2. phyloFit
+
+for i in {2..14} 15_17 16 18 1 
+do
+	for file in `ls results/alignment/chopped/chr$i`
+	do
+		out=`echo $file | sed 's/.fa/.model/g'`
+    	phast/bin/phyloFit --tree resources/tree_43_mammals.nwk -p HIGH --subst-mod REV --out-root results/annotation/phast/phylo_model/$out --msa-format FASTA results/alignment/chopped/chr$i/$file
+    done
+done
