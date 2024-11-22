@@ -58,15 +58,16 @@ rule gen_derived:
 		'''
 		if [ `wc -l file.txt | awk '{print $1}'` -ge "3" ]
 		then
+			echo "reference already linearized - continuing to analysis"
+		else
 			echo "Formatting multiline fasta to single line fasta"
-			# this one needs a failsafe if genome is already a oneliner!!!!!
 
 			start=$(date +%s)
 			awk '/^>/ {{printf("\\n%s\\n",$0); next; }} {{ printf("%s",$0);}} END {{printf("\\n");}}' {input.reference} > tmp{wildcards.chr}
 			mv tmp{wildcards.chr} {input.reference}
 			end=$(date +%s)
 			echo "Elapsed time: $(($end-$start)) seconds"
-  		fi
+		fi
 
 		python3 {input.script} \
 		 -c {wildcards.chr} \
