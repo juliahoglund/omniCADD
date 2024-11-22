@@ -245,7 +245,7 @@ rule phylo_fit:
          "results/amnnotation/phast/phylo_model/chr{chr}/{part}.mod"
     shell:
        """
-        grep -E -A1 "{params.tree_species}" {input.fasta} > tmp{wildcards.part}.f$
+        grep -E -A1 "{params.tree_species}" {input.fasta} > tmp{wildcards.part}.fa
         phyloFit \
          --tree "{params.tree}" \
          -p {params.precision} \
