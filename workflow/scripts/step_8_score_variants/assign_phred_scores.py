@@ -48,12 +48,15 @@ parser.add_argument("--chroms",
                          "allowed. All chromosomes in the input file should "
                          "be passed",
                     type=str, required=True, nargs="+")
-parser.add_argument("-c", "--counts", dest="line_counts",
-                    help="int, total variant count", type=int, required=True)
+parser.add_argument("--counts", dest="line_counts",
+                    help="int, total variant count", type=int, default=0)
+parser.add_argument("--count-file",
+                    help="file(s) with total variant count",
+                    type=str, nargs="+", required=False)
 args = parser.parse_args()
 
 
-def open_file(mask, chrom):
+ddef open_file(mask, chrom):
     name = mask.replace("CHROM", chrom)
     if name.endswith(".gz"):
         phred_out = gzip.open(name, "wt")
@@ -63,8 +66,18 @@ def open_file(mask, chrom):
     return phred_out
 
 
+count = args.line_counts
+if count == 0 and not args.count_file:
+    sys.exit("variant count must be specified in either a count or a file")
+if args.count_file:
+    count = 0
+    for file in args.count_file:
+        with open(file) as c_file:
+            count += int(c_file.read().strip().split()[0])
+print(f"Phred scoring {count} variants!")
+
 # To ensure a float from the calculation, the PHRED score is not a whole number
-line_counts = float(args.line_counts)
+line_counts = float(count)
 
 if args.raw.endswith(".gz"):
     raw_in = gzip.open(args.raw, "rt")
