@@ -136,12 +136,16 @@ rule intersect_bed:
         "../envs/score.yml"
     threads: 8
     output:
+<<<<<<< Updated upstream
         annotated="results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv"
+=======
+        temp("results/whole_genome_variants/chr{chr}/{part}_annotated.tsv")
+>>>>>>> Stashed changes
     shell:
         "python3 {input.script} "
         " -v {input.vep} "
         " -b {input.bed} "
-        " -o {output.annotated}"
+        " -o {output}"
 
 """
 Run whole_genome data preparaion.
@@ -250,6 +254,10 @@ rule merge_raw_scores:
     threads: 8
     resources:
         mem_mb=200000,
+<<<<<<< Updated upstream
+=======
+        tmpdir="results/whole_genome_tmp"
+>>>>>>> Stashed changes
     output:
          "results/whole_genome_scores/full_RAW_scores.csv"
     shell:
@@ -275,7 +283,11 @@ rule assign_phred_scores:
         data="results/whole_genome_scores/full_RAW_scores.csv",
         counts=expand("results/whole_genome_scores/counts/chr{chr}.txt",
                       chr=config["chromosomes"]["score"]),
+<<<<<<< Updated upstream
         script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py"),
+=======
+        script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py")       
+>>>>>>> Stashed changes
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
@@ -297,20 +309,23 @@ sort files based on genomic position instead of scores
 rule sort_phred_scores:
     input:
         "results/whole_genome_scores/phred/chr{chr}.tsv"
-    threads: 8
+    threads: 4
     resources:
-        mem_mb=200000
+        mem_mb=100000,
+        tmpdir="results/tmp/chr{chr}"
     output:
+<<<<<<< Updated upstream
         "results/whole_genome_scores/phred/sorted/chr{chr}.tsv"
+=======
+        "results/cadd_scores/chr{chr}.tsv.gz"
+>>>>>>> Stashed changes
     shell:
         """
+        tail -n +2 {input} | \
         LC_ALL=C sort \
-        --merge \
-        -t "," \
-        -k2gr \
+        -k2n \
         -S {resources.mem_mb}M \
-        --parallel={threads} \
-         {input} > {output}
+        --parallel={threads} > {output}
         """
 
 
