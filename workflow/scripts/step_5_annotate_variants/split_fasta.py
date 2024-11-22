@@ -31,7 +31,7 @@ for record in SeqIO.parse(ffile, "fasta"):
     species[record.id].append(record.seq)
 
 ik = dict()
-for i, k in enumerate(filedata):
+for i, k in enumerate(entries):
     ik[i] = k   # dictionary key_of_index
 
 nseq = entries[ik[0]][0]
@@ -41,9 +41,13 @@ chrom = ffile.split('.')[0].split('chr')[1]
 print("Splitting fasta file of", nseq, "basepairs into chunks of", chunksize, "bps per file")
 
 filenames = []
-for i in range(1, chunks+1):
-    filenames.append("chr" + str(chrom) + "_multiway-%i.fa" % i)
+for i in range(1, int(chunks)+1):
+    filenames.append("chr" + str(chrom) + "-%i.fa" % i)
 filedata = {filename: open(filename, 'w') for filename in filenames}
+
+ik = dict()
+for i, k in enumerate(filedata):
+    ik[i] = k   # dictionary key_of_index
 
 for i, (key, value) in enumerate(species.items()):
     j = 0 
