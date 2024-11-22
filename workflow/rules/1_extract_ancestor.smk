@@ -7,8 +7,6 @@
  This pipeline takes in maf files. 
  If the user has another file format, these should be converted before, 
  either with the emf2maf.pl script of with the msaconverter. 
- The pipeline can be run either with extracting a reconstructed ancestor, 
- or by using an outgroup (i.e. related species with available data), by changing the config option.
 
  :Author: Job van Schipstal
  :Date: 21-9-2023
@@ -38,6 +36,7 @@ rule clean_ambiguous:
 	shell:
 		"python3 {input.script} -i {input.maf} -o {output}"
 
+
 """
  Identifies the most recent common ancestor between two given species and marks it with an identifier.
  Config input:
@@ -54,11 +53,7 @@ rule mark_ancestor:
 		"results/alignment/cleaned_maf/{alignment}/{part}.maf.gz"
 		if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
 		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
-
-		script = lambda wildcards: workflow.source_path(SCRIPTS_1 + 'mark_ancestor.py')
-		if config["alignments"][wildcards.alignment]["ancestor"] == "True" else
-		f"{workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')}"
-
+		script = workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')
 	params:
 		ancestor = config['mark_ancestor']['name_ancestor'],
 		sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
@@ -100,6 +95,7 @@ def get_df_input_maf(alignment):
 
 """
  Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
+ Can be run in a container, as mafTools is python2.7 dependent and can cause version issues.
 """
 rule maf_df:
 	input:
@@ -263,5 +259,3 @@ rule gen_ancestor_seq:
 		 -n {params.species_name} \
 		 -r {params.reference}.fai \
 		'''
-
-#################
