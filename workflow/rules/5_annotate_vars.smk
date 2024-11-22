@@ -106,7 +106,7 @@ checkpoint split_alignment:
     """
     input:
         maf="results/alignment/sorted/chr{chr}.maf.gz",
-        script=workflow.source_path(SCRIPTS_5 + "convert_alignments.py")
+        script=workflow.source_path(SCRIPTS_5 + "split_alignments.py")
     output:
         folder=directory("results/alignment/splitted/chr{chr}/"), # TODO make temporary
     params:
