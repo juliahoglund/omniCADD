@@ -120,9 +120,9 @@ column names they are in a separate file, metadata is also stored separately.
 rule prepare_data:
     input:
         data="results/dataset/{type}/chr{chr}_annotated.tsv",
-        imputaton="results/dataset/imputation_dict.txt",
+        imputation="results/dataset/imputation_dict.txt",
         processing=config["annotation_config"]["processing"],
-        # interactions=config["annotation_config"]["interactions"],
+        interactions=config["annotation_config"]["interactions"],
         script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
         derived_variants=lambda wildcards: "-d" if wildcards.type == "derived" else " ",
@@ -141,8 +141,8 @@ rule prepare_data:
     shell:
         "python3 {input.script} -i {input.data} --npz {output.npz} "
         "--processing-config {input.processing} "
-        # "--interaction-config {input.interactions} "
-        "--imputation-dict {input.imputaton} "
+        "--interaction-config {input.interactions} "
+        "--imputation-dict {input.imputation} "
         "{params.derived_variants} -y {params.y} > {log}"
 
  
