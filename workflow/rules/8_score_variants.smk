@@ -120,7 +120,7 @@ rule process_genome_vep:
          temp("results/whole_genome_annotations/chr{chr}/{part}.vep.tsv")
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
-         "-r {input.genome} -g {input.grantham} -o {output}"
+         "-r {input.genome} -g {input.grantham} -o {output} --multiple"
     # TODO; redirect problem files somewhere else, not in ~/
 
 """
