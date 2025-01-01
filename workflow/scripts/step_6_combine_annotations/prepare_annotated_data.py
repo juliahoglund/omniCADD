@@ -62,12 +62,11 @@ parser.add_argument("--processing-config",
                     type=str, 
                     required=True)
 
-# TODO: make interactions non mandatory
-# parser.add_argument("--interaction-config",
-#                     help="Configuration tsv file indicating which "
-#                          "interaction terms should be generated in the dataset",
-#                     type=str, 
-#                     required=True)
+parser.add_argument("--interaction-config",
+                 help="Configuration tsv file indicating which "
+                      "interaction terms should be generated in the dataset",
+                 type=str, 
+                 required=True)
 
 parser.add_argument("--imputation-dict",
                     help="dictionary file to read/write imputation values to.",
