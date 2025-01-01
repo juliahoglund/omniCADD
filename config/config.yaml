@@ -79,8 +79,8 @@ annotation:
 
 
 annotation_config:
-  processing: "config/annotation_processing.tsv"
-  # interactions: "config/annotation_interactions.tsv"
+  processing: "config/annot_processing_config.tsv"
+  interactions: "config/annot_combinations_config.tsv"
 
 ## Model training ##
 # The set of derived and simulated variants is split in a train and test set using the rest ratio.
