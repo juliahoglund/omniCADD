@@ -111,7 +111,7 @@ rule process_genome_vep:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
          vep="results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
+         grantham=workflow.source_path("../resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          "../envs/common.yml"
@@ -129,7 +129,7 @@ phastCons, phyloP and GERP
 """  
 rule intersect_bed:
     input:
-        vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv"
+        vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
@@ -153,12 +153,14 @@ rule prepare_whole_genome:
          data="results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv",
          imputaton="results/dataset/imputation_dict.txt",
          processing=config["annotation_config"]["processing"],
-         # interactions=config["annotation_config"]["interactions"], # interactions so far not used
+         interactions=config["annotation_config"]["interactions"], 
          script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
          derived_variants=" ",
          y=" "
     threads: 5
+    conda:
+        "../envs/score.yml"
     output:
          npz="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
          meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv.gz",
@@ -168,7 +170,7 @@ rule prepare_whole_genome:
     shell:
      "python3 {input.script} -i {input.data} --npz {output.npz} "
      "--processing-config {input.processing} "
-    # "--interaction-config {input.interactions} "
+     "--interaction-config {input.interactions} "
      "--imputation-dict {input.imputaton} "
      "{params.derived_variants} {params.y} > {log}"
 
