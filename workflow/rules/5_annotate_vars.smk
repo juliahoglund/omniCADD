@@ -279,7 +279,7 @@ rule wig2bed_phastCons:
     conda:
         "../envs/anotation.yml"
     output:
-        "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"
+        "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"    
     shell:
         "wig2bed < {input} > {output}"
 
@@ -309,7 +309,7 @@ rule wig2bed_phyloP:
     conda:
         "../envs/anotation.yml"
     output:
-        "results/annotation/phast/phastCons/chr{chr}/{part}.phast.bed"
+        "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"
     shell:
         "wig2bed < {input} > {output}"
 
