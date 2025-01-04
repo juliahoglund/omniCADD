@@ -304,11 +304,12 @@ for i in {1..14} 15_17 16 18; do sed -i "s/chr_$i/wild_boar/" results/alignment/
 # 1. make it one line. gerp can do the full thing in ~100Gb ram but will benefit from chopping
 for i in {1..14} 15_17 16 18; do awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' < results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa > tmp; sed '1d' -i tmp; mv tmp results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa; done
 
-
+# chop each chromosome to 50 pieces
 for i in {1..14} 15_17 16 18; do python3 scripts/split_fasta.py results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa 50; mv chr* results/alignment/chopped/chr$i; done
 
 # 1. GERP. 
-# needs like 50Gb, chr1 like 121Gb - check good way to chop up
+# needs like 50Gb, chr1 like 121Gb - check good way to chop up more than done here
+# how did this work if reference not in tree?
 for i in {1..14} 15_17 16 18; do GERPplusplus/gerpcol -v -f results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa -t resources/tree_43_mammals.nwk -a -e wild_boar; done
 
 # 2. phyloFit
@@ -321,3 +322,39 @@ do
     	phast/bin/phyloFit --tree resources/tree_43_mammals.nwk -p HIGH --subst-mod REV --out-root results/annotation/phast/phylo_model/$out --msa-format FASTA results/alignment/chopped/chr$i/$file
     done
 done
+
+
+# 3. phastCons
+## IF REF NOT IN TREE USE COORDINATE 0 TO USE IN GENERAL --refidx 0 
+for i in 2 3 4 5 7 8 9 10 11 12 16 18 # alla utom 6 13 14 15-17 just nu
+do
+	for file in `ls results/alignment/chopped/chr$i`
+	do
+		fasta=results/alignment/chopped/chr$i/$file
+		wig=`echo $file | sed 's/.fa/.wig/'`
+		mod=`echo $file | sed 's/.fa/.model.mod/'`
+		model=results/annotation/phast/phylo_model/chr$i/$mod
+		out=results/annotation/phast/phastCons/chr$i/$wig
+		# --not-informative=wild_boar
+		phast/bin/phastCons --msa-format FASTA --refidx 0 --target-coverage 0.3 --expected-length 45 --rho 0.3 $fasta $model > $out
+	done
+done
+
+# 4. phyloP
+
+## IF REF NOT IN TREE USE COORDINATE 0 TO USE IN GENERAL --refidx 0 
+# alla utom 6 13 14 15-17 just nu
+for i in 2 3 4 5 7 8 9 10 11 12 16 18 
+do
+for file in `ls results/alignment/chopped/chr$i`
+do
+fasta=results/alignment/chopped/chr$i/$file
+wig=`echo $file | sed 's/.fa/.wig/'`
+mod=`echo $file | sed 's/.fa/.model.mod/'`
+model=results/annotation/phast/phylo_model/chr$i/$mod
+out=results/annotation/phast/phyloP/chr$i/$wig
+phast/bin/phyloP --msa-format FASTA --chrom $i --wig-scores --method=LRT --mode=CONACC --refidx 0 $model $fasta > $out
+done
+done
+
+ERROR: hela chr1
