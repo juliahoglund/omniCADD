@@ -341,20 +341,45 @@ do
 done
 
 # 4. phyloP
-
 ## IF REF NOT IN TREE USE COORDINATE 0 TO USE IN GENERAL --refidx 0 
 # alla utom 6 13 14 15-17 just nu
 for i in 2 3 4 5 7 8 9 10 11 12 16 18 
 do
-for file in `ls results/alignment/chopped/chr$i`
-do
-fasta=results/alignment/chopped/chr$i/$file
-wig=`echo $file | sed 's/.fa/.wig/'`
-mod=`echo $file | sed 's/.fa/.model.mod/'`
-model=results/annotation/phast/phylo_model/chr$i/$mod
-out=results/annotation/phast/phyloP/chr$i/$wig
-phast/bin/phyloP --msa-format FASTA --chrom $i --wig-scores --method=LRT --mode=CONACC --refidx 0 $model $fasta > $out
-done
+	for file in `ls results/alignment/chopped/chr$i`
+	do
+		fasta=results/alignment/chopped/chr$i/$file
+		wig=`echo $file | sed 's/.fa/.wig/'`
+		mod=`echo $file | sed 's/.fa/.model.mod/'`
+		model=results/annotation/phast/phylo_model/chr$i/$mod
+		out=results/annotation/phast/phyloP/chr$i/$wig
+		phast/bin/phyloP --msa-format FASTA --chrom $i --wig-scores --method=LRT --mode=CONACC --refidx 0 $model $fasta > $out
+	done
 done
 
 ERROR: hela chr1
+
+
+#5. testa wig2bed see if it works on chopped files
+# wig2bed_phastCons:
+for i in 2 3 4 5 6 7 8 9 10 11 12 13 14 15_17 16 18 
+do
+	for file in `ls results/annotation/phast/phastCons/chr$i`
+		do
+			input=results/annotation/phast/phastCons/chr$i/$file
+			wig=`echo $file | sed 's/.wig/.phast.bed/'`
+			output=results/annotation/phast/phastCons/chr$i/$wig
+			wig2bed < $input > $output
+			# added bedops path in script for finding convert2bed
+	done
+done
+
+
+rule wig2bed_phyloP:
+    input:
+        "results/annotation/phast/phyloP/chr{chr}/{part}.wig",
+    conda:
+        "../envs/anotation.yml"
+    output:
+        "results/annotation/phast/phastCons/chr{chr}/{part}.phast.bed"
+    shell:
+        "wig2bed < {input} > {output}"
