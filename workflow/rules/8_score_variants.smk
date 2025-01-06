@@ -187,7 +187,7 @@ rule score_variants:
         model="results/model/{cols}/full.mod.pickle",
         script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
     conda:
-         "../envs/common.yml"
+         "../envs/score.yml"
     threads: 4
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
