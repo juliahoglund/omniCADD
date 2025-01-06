@@ -15,8 +15,8 @@ dependencies:
   - brotli-python=1.1.0
   - bzip2=1.0.8
   - c-ares=1.27.0
-  - ca-certificates=2024.8.30
-  - certifi=2024.8.30
+  - ca-certificates=2024.12.14
+  - certifi=2024.12.14
   - cffi=1.16.0
   - charset-normalizer=3.3.2
   - colorama=0.4.6
@@ -34,6 +34,7 @@ dependencies:
   - icu=73.2
   - idna=3.6
   - java-jdk=8.0.92
+  - joblib=1.4.2
   - jsonpatch=1.33
   - jsonpointer=2.4
   - keyutils=1.6.1
@@ -54,6 +55,7 @@ dependencies:
   - libgfortran5=14.1.0
   - libgomp=14.1.0
   - libiconv=1.17
+  - liblapack=3.9.0
   - libmamba=1.4.2
   - libmambapy=1.4.2
   - libnghttp2=1.58.0
@@ -62,6 +64,7 @@ dependencies:
   - libsolv=0.7.30
   - libsqlite=3.46.1
   - libssh2=1.11.0
+  - libstdcxx=14.1.0
   - libstdcxx-ng=13.2.0
   - libuuid=2.38.1
   - libxcrypt=4.4.36
@@ -72,7 +75,7 @@ dependencies:
   - mamba=1.4.2
   - menuinst=2.0.2
   - ncurses=6.5
-  - openssl=3.3.2
+  - openssl=3.4.0
   - packaging=24.0
   - perl=5.32.1
   - pip=24.0
@@ -92,7 +95,9 @@ dependencies:
   - ruamel.yaml=0.17.40
   - ruamel.yaml.clib=0.2.8
   - samtools=1.21
+  - scikit-learn=1.6.0
   - setuptools=69.2.0
+  - threadpoolctl=3.5.0
   - tk=8.6.13
   - toolz=0.12.1
   - tqdm=4.66.2
