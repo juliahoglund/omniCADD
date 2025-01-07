@@ -39,7 +39,7 @@ rule create_summary:
         Rscript {input.script} \
         -s {input.raw_snps} \
         -t {input.filtered_snps} \
-        -d {input.derived_vars}
+        -d {input.derived_vars} \
         -r indexfile.txt \
         -a {input.ancestral_fa} \
         -p {input.parameter_log} \
