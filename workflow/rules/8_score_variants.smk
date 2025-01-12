@@ -251,7 +251,7 @@ rule merge_raw_scores:
          chr=config["chromosomes"]["score"])
     threads: 8
     resources:
-        mem_mb=config["dataset_memory_mb"],
+        mem_mb=config["scoring_memory_mb"],
         tmpdir="results/whole_genome_tmp"
     output:
          "results/whole_genome_scores/full_RAW_scores.csv"
@@ -302,7 +302,7 @@ rule sort_phred_scores:
         "results/whole_genome_scores/phred/chr{chr}.tsv"
     threads: 4
     resources:
-        mem_mb=config["dataset_memory_mb"]
+        mem_mb=config["scoring_memory_mb"]
         tmpdir="results/tmp/chr{chr}"
     output:
         "results/cadd_scores/chr{chr}.tsv.gz"
