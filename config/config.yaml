@@ -105,5 +105,6 @@ parallelization:
   whole_genome_positions_per_file: 500000
   # change to how many batches?
 
-dataset_memory_mb: 60000
+dataset_memory_mb: 80000
+scoring_memory_mb: 90000
 
