@@ -154,7 +154,7 @@ def is_float(pot_float: str) -> bool:
 CONFIGURATION = load_tsv_configuration(args.processing_config)
 ANNOTATIONS = dict([(key, value) for key, value in CONFIGURATION.items()
                     if value["isMetadata"] == "False"])
-# INTERACTIONS = load_tsv_configuration(args.interaction_config)
+INTERACTIONS = load_tsv_configuration(args.interaction_config)
 
 # Build dtype list for opening the dataset:
 dtypes = dict([(key, value["type"]) for key, value in CONFIGURATION.items()])
@@ -282,17 +282,17 @@ df = df.reindex(sorted(df.columns), axis="columns")
 SPARSE_FLOAT = pandas.SparseDtype("float64", fill_value=0)
 
 # Create interaction terms
-# for name, value in INTERACTIONS.items():
-#     print(f"Generating interactions for {name}")
-#     columns = [df]
-#     for i in value["A_cols"].split(","):
-#         a_col = df[i].values
-#         for j in value["B_cols"].split(","):
-#             b_col = df[j].values
-#             columns.append(pandas.Series(
-#                 [o * a for o, a in zip(a_col, b_col)], name=i + '_' + j,
-#                 index=df.index, dtype=SPARSE_FLOAT))
-#     df = pandas.concat(columns, axis=1)
+for name, value in INTERACTIONS.items():
+    print(f"Generating interactions for {name}")
+    columns = [df]
+    for i in value["A_cols"].split(","):
+        a_col = df[i].values
+        for j in value["B_cols"].split(","):
+            b_col = df[j].values
+            columns.append(pandas.Series(
+                [o * a for o, a in zip(a_col, b_col)], name=i + '_' + j,
+                index=df.index, dtype=SPARSE_FLOAT))
+    df = pandas.concat(columns, axis=1)
 
 
 # If write to csv, do so
