@@ -43,7 +43,4 @@ left_merged = pd.merge(vepfile, bedfile, how="left", on=["Pos"])
 ## add more annotations here later
 
 # 3. write to file
-left_merged.to_csv(args.outfile, index = False, sep = "\t")
-
-
-
+left_merged.to_csv(args.outfile, index = False, sep = "\t") 
