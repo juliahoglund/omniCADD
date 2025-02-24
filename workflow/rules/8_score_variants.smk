@@ -205,7 +205,7 @@ rule score_variants:
 # hardcoded to All columns as of now
 def gather_scores(wildcards):
   checkpoints.summarize_generation.get()
-  globed = glob_wildcards(f"results/whole_genome_variants/chr{wildcards.chr}/{{part}}.vcf.gz")
+  globed = glob_wildcards(f"results/whole_genome_annotations/chr{wildcards.chr}/{{part}}.vcf.gz")
   return natsorted(
     expand(f"results/whole_genome_scores/raw_parts/All/chr{wildcards.chr}/{{part}}.csv",
                   part=globed.part))
@@ -302,7 +302,7 @@ rule sort_phred_scores:
         "results/whole_genome_scores/phred/chr{chr}.tsv"
     threads: 4
     resources:
-        mem_mb=config["scoring_memory_mb"]
+        mem_mb=config["scoring_memory_mb"],
         tmpdir="results/tmp/chr{chr}"
     output:
         "results/cadd_scores/chr{chr}.tsv.gz"
