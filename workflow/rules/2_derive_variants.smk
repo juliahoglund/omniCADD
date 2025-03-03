@@ -101,7 +101,7 @@ Trimming is done for the whole variant set so they are first merged into one
 """
 rule merge_by_chr:
     input:
-        raw=expand("results/derived_variants/singletons/chr{chr}.vcf") 
+        raw=expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config['chromosomes']['autosomes'])
     output:
         raw="results/derived_variants/singletons/all_chr.vcf"
     shell:
