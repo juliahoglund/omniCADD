@@ -25,14 +25,12 @@ import sys
 """
 rule clean_ambiguous:
 	input:
-		maf = lambda wildcards:
-		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
+		maf = lambda wildcards: f"{config['alignments'][wildcards.alignment]['path']}{wildcards.part}.maf.gz",
 		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
 	conda:
 		"../envs/ancestor.yml"
 	output:
 		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
-		# create temporary files and dirs
 	shell:
 		"python3 {input.script} -i {input.maf} -o {output}"
 
@@ -52,7 +50,7 @@ rule mark_ancestor:
 		maf = lambda wildcards: 
 		"results/alignment/cleaned_maf/{alignment}/{part}.maf.gz"
 		if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
-		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
+		f"{config['alignments'][wildcards.alignment]['path']}{wildcards.part}.maf.gz",
 		script = workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')
 	params:
 		ancestor = config['mark_ancestor']['name_ancestor'],
@@ -127,8 +125,7 @@ rule maf_ro:
 	output:
 		temp("results/alignment/row_ordered/{alignment}/{part}.maf.lz4")
 	shell:
-		"lz4 -dc {input} | mafRowOrderer --maf /dev/stdin"
-		" --order {params.order} | lz4 -f stdin {output}"
+		"lz4 -dc {input} | mafRowOrderer --maf /dev/stdin --order {params.order} | lz4 -f stdin {output}"
 
 """
  Helper function to gather alignment part files so they can be merged for each chromosome.
