@@ -18,6 +18,7 @@ user specified size at the desired location.
 import re
 import sys
 from argparse import ArgumentParser
+from typing import Iterator
 
 from Bio import SeqIO
 
@@ -46,7 +47,7 @@ args = parser.parse_args()
 NUCLEOTIDES = ["A", "C", "G", "T"]
 
 
-def get_chrom_from_file(chromosome, fasta_file, vb=False):
+def get_chrom_from_file(chromosome: str, fasta_file: str, vb: bool = False) -> SeqIO.SeqRecord:
     """
     Attempts to find the desired sequence in a fasta file,
     exits if unsuccessful.
@@ -62,19 +63,16 @@ def get_chrom_from_file(chromosome, fasta_file, vb=False):
     pattern = r"(^|chr|chromosome)\W*" + chromosome + r"($|\W)"
     ref_fasta = SeqIO.parse(fasta_file, "fasta")
     for rec in ref_fasta:
-        return rec  # TODO CHANGE, EITHER CHECK BETTER OR NOT
-        if vb:
-            print(f"Found: ID = {rec.id}, length {len(rec.seq)}, "
-                  f"with {len(rec.features)} features")
         if re.match(pattern, rec.name):
-            print(f"Chromosome found:\nName: {rec.name}\n"
-                  f"Length {len(rec.seq)}")
+            if vb:
+                print(f"Found: ID = {rec.id}, length {len(rec.seq)}, "
+                      f"with {len(rec.features)} features")
             return rec
     sys.exit(f"Chr {chromosome} was not found in reference fasta file:\n"
              f"{fasta_file}")
 
 
-def open_vcf_out(path, part, vb=False):
+def open_vcf_out(path: str, part: int, vb: bool = False) -> 'file':
     """
     Opens a part file in the desired folder and writes VCF header.
 
@@ -84,18 +82,16 @@ def open_vcf_out(path, part, vb=False):
     :param vb: optional boolean, print debug information
     :return: openfile instance, vcf file with header
     """
-    if not path.endswith("/"):
-        path += "/"
-    file = f"{path}/{part}.vcf"
+    file = f"{path.rstrip('/')}/{part}.vcf"
     if vb:
         print(f"Opening file: {file}")
-    file_h = open(file, "w")
-    file_h.write("##fileformat=VCFv4.1\n")
-    file_h.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
-    return file_h
+    with open(file, "w") as file_h:
+        file_h.write("##fileformat=VCFv4.1\n")
+        file_h.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+    return open(file, "a")
 
 
-def jump_to_pos(enumerate_iter, stop_index, vb=False):
+def jump_to_pos(enumerate_iter: Iterator, stop_index: int, vb: bool = False) -> Iterator:
     """
     Iterates the enumerator to the desired position, does nothing for index <=0
 
@@ -108,10 +104,10 @@ def jump_to_pos(enumerate_iter, stop_index, vb=False):
         return enumerate_iter
     if vb:
         print("Jumping to start site on identified chromosome")
-    for i, j in enumerate_iter:
-        if i == stop_index - 1:
+    for i, (index, value) in enumerate_iter:
+        if i == stop_index:
             return enumerate_iter
-        elif (i % 10000000 == 1) and vb:
+        elif (i % 10000000 == 0) and vb:
             print(f"Current Position {i}")
 
 
