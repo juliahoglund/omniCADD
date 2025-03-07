@@ -20,6 +20,8 @@ import sys
 ## TODO: solve location of directories and make files temporary
 ## remove bed chunks after combining -> make temporary
 ## mv to outout creates duplicates -> change
+
+# Rule to combine constraint annotations
 rule combine_constraint:
     input:
         gerp = "results/annotation/gerp/",
@@ -50,6 +52,7 @@ rule combine_constraint:
         mv tmp.{wildcards.chr} {output}; rm constraint.{wildcards.chr}_*.bed; echo "chr" {wildcards.chr} "done"
         '''
 
+# Rule to intersect bed files with VEP annotations
 rule intersect_bed:
     input:
         vep = "results/annotation/vep/{type}/chr{chr}_vep.tsv",
@@ -59,14 +62,14 @@ rule intersect_bed:
         "../envs/annotation.yml" # change to common?
     threads: 8
     output:
-    	"results/dataset/{type}/chr{chr}_annotated.tsv"
+        "results/dataset/{type}/chr{chr}_annotated.tsv"
     shell:
         "python3 {input.script} "
         " -v {input.vep} "
         " -b {input.bed} "
         " -o {output}"
 
-# done only on simulated?
+# Rule to derive and impute means for simulated data
 rule derive_impute_means:
     input:
         tsv=lambda wildcards: expand(
@@ -84,6 +87,7 @@ rule derive_impute_means:
         " -p {input.processing} "
         " -o {output}"
 
+# Rule for column analysis
 rule column_analysis:
     input:
         derived=expand("results/dataset/derived/chr{chr}_annotated.tsv",
@@ -132,7 +136,7 @@ rule prepare_data:
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",
         cols="results/dataset/{type}/chr{chr}.npz.columns.csv"
     wildcard_constraints:
-        variant="(derived|simulated|validation)"
+        type="(derived|simulated|validation)"
     conda:
         "../envs/annotation.yml"
     priority: 10
@@ -145,4 +149,3 @@ rule prepare_data:
         "--imputation-dict {input.imputation} "
         "{params.derived_variants} -y {params.y} > {log}"
 
- 
