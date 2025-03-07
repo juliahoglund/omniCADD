@@ -16,6 +16,7 @@
 '''
 
 import sys
+from snakemake.io import expand, glob_wildcards
 
 """
  Parse MAF file and removes ambiguous nucleotides from the alignment.
@@ -47,10 +48,11 @@ rule clean_ambiguous:
 """
 rule mark_ancestor:
 	input:
-		maf = lambda wildcards: 
-		"results/alignment/cleaned_maf/{alignment}/{part}.maf.gz"
-		if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
-		f"{config['alignments'][wildcards.alignment]['path']}{wildcards.part}.maf.gz",
+		maf = lambda wildcards: (
+			f"results/alignment/cleaned_maf/{wildcards.alignment}/{wildcards.part}.maf.gz"
+			if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
+			f"{config['alignments'][wildcards.alignment]['path']}{wildcards.part}.maf.gz"
+		),
 		script = workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')
 	params:
 		ancestor = config['mark_ancestor']['name_ancestor'],
@@ -232,11 +234,10 @@ rule maf_sorter:
  Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
  and outputs per chromosome a fasta file of the ancestral sequence. 
 """
-
 rule gen_ancestor_seq:
 	input:
 		maf=f"results/alignment/sorted/{config['mark_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
-		script=workflow.source_path(SCRIPTS_1 + 'extract_ancestor.py'),
+		script=workflow.source_path(SCRIPTS_1 + 'extract_ancestor.py')
 	params:
 		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"],
 		ancestor=config['mark_ancestor']['name_ancestor'],
