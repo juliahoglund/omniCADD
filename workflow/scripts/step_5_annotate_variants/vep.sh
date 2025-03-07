@@ -1,10 +1,23 @@
 #!/bin/bash
 # Script to run ensembl-VEP and pre-process output to reformat variant position data in output
-# Originally written by Christian Gross, modified by Job van Schipstal
+# Originally written by Christian Gross, modified by Job van Schipstal, edited by Julia Höglund
 # Usage vep.sh <input.vcf> <output.vcf> <cache_dir> <scientific_name_species> <threads>
 
 # Delete output if failed
 trap 'rm -rf $2' ERR
+
+# Check if the correct number of arguments is provided
+if [ "$#" -ne 5 ]; then
+  echo "Usage: $0 <input.vcf> <output.vcf> <cache_dir> <scientific_name_species> <threads>"
+  exit 1
+fi
+
+# Debug statements
+echo "Input VCF: $1"
+echo "Output VCF: $2"
+echo "Cache Directory: $3"
+echo "Species: $4"
+echo "Threads: $5"
 
 # Run VEP, preprocess output to reformat positional data
 vep --input_file "$1" --quiet --cache --dir_cache "$3" --offline --buffer 10000 \
@@ -32,4 +45,12 @@ awk 'BEGIN {
     }
   }
 }' > "$2"
+
+# Check if the output file was created successfully
+if [ -f "$2" ]; then
+  echo "Output VCF created successfully: $2"
+else
+  echo "Failed to create output VCF: $2"
+  exit 1
+fi
 
