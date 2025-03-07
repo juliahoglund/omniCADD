@@ -44,7 +44,7 @@ for line in infile:
     for char in IUPAC_AMBIGUOUS:
         sequence = sequence.replace(char, "N")
 
-    outfile.write(" ".join(parts) + " " + sequence)
+        outfile.write(" ".join(parts) + " " + sequence)
 
 infile.close()
 outfile.close()
