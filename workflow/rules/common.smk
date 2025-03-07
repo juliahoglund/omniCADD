@@ -25,9 +25,7 @@ Bgzip_validation_variants has the highest priority since
 it also handles moving the variants into the results folder.
 """
 
-
 ruleorder: bgzip_tabix > tabix
-
 
 """  
  Unzip MAF files since the tool needs a seekable file,
