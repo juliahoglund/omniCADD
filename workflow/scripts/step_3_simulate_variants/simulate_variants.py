@@ -27,6 +27,10 @@ import random
 import pickle
 import gzip
 import mmap  # allow for memory mapping
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-i", "--infile",
@@ -52,6 +56,17 @@ parser.add_argument("--indels",
 
 args = parser.parse_args()
 
+# Validate input arguments
+if not os.path.exists(args.infile):
+    logging.error(f"Reference genome fasta file '{args.infile}' does not exist.")
+    sys.exit(1)
+if not os.path.exists(args.infile + ".fai"):
+    logging.error(f"Fasta index file '{args.infile}.fai' does not exist.")
+    sys.exit(1)
+if not os.path.exists(args.pickle):
+    logging.error(f"Pickle file '{args.pickle}' does not exist.")
+    sys.exit(1)
+
 NUCLEOTIDES = ["A", "C", "G", "T"]
 
 # python's randomizer is expected to be reproducible with the same seed and
@@ -68,19 +83,16 @@ def read_fasta_index(filename: str) -> dict:
     :param filename: filename of index to read
     :return: Dict sequence name, list of sequence statistics
     """
-    infile = open(filename)
     res = {}
-    for line in infile:
-        fields = line.split()
-        if len(fields) == 5:
-            cname, length, start, line, cline = fields
-            res[cname] = int(length), int(start), int(line), int(cline)
-        else:
-            sys.stderr.write(
-                'Error: Unexpected line in fasta index file: %s\n' % (
-                    line.strip()))
-            sys.exit()
-    infile.close()
+    with open(filename) as infile:
+        for line in infile:
+            fields = line.split()
+            if len(fields) == 5:
+                cname, length, start, line, cline = fields
+                res[cname] = int(length), int(start), int(line), int(cline)
+            else:
+                logging.error(f'Unexpected line in fasta index file: {line.strip()}')
+                sys.exit(1)
     return res
 
 def open_vcf(filename: str):
@@ -89,12 +101,12 @@ def open_vcf(filename: str):
     :param filename: str, filename and path
     :return: file handle
     """
-    out_f = gzip.open(filename, 'wt') if filename.endswith(".gz") \
-        else open(filename, 'w')
-    vcf_header = '##fileformat=VCFv4.1\n##INFO=<ID=CpG,Number=0,Type=Flag,' \
-                 'Description="Position was mutated in a CpG dinucleotide ' \
-                 'context (based on the reference sequence).">\n' \
-                 '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+    out_f = gzip.open(filename, 'wt') if filename.endswith(".gz") else open(filename, 'w')
+    vcf_header = (
+        '##fileformat=VCFv4.1\n'
+        '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">\n'
+        '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n'
+    )
     out_f.write(vcf_header)
     return out_f
 
@@ -123,16 +135,23 @@ if len(fastaindex) != 1:
              f"not {len(fastaindex)}")
 
 # OPEN FASTA COPY WITH MMAP
-sys.stderr.write('Doing mmap of genome file...\n')
-f = open(args.infile, "r")
-cmap = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)
-cmap.flush()
+logging.info('Doing mmap of genome file...')
+try:
+    with open(args.infile, "r") as f:
+        cmap = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)
+        cmap.flush()
+except Exception as e:
+    logging.error(f"Error opening or memory-mapping the genome file: {e}")
+    sys.exit(1)
 
-sys.stderr.write('Loading parameters from pickle file...\n')
-pickle_f = open(args.pickle, "rb")
-intervals, interval_vals, gmut, dmut, gmutCpG, dmutCpG, gdeletions, ginserts, \
-dmutindel, GTR_CpG, GTR_nonCpG, deletions, inserts = pickle.load(pickle_f)
-pickle_f.close()
+logging.info('Loading parameters from pickle file...')
+try:
+    with open(args.pickle, "rb") as pickle_f:
+        intervals, interval_vals, gmut, dmut, gmutCpG, dmutCpG, gdeletions, ginserts, \
+        dmutindel, GTR_CpG, GTR_nonCpG, deletions, inserts = pickle.load(pickle_f)
+except Exception as e:
+    logging.error(f"Error loading parameters from pickle file: {e}")
+    sys.exit(1)
 
 sys.stderr.write('Iterating over genome...\n')
 # SIMULATE VARIANTS, PRINT TO VCF OUTPUT
@@ -287,9 +306,10 @@ for ind, (start, end) in enumerate(cintervals):
                         "%s\t%d\t.\t%s\t%s\t.\t.\t.\n" % (
                             args.chrom, pos, base, base + insseq))
                     break
-cmap.close()
-f.close()
 if snp_out:
     snp_out.close()
 if indel_out:
     indel_out.close()
+cmap.close()
+
+logging.info("Simulation completed successfully.")
