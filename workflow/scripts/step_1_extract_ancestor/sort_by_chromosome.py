@@ -52,53 +52,48 @@ PARSER.add_argument("-c", "--chromosomes",
 if __name__ == '__main__':
     args = PARSER.parse_args()
 
-    # Makes a list from the files in the directory and remove 'other' from files
-    file_list = []
-    for file in args.input:
-        file_list.append(file)
+    file_list = args.input
 
-    chr_list = defaultdict(list)
+    chr_list = {}
     for chromosome in args.chromosomes:
         chr_list[chromosome] = open("chr" + str(chromosome) + ".maf", "a")
         chr_list[chromosome].write("##maf version=1\n\n")
 
+    try:
+        for maf_f in file_list:
+            print('Processing file: {}'.format(maf_f))
 
-    # Create dict for chr and corresponding blocks
-    maf_blocks = defaultdict(list)
-
-    # Loop through files list and add file names to correct chr
-
-    for maf_f in file_list:
-        print('Processing file: {}'.format(maf_f))
-
-        if maf_f.endswith(".gz"):
-            open_f = gzip.open(maf_f, "rt")
-        elif maf_f.endswith(".lz4"):
-            open_f = lz4.frame.open(maf_f, mode="rt")
-        else:
-            open_f = open(maf_f, "r")
-
-        ident_chr = "not_present"
-        blocks = ""
-        line = open_f.readline() # header
-        line = open_f.readline() # newline
-
-        while line != "":
-            line = open_f.readline()
-            if "a " in line:
-                switch = 0
-                blocks = ""
-                blocks += line
-            elif "s " in line:
-                blocks += line
-                if str(args.species) in line:
-                    ident_chr = line.split()[1].split('.')[1]
+            if maf_f.endswith(".gz"):
+                open_f = gzip.open(maf_f, "rt")
+            elif maf_f.endswith(".lz4"):
+                open_f = lz4.frame.open(maf_f, mode="rt")
             else:
-                switch = 1
-            if switch == 1:
-                if ident_chr in chr_list:
-                    blocks += '\n'
-                    chr_list[ident_chr].write(blocks)
+                open_f = open(maf_f, "r")
 
-    for chromosome in chr_list:
-        chr_list[chromosome].close()
+            with open_f as f:
+                ident_chr = "not_present"
+                blocks = ""
+                line = f.readline()  # header
+                line = f.readline()  # newline
+
+                while line != "":
+                    line = f.readline()
+                    if "a " in line:
+                        switch = 0
+                        blocks = ""
+                        blocks += line
+                    elif "s " in line:
+                        blocks += line
+                        if str(args.species) in line:
+                            ident_chr = line.split()[1].split('.')[1]
+                    else:
+                        switch = 1
+                    if switch == 1:
+                        if ident_chr in chr_list:
+                            blocks += '\n'
+                            chr_list[ident_chr].write(blocks)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        for chromosome in chr_list:
+            chr_list[chromosome].close()
