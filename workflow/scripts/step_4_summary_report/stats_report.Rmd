@@ -16,7 +16,6 @@ params:
 ---
 
 ```{r setup, include = FALSE}
-
 list.of.packages <- c("ggfittext", "patchwork", "ggplotify", "gridExtra", "BiocManager", "kableExtra", "ape", "ggpubr", "knitr", "gtools", "ggtext", "RIdeogram", "imager", 'remotes')
 list.of.bioconductor <- c("biomaRt", "chromPlot", "GenomicFeatures", "BSgenome", "ggtree", "emojifont")
 
@@ -53,10 +52,19 @@ library(RIdeogram)
 library(imager)
 load.fontawesome()
 
-load(paste(params$path, "data/graphs.RData", sep = ""))
-ancestorset <- ancestorset[-20,]
-derivedset <- derivedset[-20,]
-fullset <- fullset[-20,]
+# Error handling and logging
+log_file <- file(paste(params$path, "script_log.txt", sep = ""), open = "wt")
+sink(log_file, type = "message")
+
+tryCatch({
+  load(paste(params$path, "data/graphs.RData", sep = ""))
+  ancestorset <- ancestorset[-20,]
+  derivedset <- derivedset[-20,]
+  fullset <- fullset[-20,]
+}, error = function(e) {
+  message("Error loading data: ", e)
+  stop("Script execution halted.")
+})
 ```
 
 # Variant simulator; report
@@ -65,43 +73,35 @@ fullset <- fullset[-20,]
 If a (newick) phylogenetic tree file has been provided, the visualisation of the MSA used in the calculations is shown below. The two chosen groups (i.e. 'ingroup' / species of interest, and outgroup) are highlighted in the tree. The outgroup, used in the computation or not, is the outgroup, which together with the reference species of interest coalesce at the node of interest, from which the ancestral sequence have been extracted. Most recent common ancestor (MRCA) is highlighted in purple and labeled. The rest of the clades in the alignment are shown in lighter grey. Regardless whether a reconstructed ancestral sequence at a node, or an outgroup, has been chosen as the ancestor, the MRCA will be highlighted.
 
 ```{r generate tree, include = FALSE}
-
-### if no tree file, print not available
-
-if (params$tree == 'None') {
-
-  text <- text_grob("[no phylo tree available]", face = "bold", color = "grey55", just = "bottom", size = 30)
-  code <- ggplot() + geom_emoji("herb", color='grey', size = 50) + theme_void() +
-    theme(legend.position="none",
-          plot.margin=unit(c(-0.5,1,1,1), "cm"))
-  
-  phylogenetic.tree <- as.ggplot(grid.arrange(text, code))
-  
-} else {
-  tree <- read.tree(paste(params$path, params$tree, sep=""))
-  tree
-  
-  for (i in 1:length(tree$tip.label)) {
-    tree$tip.label[i] <- tolower(paste(unlist(str_split(tree$tip.label[i], "_"))[1:2], collapse = ' '))
+tryCatch({
+  if (params$tree == 'None') {
+    text <- text_grob("[no phylo tree available]", face = "bold", color = "grey55", just = "bottom", size = 30)
+    code <- ggplot() + geom_emoji("herb", color='grey', size = 50) + theme_void() +
+      theme(legend.position="none",
+            plot.margin=unit(c(-0.5,1,1,1), "cm"))
+    phylogenetic.tree <- as.ggplot(grid.arrange(text, code))
+  } else {
+    tree <- read.tree(paste(params$path, params$tree, sep=""))
+    tree
+    for (i in 1:length(tree$tip.label)) {
+      tree$tip.label[i] <- tolower(paste(unlist(str_split(tree$tip.label[i], "_"))[1:2], collapse = ' '))
+    }
+    ancNode <- getMRCA(tree, c(params$ingroup, params$outgroup))
+    ingroup <- parent(tree, which(tree$tip.label == params$ingroup))
+    outgroup <- parent(tree, which(tree$tip.label == params$outgroup))
+    clade <- c("ancestor" = ancNode, "ingroup" = ingroup, "outgroup" = outgroup)
+    tree <- groupClade(tree, clade)
+    data <- data.frame(id = c(ancNode, ingroup, outgroup),
+                       annote = c("clade in \nancestral node", "ingroup", "outgroup"),
+                       offset = c(0.05, 0.03, 0.03),
+                       offset.text = c(0.15, 0.15, 0.15))
+    p <- ggtree(tree) + hexpand(.4)
+    selected_nodes <- offspring(p, ancNode)$node
   }
-  
-  ancNode <- getMRCA(tree, c(params$ingroup, params$outgroup))
-  ingroup <- parent(tree, which(tree$tip.label == params$ingroup))
-  outgroup <- parent(tree, which(tree$tip.label == params$outgroup))
-
-  clade <- c("ancestor" = ancNode, "ingroup" = ingroup, "outgroup" = outgroup)
-  tree <- groupClade(tree, clade)
-  data <- data.frame(id = c(ancNode, ingroup, outgroup),
-                     annote = c("clade in \nancestral node", "ingroup", "outgroup"),
-                     offset = c(0.05, 0.03, 0.03),
-                     offset.text = c(0.15, 0.15, 0.15))
-  
-  p <- ggtree(tree) + hexpand(.4)
-  selected_nodes <- offspring(p, ancNode)$node
-  
-}
-
-#################
+}, error = function(e) {
+  message("Error generating tree: ", e)
+  stop("Script execution halted.")
+})
 ```
 
 ```{r print tree, echo=FALSE, warning = FALSE, fig.width = 13, fig.height = 7}
@@ -109,7 +109,6 @@ if (params$tree == 'None') {
 if (params$tree == 'None') {
   phylogenetic.tree
 } else {
-  # Generate
   phylogenetic.tree <- 
     p + 
     geom_text(aes(label = label), 
@@ -154,10 +153,8 @@ if (params$tree == 'None') {
       linetype = 2,
       padding = unit(c(7, 7, 7, 7), "pt"),
       r = unit(3, "pt"))))
-  # print
   phylogenetic.tree + fig_legend
-  }
-
+}
 ```
 
 ### Distribution of simulated variants across the reference genome
@@ -165,54 +162,46 @@ If an ideogram (often possible to download on the UCSC website, [here](https://g
 If there is no forced sub-sampling due to lack of ancestral sequence, the distribution will be fully red. 
 
 ```{r genome distribution, echo = FALSE, include = FALSE}
-
-if (params$ideogram == 'None') {
-
-  text <- text_grob("[no ideogram information available]", face = "bold", color = "grey55", just = "bottom", size = 30)
-  code <- ggplot() + geom_emoji("paw_prints", color='grey', size = 80) + theme_void() +
-    theme(legend.position="none",
-          plot.margin=unit(c(-0.5,1,1,1), "cm"))
-  
-  chromPLOT <- as.ggplot(grid.arrange(text, code))
-  
-} else {
-  # fix data
-  
-  ideogram <- fread(paste(params$path, params$ideogram, sep=""), header = F) %>% 
-    dplyr::rename("Chrom" = "V1", "Start" = "V2", "End" = "V3") %>%
-    makeGRangesFromDataFrame(.) 
-  
-  plotData <- 
-    merge(SimVars, OverlapVars, by = c("CHROM", "Start"), all = T) %>% 
-    dplyr::select(CHROM, Start, n.x, n.y) %>% 
-    dplyr::rename('pos' = Start, 'chrom' = CHROM, 'non-overlap' = n.x, 'overlap' = n.y) %>% 
-    group_by(chrom) %>% 
-    mutate(bins = cut(pos, breaks = seq(from=0, to=max(pos), by=100000))) %>% 
-    group_by(chrom, bins) %>% 
-    mutate(`non-overlap` = replace_na(`non-overlap`, 0), overlap = replace_na(overlap, 0)) %>% 
-    reframe(pos = min(pos), `non-overlap` = sum(`non-overlap`), overlap = sum(overlap)) %>% 
-    distinct()
-  
-  plotData$chrom <- factor(plotData$chrom, levels = str_sort(factor(unique(plotData$chrom)), numeric = TRUE))
-  plotData <- plotData[order(plotData$chrom),]
-  
-  # making the data frame for karyotype visualisation
-  blobby <- data.frame(chrom = info.fai$chromosome, # keep the factors, one for each chrom
-                       pos = info.fai$srcSize,
-                       name = info.fai$chromosome,
-                       value = info.fai$srcSize,
-                       low = - (min(plotData$pos)*500))
-}
-
+tryCatch({
+  if (params$ideogram == 'None') {
+    text <- text_grob("[no ideogram information available]", face = "bold", color = "grey55", just = "bottom", size = 30)
+    code <- ggplot() + geom_emoji("paw_prints", color='grey', size = 80) + theme_void() +
+      theme(legend.position="none",
+            plot.margin=unit(c(-0.5,1,1,1), "cm"))
+    chromPLOT <- as.ggplot(grid.arrange(text, code))
+  } else {
+    ideogram <- fread(paste(params$path, params$ideogram, sep=""), header = F) %>% 
+      dplyr::rename("Chrom" = "V1", "Start" = "V2", "End" = "V3") %>%
+      makeGRangesFromDataFrame(.) 
+    plotData <- 
+      merge(SimVars, OverlapVars, by = c("CHROM", "Start"), all = T) %>% 
+      dplyr::select(CHROM, Start, n.x, n.y) %>% 
+      dplyr::rename('pos' = Start, 'chrom' = CHROM, 'non-overlap' = n.x, 'overlap' = n.y) %>% 
+      group_by(chrom) %>% 
+      mutate(bins = cut(pos, breaks = seq(from=0, to=max(pos), by=100000))) %>% 
+      group_by(chrom, bins) %>% 
+      mutate(`non-overlap` = replace_na(`non-overlap`, 0), overlap = replace_na(overlap, 0)) %>% 
+      reframe(pos = min(pos), `non-overlap` = sum(`non-overlap`), overlap = sum(overlap)) %>% 
+      distinct()
+    plotData$chrom <- factor(plotData$chrom, levels = str_sort(factor(unique(plotData$chrom)), numeric = TRUE))
+    plotData <- plotData[order(plotData$chrom),]
+    blobby <- data.frame(chrom = info.fai$chromosome, 
+                         pos = info.fai$srcSize,
+                         name = info.fai$chromosome,
+                         value = info.fai$srcSize,
+                         low = - (min(plotData$pos)*500))
+  }
+}, error = function(e) {
+  message("Error generating genome distribution: ", e)
+  stop("Script execution halted.")
+})
 ```
 
 ```{r plot distribution, fig.width = 13, fig.height = 14, echo = FALSE, warning=FALSE}
 
 if (params$ideogram == 'None') {
   chromPLOT
-  
 } else {
-  
   ggplot(blobby, aes(y = low, yend = low, x = pos, xend = 0)) +
     geom_col(data = plotData, aes(x = pos, y = `non-overlap`, fill = '#bababa'), inherit.aes = FALSE, width = 100000) +
     geom_col(data = plotData, aes(x = pos, y = overlap, fill = 'tomato'), inherit.aes = FALSE, width = 150000) +
@@ -227,15 +216,14 @@ if (params$ideogram == 'None') {
     theme(axis.line=element_blank(),
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank())
-  }
-
+}
 ```
 
 ```{r figure 2 legend, fig.width = 12, fig.height = 2, echo = FALSE}
 if (params$ideogram == 'None') {
   skip = 1
-  } else {
-    df <- data.frame(
+} else {
+  df <- data.frame(
     x = 1, y = 1, label = paste( "**Figure 2.** <br>
   chromPlot showing the karyogram of the species of interest from chromosome 1:N and sex chromosome (if applicable). The chromosome number is shown above each chromosome. <span style = 'color:#bababa;'>The count (per bin)</span> of total simulated variants are shown in <span style = 'color:#bababa;'>grey</span>. <span style = 'color:#fa5545;'>The count (per bin)</span> of simulated variants that are overlapping with a corresponding non-gap ancestral sequence, i.e, that are not located within an ancetral gap, are shown in <span style = 'color:#fa5545;'>red</span>. This graph aims to show the overall distribution of simulated variants within the full reference genome against the parts that are aligning to an available ancestral sequence."))
   text <-  
@@ -244,49 +232,45 @@ if (params$ideogram == 'None') {
     theme_void() 
   
   text
-  }
+}
 ```
 
 ### Distribution of derived variants across the reference genome
 If an ideogram (often possible to download on the UCSC website, [here](https://genome.ucsc.edu/cgi-bin/hgTables)) has been provided, the distribution of derived variants is shown across the genome of the species of interest. The distribution of derived variants across the genome is shown in red. 
 
 ```{r derived distribution, echo = FALSE, include = FALSE}
-
-if (params$ideogram == 'None') {
-  skip = 1
+tryCatch({
+  if (params$ideogram == 'None') {
+    skip = 1
   } else {
-    
-  plotData2 <- 
-    derivedVars %>% 
-      dplyr::rename('pos' = Start, 'chrom' = CHROM, 'count' = n) %>%
-      dplyr::select(chrom, pos, count) %>% 
-      group_by(chrom) %>% 
-      mutate(bins = cut(pos, breaks = seq(from=0, to=max(pos), by=100000))) %>% 
-      group_by(chrom, bins) %>% 
-      reframe(pos = min(pos), count = sum(count)) %>% 
-      distinct()
-  
-  plotData2$chrom <- factor(plotData2$chrom, levels = str_sort(factor(unique(plotData2$chrom)), numeric = TRUE))
-  plotData2 <- plotData2[order(plotData2$chrom),]
-  
-  # making the data frame for karyotype visualisation
-  blobby2 <- data.frame(chrom = info.fai$chromosome, # keep the factors, one for each chrom
-                       pos = info.fai$srcSize,
-                       name = info.fai$chromosome,
-                       value = info.fai$srcSize,
-                       low = - (min(plotData2$pos)*0.05))
-
+    plotData2 <- 
+      derivedVars %>% 
+        dplyr::rename('pos' = Start, 'chrom' = CHROM, 'count' = n) %>%
+        dplyr::select(chrom, pos, count) %>% 
+        group_by(chrom) %>% 
+        mutate(bins = cut(pos, breaks = seq(from=0, to=max(pos), by=100000))) %>% 
+        group_by(chrom, bins) %>% 
+        reframe(pos = min(pos), count = sum(count)) %>% 
+        distinct()
+    plotData2$chrom <- factor(plotData2$chrom, levels = str_sort(factor(unique(plotData2$chrom)), numeric = TRUE))
+    plotData2 <- plotData2[order(plotData2$chrom),]
+    blobby2 <- data.frame(chrom = info.fai$chromosome, 
+                         pos = info.fai$srcSize,
+                         name = info.fai$chromosome,
+                         value = info.fai$srcSize,
+                         low = - (min(plotData2$pos)*0.05))
   }
-
+}, error = function(e) {
+  message("Error generating derived distribution: ", e)
+  stop("Script execution halted.")
+})
 ```
 
 ```{r plot distribution derived, fig.width = 13, fig.height = 14, echo = FALSE, warning=FALSE}
 
 if (params$ideogram == 'None') {
   skip = 1
-  
 } else {
-  
   ggplot(blobby2, aes(y = low, yend = low, x = pos, xend = 0)) +
     geom_col(data = plotData2, aes(x = pos, y = count, fill = 'tomato'), inherit.aes = FALSE, width = 150000) +
     scale_fill_manual('count', values = c('tomato'), label = c('derived variants')) +
@@ -300,15 +284,14 @@ if (params$ideogram == 'None') {
     theme(axis.line=element_blank(),
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank())
-  }
-
+}
 ```
 
 ```{r figure 1 legend, fig.width = 12, fig.height = 2, echo = FALSE}
 if (params$ideogram == 'None') {
   skip = 1
-  } else {
-    df <- data.frame(
+} else {
+  df <- data.frame(
     x = 1, y = 1, label = paste( "**Figure 3.** <br>
   chromPlot showing the karyogram of the species of interest from chromosome 1:N and sex chromosome (if applicable). The chromosome number is shown above each chromosome. <span style = 'color:#fa5545;'>The count (per bin)</span> of derived variants is shown in <span style = 'color:#fa5545;'>red</span>. This graph aims to show the overall distribution of derived variants across the full reference genome."))
   text <-  
@@ -317,9 +300,8 @@ if (params$ideogram == 'None') {
     theme_void() 
   
   text
-  }
+}
 ```
-
 
 ### How much of the reference genome that has an available, aligned reconstructed ancestral sequence
 ```{r genome fractions, echo = FALSE}
@@ -341,10 +323,8 @@ kable(COVER, format = "pipe", align = 'r', format.args = list(big.mark = " "), c
 
 ```
 
-
 ### Number of simulated variants
 ##### and how many are overlapping with an available ancestral sequence
-
 
 ```{r snp fractions, echo=FALSE, fig.width = 11, fig.height = 8, fig.align = 'center'}
 
@@ -438,7 +418,6 @@ fig_legend <- plot_annotation(
 mutation.plot + fig_legend
 ```
 
-
 ##### Table with corresponding data:
 
 ```{r variant table, echo=FALSE}
@@ -526,10 +505,9 @@ kable(DER, format = "pipe", align = 'r', format.args = list(big.mark = " "), cap
 ### Visualisation of gene density
 #### and CDS overlap
 ```{r gene density, echo = FALSE, warning = FALSE, fig.width = 18, fig.height = 13}
-
+tryCatch({
 # plot data
-# Here's a nice function for suppressing output from cat() by Hadley Wickham:
-
+# function to omit all messages that are not caught in chunk suppression
 quiet <- function(x) { 
   sink(tempfile()) 
   on.exit(sink()) 
@@ -541,14 +519,13 @@ quiet <- function(x) {
 #### (created in previous step) ####
 ####################################
 
-karyogram <- read.table(paste(params$path, params$ideogram, sep=""), header = F)
+karyogram <- read.table(paste(p
+  #ar ams$path, params$ideogram, sep=""), header = F)
 karyogram <- 
   karyogram %>% 
-  # change to desired number of chromosomes
   dplyr::rename('Chr' = 'V1', 'Start' = 'V2', 'End' = 'V3') %>%
   dplyr::select(Chr, Start, End) %>%
-  # centromere data, needed even if absent
-  mutate(CE_start = 0, CE_end = 0)
+    mutate(CE_start = 0, CE_end = 0)
 
 # sort chromosomes (is a hassle)
 karyogram$Chr <- factor(karyogram$Chr, levels = str_sort(factor(unique(karyogram$Chr)), numeric = TRUE))
@@ -561,19 +538,21 @@ karyogram$Chr <- as.character(karyogram$Chr)
 ####################################
 
 if (params$annotation == "None") {
-  
-  message("annotation file not available.")
-  
-} else {
-  
-  suppressMessages({
-  genes <- read.table(paste(params$path, params$annotation, sep=""), header=F)
+    message("annotation file not available.")
+  } else {
+    suppressMessages({
+  genes <- read.table(paste(param
+####################################
+######  LOAD CDS BED FILE. #########
+## (extracted from genomewide gff) #
+####################################
+
+s$path, params$annotation, sep=""), header=F)
   n <- 
     genes %>% 
     mutate(bins = cut(V2, breaks = 100)) %>% 
     group_by(V1) %>% 
     count(bins)
-  
   range <-
     genes %>% 
     mutate(bins = cut(V2, breaks = 100)) %>% 
@@ -581,13 +560,11 @@ if (params$annotation == "None") {
     summarise(minvalue = min(V2), maxvalue = max(V3)) %>% 
     dplyr::rename('chrom' = 'V1')
   })
-  
-  ref_genes <- data.frame(Chr = range$chrom,
+    ref_genes <- data.frame(Chr = range$chrom,
                           Start = range$minvalue,
                           End = range$maxvalue,
                           Value = n$n)
-  
-  ref_genes$Chr <- factor(ref_genes$Chr, levels = str_sort(factor(unique(ref_genes$Chr)), numeric = TRUE))
+    ref_genes$Chr <- factor(ref_genes$Chr, levels = str_sort(factor(unique(ref_genes$Chr)), numeric = TRUE))
   ref_genes <- ref_genes[order(ref_genes$Chr),]
   ref_genes$Chr <- as.character(ref_genes$Chr)
 
@@ -601,26 +578,22 @@ if (params$annotation == "None") {
 
 suppressMessages({
   ancestor <- read.table(paste(params$path, params$bedfile, sep=""), header=F)
-  
-  n <- 
+    n <- 
     ancestor %>% 
     mutate(bins = cut(V2, breaks = 100)) %>% 
     group_by(V1) %>% 
     count(bins)
-  
-  range <- 
+    range <- 
     ancestor %>% 
     mutate(bins = cut(V2, breaks = 100)) %>% 
     group_by(V1, bins) %>% 
     summarise(minvalue = min(V2), maxvalue = max(V3)) %>% 
     dplyr::rename('chrom' = 'V1')
 })
-
 ancestor_seqs <- data.frame(Chr = range$chrom,
                             Start = range$minvalue,
                             End = range$maxvalue,
                             Value = n$n)
-
 ancestor_seqs$Chr <- factor(ancestor_seqs$Chr, levels = str_sort(factor(unique(ancestor_seqs$Chr)), numeric = TRUE))
 ancestor_seqs <- ancestor_seqs[order(ancestor_seqs$Chr),]
 ancestor_seqs$Chr <- as.character(ancestor_seqs$Chr)
@@ -634,38 +607,30 @@ if (params$annotation == "None") {
            overlaid = ancestor_seqs,
            colorset1 = c("#fff2ed", "#ffb296", "#ff7f50"),
            output = paste(params$path, "anc-seq.svg", sep=""))
-
   suppressMessages(anc_seq <- svgparser::read_svg(paste(params$path, "anc-seq.svg", sep = "")))
-
   df <- data.frame(x = 1:10, y = 1:10)
   karyo1 <-   
   ggplot(df, aes(x, y)) + 
   geom_blank() +
   annotation_custom(anc_seq, xmin = 0, xmax = 12, ymin = -5, ymax = 15) +
   theme_void()
-  
-  df <- data.frame(
+    df <- data.frame(
       x = 1, y = 1, label = paste( "**Figure 6.** <br>
     Karyoplot depicting the <span style = 'color:#660066;'>gene density</span> and the <span style = 'color:#ff7f50;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the overlap of coding sequences in the reference genome and the location / density of the reconstructed ancestral sequence(s).<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
-  
-  text <-  
+    text <-  
     ggplot(df) +
     ggtext::geom_textbox(aes(x = x, y = y, label = label), 
                          width = unit(700, "pt"), 
                          box.margin = margin(0,0,0,0, "pt")) +
     theme_void()
-  
-  layout <- c(
+    layout <- c(
     area(1,2,1,2),
     area(1,2,4,5),
     area(4,2,5,4)
   )
-  
-  plot_spacer() + karyo1 + text + 
+    plot_spacer() + karyo1 + text + 
     plot_layout(design = layout)
-  
-    
-} else {
+  } else {
   ideogram(karyotype = karyogram, 
            overlaid = ref_genes, 
            label = ancestor_seqs, 
@@ -673,33 +638,27 @@ if (params$annotation == "None") {
            colorset1 = c("#efe5ef", "#a366a3", "#660066"),
            colorset2 = c("#fff2ed", "#ffb296", "#ff7f50"),
            output = paste(params$path, "anc-seq.svg", sep=""))
-  
-  suppressMessages(anc_seq <- svgparser::read_svg(paste(params$path, "anc-seq.svg", sep = "")))
-
+    suppressMessages(anc_seq <- svgparser::read_svg(paste(params$path, "anc-seq.svg", sep = "")))
   karyo1 <-
     ggplot() + 
   geom_point(aes(x = 1:10, y = 1:10), alpha = 0.0) +
   annotation_custom(anc_seq, xmin = 0, xmax = 16, ymin = -5, ymax = 11) + 
   theme_void()
-  
-  df <- data.frame(
+    df <- data.frame(
       x = 1, y = 1, label = paste( "**Figure 6.** <br>
     Karyoplot depicting the <span style = 'color:#660066;'>gene density</span> and the <span style = 'color:#ff7f50;'>ancestor sequence density</span> across the genome of the reference species of interest. The chromosomes that have been used in the analysis (eg. autosomes only or autosomes + X) are depicted. The darker the color the higher the density. This figure shows the overlap of coding sequences in the reference genome and the location / density of the reconstructed ancestral sequence(s).<br><br>**The high resolution version of this graph has been printed in the output folder.**"))
-  
-  text <-  
+    text <-  
     ggplot(df) +
     ggtext::geom_textbox(aes(x = x, y = y, label = label), 
                          width = unit(700, "pt"), 
                          box.margin = margin(0,0,0,0, "pt")) +
     theme_void()
-  
-  layout <- c(
+    layout <- c(
     area(1,2,1,2),
     area(1,2,4,5),
     area(4,2,5,4)
   )
-  
-  plot_spacer() + karyo1 + text + 
+    plot_spacer() + karyo1 + text + 
     plot_layout(design = layout)
 
 }
@@ -831,9 +790,7 @@ if (params$coverage == "None") {
   
   text <-  
     ggplot(df) +
-    ggtext::geom_textbox(aes(x = x, y = y, label = label), 
-                         width = unit(700, "pt"), 
-                         box.margin = margin(0,0,0,0, "pt")) +
+    ggtext::geom_textbox(aes(x = x, y = y, label = label), width = unit(700, "pt"), box.margin = margin(0,0,0,0, "pt")) +
     theme_void()
   
   layout <- c(
@@ -846,18 +803,15 @@ if (params$coverage == "None") {
     plot_layout(design = layout)
   
 }
-
-
 ```
-
 
 ### Validation of simulation parameters
 Number of mutations, fractions, and substitution rates.
 To make sure the simulation was performed as expected, the leftmost part is the calculated numbers and rates in the parameter files, including the total number of simulated variants per chromosome, based on information from the ancestor and reference species. The middle part is the (re)calculated numbers and rates based on the total number of simulated variants. The rightmost part is the (re)calculated numbers and rates within the subset with a corresponding non-gap ancestral sequence. The comparison of parameters and simulated variants is to make sure that the simulation has been perform as intended, and the comparison between total set and the subset is to make sure that the distribution is the same even if the variants are forced to be down-sampled due to the lack of an available ancestral sequence.
 
 ```{r subst rates, echo = FALSE}
+tryCatch({
 options(knitr.kable.NA = '')
-
 colnames(substitutions) <- c(rep(' ', 9))
 kbl(substitutions, caption = "Comparison of numebr of mutations between log files and actual simulated files") %>%
   kable_classic() %>%
@@ -874,5 +828,8 @@ kbl(substitutions, caption = "Comparison of numebr of mutations between log file
              seq(from = 19, to = nrow(substitutions), by = 21)), 
            bold = T, color = "#8B8386", background = "#FFF0F5") %>%
   add_header_above(c("Parameter files" = 3, "Simulated variant file" = 3, "Simulated variant file \n(filtered for positions with a corresponding non-gap ancestral position)" = 3))
- 
+ }, error = function(e) {
+  message("Error generating substitution rates table: ", e)
+  stop("Script execution halted.")
+})
 ```
