@@ -13,3 +13,7 @@ Dependencies:
 - scikit-learn
 
 Dependencies are all exported in the conda environment `annotation.yml`. The pipeline can be run within this environment, or with `snakemake --use-conda`
+
+
+## TO-DO
+2025-03-06: clean-up untested

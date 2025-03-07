@@ -36,3 +36,7 @@ The third part renders the output by knitting an Rmd file:
   "sus scrofa" or "s scrofa" depending on how they are formatted in the provided tree file.
 
   If the species of choice does not have available data for an ideogram the params default is 'None' and the script will not try to use it downstream. The same goes for the phylogenetic tree, should the user not be able to provide one.
+
+**TO-DO**
+2025-03-05: clean-up untested
+

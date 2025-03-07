@@ -11,3 +11,6 @@ Python-specific dependencies are all exported in the conda environment `simulati
 
 The simulation script is the same as in the original paper, as written and published by [Kircher et al 2014](https://www.nature.com/articles/ng.2892)
 
+**TO-DO**
+2025-03-05: clean-up untested
+

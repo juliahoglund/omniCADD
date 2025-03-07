@@ -35,7 +35,6 @@ Python dependencies:
 Python-specific dependencies are all exported in the conda environment `simulation.yml`. The pipeline handles user proivided `.vcf`-files. This should contain data for multiple samples in a population, from which the allele frequency should be derived. 
 
 **To do**
-- add derived variant summary stats to the stats report
 - add alternative ways of deriving variants when pop. level data is not available
-
+2025-03-05: clean-up untested
 

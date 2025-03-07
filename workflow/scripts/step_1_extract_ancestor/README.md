@@ -14,3 +14,4 @@ as on now, it depends on having an alignment that includes the reference species
 
 **To do**
 - update it with a rule with the possibilty of adding reference sequences to a prealigned MSA
+2025-03-04: clean-up untested

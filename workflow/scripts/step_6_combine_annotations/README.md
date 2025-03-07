@@ -14,3 +14,4 @@ Dependencies are all exported in the conda environment `annotation.yml`. The pip
 ## TODO:
 - test rules and makesure they work
 - add possibility of validation set if available
+2025-03-06: clean-up untested
