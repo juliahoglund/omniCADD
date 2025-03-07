@@ -1,4 +1,4 @@
- '''
+'''
  Module that annotates all variants and 
  creates genome wide annotations of evolutionary constraint
  based on the primary input multiple sequence alignment
@@ -88,11 +88,10 @@ rule process_vep:
          "{folder}/chr{chr}_vep.tsv"
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
-         "-r {input.genome} -g {input.grantham} -o {output}"
-         "mkdir results/annotation/vep "
-         "mkdir results/annotation/vep/derived "
-         "mkdir results/annotation/vep/simulated "
-         "mv results/derived_variants/singletons/*vep* results/annotation/vep/derived "
+         "-r {input.genome} -g {input.grantham} -o {output} && "
+         "mkdir -p results/annotation/vep/derived && "
+         "mkdir -p results/annotation/vep/simulated && "
+         "mv results/derived_variants/singletons/*vep* results/annotation/vep/derived && "
          "mv results/simulated_variants/trimmed_snps/*vep* results/annotation/vep/simulated "
 
 ################
@@ -215,16 +214,16 @@ rule gerp2coords: # needed now or can be parsed later?
     output:
        "results/annotation/gerp/{name}/chr{chr}/{part}.rates.parsed"
     conda:
-        "../envs/annotation.yml" # TODO add container?
+        "../envs/annotation.yml"
     params:
        reference_species = config['species_name']
     log:
-       "results/logs/{name}/chr{chr}_{part}_gerp_coord_log.txt",
+       "results/logs/{name}/chr{chr}_{part}_gerp_coord_log.txt"
     threads: 2
     shell:
-       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {{log}} && "
-       " mv {input.gerp} {output} 2>> {{log}} && "
-       " echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
+       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {log} && "
+       "mv {input.gerp} {output} 2>> {log} && "
+       "echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
 
 ################################
 ##### PHYLOP and PHASTCONS #####
@@ -374,12 +373,12 @@ rule prepare_database:
     input:
         genome=config['generate_variants']['reference_genome_wildcard'],
         annotation=f"{config['stats_report']['gtf']}",
-        config="../../config/sift4g_config.yaml",
+        config="../../config/sift4g_config.yaml"
     params:
-        genome_dir=f"resources/SIFT4G/{config['species_name']}/chr-src/"
-        annotation_dir=f"resources/SIFT4G/{config['species_name']}/gene-annotation-src/"
+        genome_dir=f"resources/SIFT4G/{config['species_name']}/chr-src/",
+        annotation_dir=f"resources/SIFT4G/{config['species_name']}/gene-annotation-src/",
         sift_dir=workflow.source_path(SCRIPTS_SIFT)
-    output: # check what comes else log file
+    output:
         temp("sift_create_database.txt")
     conda:
         "../envs/annotation.yml"
@@ -388,12 +387,11 @@ rule prepare_database:
     shell:
         "for file in {input.genome}; do "
         "name=`echo $file | grep -o '[^/]*$'`; "
-        "tr "\t" "\n" < $file | fold -w 60 > {params.genome_dir}$name"
-        "gzip {params.genome_dir}*"
-        "cp {input.annotation} {params.annotation_dir}" 
-        "perl make-SIFT-db-all.pl -config {input.config} && "
+        "tr '\\t' '\\n' < $file | fold -w 60 > {params.genome_dir}$name; "
+        "gzip {params.genome_dir}*; "
+        "cp {input.annotation} {params.annotation_dir}; "
+        "perl {params.sift_dir}/make-SIFT-db-all.pl -config {input.config} && "
         "echo finished creating database for SIFT4g > {output}"
-
 
 rule run_sift:
     input:
@@ -414,9 +412,9 @@ rule run_sift:
     shell:
         ""
         "java -jar {params.annotator} " 
-        "-c -i <Path to input vcf file> "¨
-        "-d <Path to SIFT4G database directory> "
-        "-r <Path to your results folder> -t"
+        "-c -i {input.vcf} "
+        "-d {input.parent} "
+        "-r results/sift4g/ -t"
 
 
 #################################
