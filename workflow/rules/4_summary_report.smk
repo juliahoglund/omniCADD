@@ -17,7 +17,7 @@ rule create_summary:
     input:
         raw_snps = 'results/simulated_variants/raw_snps/all_chr.vcf',
         filtered_snps = 'results/simulated_variants/filtered_snps/all_chr.vcf',
-        derived_vars = 'results/derived_variants/Ancestor_Pig_Cow/singletons/all_chr.vcf'
+        derived_vars = 'results/derived_variants/Ancestor_Pig_Cow/singletons/all_chr.vcf',
         ancestral_fa = 'results/ancestral_seq/',
         parameter_log = 'results/visualisation/parameter_summary.log',
         raw_log = 'results/visualisation/raw_summary.log',
@@ -52,24 +52,21 @@ rule create_summary:
 
 if config['stats_report']['annotation'] == 'True':
     rule create_input:
-      input:
-        gff = config['stats_report']['gff'],
-        file = config['stats_report']['prefix']
-
-      output:
-        regions = 'CDS.regions.bed',
-        coverage = 'CDS.coverage.bed',
-        ancestor_genome = 'Ancestor.bed'
-
-      shell:
-        '''
-        gunzip {input.gff}
-        grep "CDS" {input.file}* | cut -f1,4,5 > {output.regions}
-        SCRIPTS_FASTA2BED output/Ancestor.fa > {output.ancestor_genome}
-        bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage}
-
-        mv *.bed results/visualisation/
-        '''
+        input:
+            gff = config['stats_report']['gff'],
+            file = config['stats_report']['prefix']
+        output:
+            regions = 'CDS.regions.bed',
+            coverage = 'CDS.coverage.bed',
+            ancestor_genome = 'Ancestor.bed'
+        shell:
+            '''
+            gunzip {input.gff}
+            grep "CDS" {input.file}* | cut -f1,4,5 > {output.regions}
+            SCRIPTS_FASTA2BED output/Ancestor.fa > {output.ancestor_genome}
+            bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage}
+            mv *.bed results/visualisation/
+            '''
 
 rule create_datafiles:
     input:
@@ -86,7 +83,6 @@ rule create_datafiles:
 
     output:
         'results/visualisation/stats_report.html'
-        # make sure it ends up where it is supposed to
 
     shell:
         '''
@@ -100,8 +96,5 @@ rule create_datafiles:
          ingroup="{params.ingroup}", \
          outgroup="{params.outgroup}" \
          ))'
-
-        mv rules/step_4_simulation_report/stats_report.html results/visualisation/
-
-        # make sure graphs end up in visualisation as they should
+        mv results/visualisation/stats_report.html results/visualisation/
         '''
