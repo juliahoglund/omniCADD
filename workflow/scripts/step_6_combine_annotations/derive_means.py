@@ -19,6 +19,10 @@ the imputation dictionary.
 # Import dependencies
 from argparse import ArgumentParser
 import pandas
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Create and process 
 parser = ArgumentParser(description=__doc__)
@@ -37,7 +41,7 @@ parser.add_argument("-o", "--output",
 args = parser.parse_args()
 
 
-def load_tsv_configuration(file: str) -> dict:
+def load_tsv_configuration(file: str) -> dict[str, dict[str, str]]:
     """
     Loads configuration from tsv table file.
     The first non # or empty line is read as column names
@@ -46,23 +50,26 @@ def load_tsv_configuration(file: str) -> dict:
     :return: dict key is entry label and value is dict,
     with key column label and the value of that column
     """
-    file_h = open(file, "r")
-    elements = None
-    samples = {}
-    for line in file_h:
-        line = line.strip()
-        parts = line.split("\t")
-        if line.startswith("#") or len(line) == 0:
-            continue
-        if not elements:
-            elements = parts[1:]
-            continue
-        samples[parts[0]] = dict(
-            [(key, value) for key, value in zip(elements, parts[1:])])
+    try:
+        with open(file, "r") as file_h:
+            elements = None
+            samples = {}
+            for line in file_h:
+                line = line.strip()
+                parts = line.split("\t")
+                if line.startswith("#") or len(line) == 0:
+                    continue
+                if not elements:
+                    elements = parts[1:]
+                    continue
+                samples[parts[0]] = {key: value for key, value in zip(elements, parts[1:])}
+    except FileNotFoundError:
+        logging.error(f"Configuration file {file} not found.")
+        raise
     return samples
 
 
-def load_mean_cols(infiles):
+def load_mean_cols(infiles: list[str]) -> pandas.DataFrame:
     """
     For each file in the input load pandas dataframe from csv and save
     required columns, as defined in the configuration file
@@ -73,28 +80,39 @@ def load_mean_cols(infiles):
         [(key, value["type"]) for key, value in CONFIGURATION.items()])
     parts = []
     for file in infiles:
-        parts.append(pandas.read_csv(file,
-                                     sep='\t',
-                                     na_values=['-'],
-                                     dtype=dtypes)[MEAN_COLS])
+        try:
+            df = pandas.read_csv(file,
+                                 sep='\t',
+                                 na_values=['-'],
+                                 dtype=dtypes)[MEAN_COLS]
+            parts.append(df)
+        except FileNotFoundError:
+            logging.error(f"Input file {file} not found.")
+            raise
+        except Exception as e:
+            logging.error(f"Error loading file {file}: {e}")
+            raise
     return pandas.concat(parts, axis=0)
 
 
-# Load configuration from config files
-CONFIGURATION = load_tsv_configuration(args.processing_config)
-MEAN_COLS = [key for key, value in CONFIGURATION.items()
-             if value["isMetadata"] == "False" and value["impute"] == "Mean"]
+try:
+    # Load configuration from config files
+    CONFIGURATION = load_tsv_configuration(args.processing_config)
+    MEAN_COLS = [key for key, value in CONFIGURATION.items()
+                 if value["isMetadata"] == "False" and value["impute"] == "Mean"]
 
+    # Load data
+    myData = load_mean_cols(args.input)
 
-# Load data
-myData = load_mean_cols(args.input)
+    logging.info("Data from which means are derived:")
+    logging.info(myData.describe())
 
-print("Data from which means are derived:")
-print(myData.describe())
-# Deriving means and writing them to file
-means = {}
-for label in MEAN_COLS:
-    means[label] = myData[label].mean()
-f = open(args.output, "w")
-f.write(str(means))
-f.close()
+    # Deriving means and writing them to file
+    means = {}
+    for label in MEAN_COLS:
+        means[label] = myData[label].mean()
+    with open(args.output, "w") as f:
+        f.write(str(means))
+    logging.info(f"Means written to {args.output}")
+except Exception as e:
+    logging.error(f"An error occurred: {e}")
