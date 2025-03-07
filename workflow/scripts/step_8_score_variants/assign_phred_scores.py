@@ -33,6 +33,7 @@ import sys
 import gzip
 import math
 from argparse import ArgumentParser
+from typing import Dict, TextIO
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-i", "--infile", dest="raw",
@@ -56,7 +57,7 @@ parser.add_argument("--count-file",
 args = parser.parse_args()
 
 
-ddef open_file(mask, chrom):
+def open_file(mask: str, chrom: str) -> TextIO:
     name = mask.replace("CHROM", chrom)
     if name.endswith(".gz"):
         phred_out = gzip.open(name, "wt")
@@ -65,44 +66,41 @@ ddef open_file(mask, chrom):
     phred_out.write("#Chrom\tPos\tRef\tAlt\tRAW\tPHRED\n")
     return phred_out
 
+def main():
+    count = args.line_counts
+    if count == 0 and not args.count_file:
+        sys.exit("variant count must be specified in either a count or a file")
+    if args.count_file:
+        count = 0
+        for file in args.count_file:
+            with open(file) as c_file:
+                count += int(c_file.read().strip().split()[0])
+    print(f"Phred scoring {count} variants!")
 
-count = args.line_counts
-if count == 0 and not args.count_file:
-    sys.exit("variant count must be specified in either a count or a file")
-if args.count_file:
-    count = 0
-    for file in args.count_file:
-        with open(file) as c_file:
-            count += int(c_file.read().strip().split()[0])
-print(f"Phred scoring {count} variants!")
+    # To ensure a float from the calculation, the PHRED score is not a whole number
+    line_counts = float(count)
 
-# To ensure a float from the calculation, the PHRED score is not a whole number
-line_counts = float(count)
+    with (gzip.open(args.raw, "rt") if args.raw.endswith(".gz") else open(args.raw, "r")) as raw_in:
+        # Open separate output files for each chromosome
+        out_chrom: Dict[str, TextIO] = {chromosome: open_file(args.outmask, chromosome) for chromosome in args.chroms}
 
-if args.raw.endswith(".gz"):
-    raw_in = gzip.open(args.raw, "rt")
-else:
-    raw_in = open(args.raw, "r")
+        # Loop though the input file, score all variants
+        idx = 0
+        for line in raw_in:
+            if line.startswith("#"):
+                continue
+            idx += 1
+            line = line.strip().split(",")
+            score = -10 * math.log(idx / line_counts, 10)
+            out_chrom[line[0]].write("\t".join(line) + f"\t{score:.8f}\n")
 
-# Open separate output files for each chromosome
-out_chrom = {}
-for chromosome in args.chroms:
-    out_chrom[chromosome] = open_file(args.outmask, chromosome)
+        # Close files, good practice
+        for file in out_chrom.values():
+            file.close()
 
-# Loop though the input file, score all variants
-idx = 0
-for line in raw_in:
-    if line.startswith("#"):
-        continue
-    idx += 1
-    line = line.strip().split(",")
-    score = -10 * math.log(idx / line_counts, 10)
-    out_chrom[line[0]].write("\t".join(line) + f"\t{score:.8f}\n")
+    # Verify that the amount of variants is as expected
+    if idx != line_counts:
+        sys.exit(f"Ended at index: {idx} but expected {line_counts:.0f} variants!")
 
-# Close files, good practice
-raw_in.close()
-[file.close() for file in out_chrom.values()]
-
-# Verify that the amount of variants is as expected
-if idx != line_counts:
-    sys.exit(f"Ended at index: {idx} but expected {line_counts:.0f} variants!")
+if __name__ == "__main__":
+    main()
