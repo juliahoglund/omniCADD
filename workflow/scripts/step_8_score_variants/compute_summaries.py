@@ -39,40 +39,37 @@ if "TYPE" not in args.infile:
 I_THRESHOLD = 3  # the 3 potential variants per position
 
 # Open infile and skip header line
-if args.infile.endswith("gz"):
-    infile = gzip.open(args.infile, "rt")
-else:
-    infile = open(args.infile, "r")
-infile_enumerator = enumerate(infile)
-infile_enumerator.next()
+try:
+    if args.infile.endswith("gz"):
+        with gzip.open(args.infile, "rt") as infile:
+            infile_enumerator = enumerate(infile)
+            next(infile_enumerator)  # Corrected to use next()
 
-# Open an outfile for each operation
-names = ["Median", "Max", "Min", "Std"]
-ops = [np.median, np.max, np.min, np.std]
-operations = []
-for name, operation in zip(names, ops):
-    outfile = open(args.infile.replace("TYPE", name), "w")
-    outfile.write(f"#Chrom\tPos\t{name}-PHRED\n")
-    operations.append([name, operation, outfile])
+            # Open an outfile for each operation
+            names = ["Median", "Max", "Min", "Std"]
+            ops = [np.median, np.max, np.min, np.std]
+            operations = []
+            for name, operation in zip(names, ops):
+                with open(args.infile.replace("TYPE", name), "w") as outfile:
+                    outfile.write(f"#Chrom\tPos\t{name}-PHRED\n")
+                    operations.append([name, operation, outfile])
 
-# Loop through file and perform summary operations
-Phred_store = []
-for i, lines in infile_enumerator:
-    line = lines.strip().split("\t")
-    if (i % I_THRESHOLD == 0) and (i != 0):
-        Phred_store.append(float(line[-1]))
-        pos = line[0:2]
-        pos = "\t".join(pos)
-        [file.write(pos + "\t%s" % operation(Phred_store) + "\n")
-         for name, operation, file in operations]
-        Phred_store = []
+            # Loop through file and perform summary operations
+            Phred_store = []
+            for i, lines in infile_enumerator:
+                line = lines.strip().split("\t")
+                Phred_store.append(float(line[-1]))
+                if (i % I_THRESHOLD == I_THRESHOLD - 1):  # Corrected condition
+                    pos = line[0:2]
+                    pos = "\t".join(pos)
+                    [file.write(pos + "\t%s\n" % operation(Phred_store))
+                     for name, operation, file in operations]
+                    Phred_store = []
 
-    else:
-        Phred_store.append(float(line[-1]))
-
-# Close files
-infile.close()
-[file.close() for name, operation, file in operations]
+except FileNotFoundError:
+    sys.exit(f"File {args.infile} not found.")
+except Exception as e:
+    sys.exit(f"An error occurred: {e}")
 
 """
 Test Input/Output:
