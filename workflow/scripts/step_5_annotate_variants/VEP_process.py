@@ -1,64 +1,37 @@
-# Import dependencies.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+Process VEP (Variant Effect Predictor) output and annotate variants.
+"""
+
 import copy
 import os
 import sys
 from argparse import ArgumentParser
-
 import pysam
 
+# Argument parsing
 parser = ArgumentParser(description=__doc__)
-parser.add_argument("-v", "--vep",
-                    help="VEP (variant effect predictor) output", 
-                    type=str)
-parser.add_argument("-s", "--vcf-source", 
-                    dest="vcf",
-                    help="Path to bgzipped & tabix index vcf source file (vcf "
-                         "file of the generated variants before VEP annotation)", 
-                         type=str)
-parser.add_argument("-r", "--reference", 
-                    type=str,
-                    help="Path to reference chr")
-parser.add_argument("-g", "--grantham",
-                    type=str,
-                    help="Path to Grantham score annotation file",
-                    default='grantham_matrix.tsv')
-parser.add_argument("-o", "--output", type=str,
-                    help="Output file (default vep_annotated.tsv)",
-                    default='vep_annotated.tsv')
-parser.add_argument("-e", "--exons",
-                    help="Path to exome annotation file",
-                    dest="exons",
-                    default='./sorted_exome.gtf.gz')
-parser.add_argument("-a", "--all",
-                    help="Produce all output lines, rather than random one on same hierarchy (def OFF)",
-                    default=False, action="store_true")
-parser.add_argument("-m", "--multiple",
-                    dest="multiple_variants",
-                    help="Expect multiple variants on one position "
-                         "and treat them separately(def False)",
-                    default=False, 
-                    action="store_true")
-parser.add_argument("-b", "--verbose", 
-                    dest="verbose",
-                    help="Turn verbose messages on (def OFF)",
-                    default=False, 
-                    action="store_true")
+parser.add_argument("-v", "--vep", help="VEP (variant effect predictor) output", type=str)
+parser.add_argument("-s", "--vcf-source", dest="vcf", help="Path to bgzipped & tabix index vcf source file (vcf file of the generated variants before VEP annotation)", type=str)
+parser.add_argument("-r", "--reference", type=str, help="Path to reference chr")
+parser.add_argument("-g", "--grantham", type=str, help="Path to Grantham score annotation file", default='grantham_matrix.tsv')
+parser.add_argument("-o", "--output", type=str, help="Output file (default vep_annotated.tsv)", default='vep_annotated.tsv')
+parser.add_argument("-e", "--exons", help="Path to exome annotation file", dest="exons", default='./sorted_exome.gtf.gz')
+parser.add_argument("-a", "--all", help="Produce all output lines, rather than random one on same hierarchy (def OFF)", default=False, action="store_true")
+parser.add_argument("-m", "--multiple", dest="multiple_variants", help="Expect multiple variants on one position and treat them separately (def False)", default=False, action="store_true")
+parser.add_argument("-b", "--verbose", dest="verbose", help="Turn verbose messages on (def OFF)", default=False, action="store_true")
 args = parser.parse_args()
 
-# Define headers for output file.
-ELIST = ['#Chrom', 'Pos', 'Ref', 'Alt', 'isTv', 'Consequence', 'GC', 'CpG',
-         'motifECount', 'motifEHIPos', 'motifEScoreChng', 'Domain', 'oAA',
-         'nAA', 'Grantham', 'SIFTcat', 'SIFTval', 'cDNApos', 'relcDNApos',
-         'CDSpos', 'relCDSpos', 'protPos', 'relprotPos']
+# Define headers for output file
+ELIST = ['#Chrom', 'Pos', 'Ref', 'Alt', 'isTv', 'Consequence', 'GC', 'CpG', 'motifECount', 'motifEHIPos', 'motifEScoreChng', 'Domain', 'oAA', 'nAA', 'Grantham', 'SIFTcat', 'SIFTval', 'cDNApos', 'relcDNApos', 'CDSpos', 'relCDSpos', 'protPos', 'relprotPos']
 
-# List for transversions and transitions.
-TRANSVERSIONS = {('A', 'C'), ('C', 'A'), ('T', 'A'), ('A', 'T'), ('C', 'G'),
-                 ('G', 'C'), ('G', 'T'), ('T', 'G')}
+# List for transversions and transitions
+TRANSVERSIONS = {('A', 'C'), ('C', 'A'), ('T', 'A'), ('A', 'T'), ('C', 'G'), ('G', 'C'), ('G', 'T'), ('T', 'G')}
 TRANSITIONS = {('C', 'T'), ('T', 'C'), ('G', 'A'), ('A', 'G')}
 
-# List of hierachy of the consequences.
-HIERACHY1 = ["SG", "CS", "NS", "SN", "FS", "SL", "S", "IF", "U5", "U3", "R",
-             "IG", "NC", "I", "UP", "DN", "O"]
+# List of hierarchy of the consequences
+HIERARCHY1 = ["SG", "CS", "NS", "SN", "FS", "SL", "S", "IF", "U5", "U3", "R", "IG", "NC", "I", "UP", "DN", "O"]
 
 # VEP output fields by column
 fVName = 3  # Uploaded_variation (not needed)
@@ -500,8 +473,7 @@ def read_grantham(filename):
             "Grantham scores input file does not exist: %s\n" % filename)
     return grantham
 
-# Open reference of chr, generated variants (vcf without annotations),
-# exome files.
+# Open reference of chr, generated variants (vcf without annotations), exome files.
 ref_fasta = pysam.Fastafile(args.reference)
 
 # Open generated/derived variants (vcf without annotations)
@@ -671,3 +643,6 @@ outp.write(annotation2line(previous_dict))
 
 # Closes opened VEP file.
 vepinput.close()
+problem_out.close()
+outp.close()
+ref_ident_f.close()
