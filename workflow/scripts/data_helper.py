@@ -20,13 +20,13 @@ import pandas
 from joblib import Parallel, delayed
 from scipy.sparse import load_npz, vstack, save_npz
 
-def filter_matrix(desired, columns, data_matrix):
+def filter_matrix(desired: list[str], columns: list[str], data_matrix) -> tuple:
     """
     Returns desired columns from a scipy data matrix.
     :param desired: list of str, desired columns
     :param columns: list of str, column names of data_matrix
-    :param data_matrix: Scipy sparse matrix  to extract columns from
-    :return: Pandas dataframe with desired columns
+    :param data_matrix: Scipy sparse matrix to extract columns from
+    :return: tuple, scipy sparse matrix with desired columns and list of column names
     """
     id_cols = {}
     for col in desired:
@@ -37,7 +37,7 @@ def filter_matrix(desired, columns, data_matrix):
     id_cols = dict(sorted(id_cols.items()))
     return data_matrix[:, list(id_cols.keys())], list(id_cols.values())
 
-def read_columns(file: str) -> list:
+def read_columns(file: str) -> list[str]:
     """
     Read column csv, return list of columns
     :param file: str, path+file to read columns from
@@ -54,12 +54,11 @@ def read_columns(file: str) -> list:
         sys.exit(f"Read columns file {columns} and found no columns!")
     return columns
 
-def load_data(file: str, cols: list, desired: Union[list, None], log: bool) \
-        -> tuple:
+def load_data(file: str, cols: list[str], desired: Union[list[str], None], log: bool) -> tuple:
     """
     Loads data in npz format to scipy sparse matrix and metadata in csv
     format to a pandas dataframe, filter the matrix if needed.
-    :param file: Iterable of str, files to load the data from.
+    :param file: str, file to load the data from
     :param cols: list of str, column names for the scipy csr
     :param desired: list of str, column names to load (def None -> load all)
     :param log: bool (def True), write progress to stderr
@@ -80,13 +79,13 @@ def load_data(file: str, cols: list, desired: Union[list, None], log: bool) \
 
 
 
-def load_npz_with_meta(files: list, desired: Union[list, None] = None,
+def load_npz_with_meta(files: list[str], desired: Union[list[str], None] = None,
                        log: bool = True, n_jobs: int = 3) -> tuple:
     """
     Loads data in npz format to scipy sparse matrix and metadata in csv
     format to a pandas dataframe, column list is also returned and it is
     verified that this is the same for each file.
-    :param files: Iterable of str, files to load the data from.
+    :param files: list of str, files to load the data from
     :param desired: list of str, column names to load (def None -> load all)
     :param log: bool (def True), write progress to stderr
     :param n_jobs: int (def 3), number of threads to use for reading data
@@ -131,12 +130,12 @@ def load_npz_with_meta(files: list, desired: Union[list, None] = None,
     return data, meta, cols
 
 
-def load_dataset(files, desired_cols, jobs=1):
+def load_dataset(files: list[str], desired_cols: Union[list[str], str, None], jobs: int = 1) -> tuple:
     """
     Wrapper to load dataset, filter for desired column and take y from metadata
     :param files: list of str, files to read data from
-    :param desired_cols: list, desired columns, None for all
-    :param jobs: int (def 0 -> len(files)), number of concurrent jobs to run
+    :param desired_cols: list of str or str, desired columns, None for all
+    :param jobs: int (def 1), number of concurrent jobs to run
     :return: tuple, data csr, np array with y values, list of columns for csr
     """
     if jobs < 1:
@@ -155,12 +154,12 @@ def load_dataset(files, desired_cols, jobs=1):
     return data_matrix, y_values, columns
 
 
-def save_npz_with_meta(file, data_m, meta, cols, log=True) -> None:
+def save_npz_with_meta(file: str, data_m, meta: pandas.DataFrame, cols: list[str], log: bool = True) -> None:
     """
     Writes sparse data matrix to npz file,
     with metadata and columns in additional csv files.
-    :param file: base filename to write to, expected to end in npz
-    :param data_m: data matrix, scipy sparse matrix
+    :param file: str, base filename to write to, expected to end in npz
+    :param data_m: scipy sparse matrix, data matrix
     :param meta: pandas dataframe, metadata not included in model data matrix
     :param cols: list of str, columns of data matrix
     :param log: bool (def True), write progress to stderr
@@ -176,11 +175,11 @@ def save_npz_with_meta(file, data_m, meta, cols, log=True) -> None:
         f.write(",".join(cols))
 
 
-def get_pickle(file: str, clazz):
+def get_pickle(file: str, clazz: type) -> object:
     """
     Loads an object from file and checks if it is an instance of clazz
-    :param file: file to read object from
-    :param clazz: clazz that is expected to be returned
+    :param file: str, file to read object from
+    :param clazz: type, class that is expected to be returned
     :return: instance of clazz, loaded from file
     """
     with open(file, "rb") as file_h:
