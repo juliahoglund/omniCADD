@@ -71,13 +71,12 @@ parser.add_argument('-s', '--start',
 
 # Check if the nt are written in upper (unmasked) or lower case (masked), 
 # depending on this, the script writes it in one of the two output files.
-# change this later as well maybe or move it down
 def write_line(chrom, pos, reference, an, output):
 	if (reference in 'ACGTacgt') and (an in 'ACGTacgt'):
 		if an.islower():
-			output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an.upper()))
+			output.write(f"{chrom}\t{pos + 1}\t.\t{reference}\t{an.upper()}\t.\t.\t.\n")
 		else:
-			output.write("%s\t%s\t.\t%s\t%s\t.\t.\t.\n" %(chrom, pos + 1, reference, an))
+			output.write(f"{chrom}\t{pos + 1}\t.\t{reference}\t{an}\t.\t.\t.\n")
 
 def main(args):
 	# Define input files for the Ancestral sequence and the reference.
@@ -95,19 +94,19 @@ def main(args):
 
 	ancestor_record = ancestor_fasta.references[0]
 
-	if '.%s' % args.chrom in ancestor_record or 'chr%s' % args.chrom in ancestor_record:
+	if f'.{args.chrom}' in ancestor_record or f'chr{args.chrom}' in ancestor_record:
 		anc_length = ancestor_fasta.get_reference_length(ancestor_fasta.references[0])
 	else:
 		sys.exit(
 			'The requested chromosome cannot be found in the record of '
-			'the ancestor fasta\n%s\n%s' % ('.%s:' % args.chrom, ancestor_record))
+			'the ancestor fasta\n%s\n%s' % (f'.{args.chrom}:', ancestor_record))
 
 	if anc_length != ref_fasta.get_reference_length(ref_fasta.references[0]):
 		sys.exit(
 			'Ancestor fasta and ref fasta does not have the same length, '
-			'Chromosome: %s' % ('%s' % args.chrom))
+			'Chromosome: %s' % (f'{args.chrom}'))
 
-	print('Ancestor sequence control: Chr' + str(args.chrom) + ', sequence is good')
+	print(f'Ancestor sequence control: Chr{args.chrom}, sequence is good')
 
 	# Create output files for upper and lower case variants.
 	output = open(f"{args.output}.vcf", 'w')
@@ -125,7 +124,7 @@ def main(args):
 		ref_seq = ref_fasta.fetch(ref_fasta.references[0], index_outer[0], index_outer[1])
 		anc_seq = ancestor_fasta.fetch(ancestor_record, index_outer[0], index_outer[1])
 
-		# Itterate over the ancestral sequence position. 
+		# Iterate over the ancestral sequence position. 
 		for i, anc in enumerate(anc_seq):
 			
 			# Enumerate sets i always to 0, therefore i needs to be summed with the starting position of index_outer
@@ -137,7 +136,6 @@ def main(args):
 				if (anc.upper() == ref_seq[i]) and (anc.upper() != snp_allele) and (anc.upper() != '-') and (anc.upper() != '.'):
 					# Case 1 write out
 					write_line(args.chrom, i + index_outer[0], ref_seq[i], snp_allele, output)
-					# 'Try' is used, to avoid error when the end of snp file is reached but not yet the end of the sequence. 
 					try: 
 						snp_line = input_snps.readline()
 						snp_pos = int(snp_line.strip().split('\t')[1])
@@ -154,7 +152,6 @@ def main(args):
 					except: 
 						pass
 				
-				# Only take next line in snp file
 				else: 
 					try:
 						snp_line = input_snps.readline()
