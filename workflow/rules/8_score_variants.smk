@@ -312,7 +312,8 @@ rule sort_phred_scores:
         LC_ALL=C sort \
         -k2n \
         -S {resources.mem_mb}M \
-        --parallel={threads} > {output}
+        --parallel={threads} | \
+        bgzip > {output}
         """
 
 
