@@ -24,7 +24,7 @@ def get_folds(excluding = None) -> list:
     """
     Get list of numbers, one for each fold that is to be taken as input.
     :param excluding: optional int(-like), fold to exclude (def None)
-    :return: List of numbers, usefull for snakemake.expand
+    :return: List of numbers, useful for snakemake.expand
     """
     folds = list(range(config["model"]["n_folds"]))
     if excluding:
@@ -51,7 +51,6 @@ rule fold_data:
                       chr=config["chromosomes"]["train"]),
         simulated_c = expand("results/dataset/simulated/chr{chr}.npz.columns.csv",
                       chr=config["chromosomes"]["train"]),
-
         script=workflow.source_path(SCRIPTS_7 + "fold_data.py"),
         lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
     conda: 
@@ -79,14 +78,12 @@ rule train_model:
         test = "results/dataset/fold_{fold}.npz",
         test_m = "results/dataset/fold_{fold}.npz.meta.csv.gz",
         test_c ="results/dataset/fold_{fold}.npz.columns.csv",
-          
         train = lambda wildcards: expand("results/dataset/fold_{fold}.npz",
                                           fold=get_folds(wildcards.fold)),
         train_m = lambda wildcards: expand("results/dataset/fold_{fold}.npz.meta.csv.gz",
                                             fold=get_folds(wildcards.fold)),
         train_c = lambda wildcards: expand("results/dataset/fold_{fold}.npz.columns.csv",
                                             fold=get_folds(wildcards.fold)),
-
         sel_cols = lambda wildcards: [] if wildcards.cols == "All" else \
                      config["model"]["column_subsets"][wildcards.cols],
         script = workflow.source_path(SCRIPTS_7 + "train_model.py"),
