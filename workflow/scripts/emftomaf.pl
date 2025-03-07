@@ -28,6 +28,7 @@
 
 use strict;
 use warnings;
+use autodie;  # Automatically handle errors for file operations
 
 my $VERSION = "1.0.1";
 
@@ -45,11 +46,11 @@ foreach my $emf_file (@ARGV) {
   my $maf_file = $emf_file;
   $maf_file =~ s/(\.emf)?$//;
   $maf_file .= ".maf";
-  open(my $emf_fh, '<', $emf_file) or die "Cannot open EMF file <$emf_file>\n";
-  open(my $maf_fh, '>', $maf_file) or die "Cannot open MAF file $maf_file\n";
+  open(my $emf_fh, '<', $emf_file);
+  open(my $maf_fh, '>', $maf_file);
   print $maf_fh "##maf version=1\n";
   print $maf_fh "# emf2maf.pl v$VERSION from file $emf_file\n";
-  print $maf_fh "# Here is the header from the orginal file:\n";
+  print $maf_fh "# Here is the header from the original file:\n";
   my $data = [];
   my $pattern = "";
   my $mode = "header";
@@ -83,7 +84,7 @@ foreach my $emf_file (@ARGV) {
       if ($mode eq "header") {
         $mode = "data";
       } else {
-        die "Error while parsing line $.\n";
+        die "Error while parsing line $.: Unexpected DATA line\n";
       }
     } elsif ($_ =~ /^\/\//) {
       if ($mode eq "data") {
@@ -92,7 +93,7 @@ foreach my $emf_file (@ARGV) {
 	$pattern = "";
         $mode = "header";
       } else {
-        die "Error while parsing line $.\n";
+        die "Error while parsing line $.: Unexpected end of block\n";
       }
     } elsif ($_ !~ /^\s*$/) {
       if ($mode eq "data") {
@@ -118,7 +119,7 @@ sub write_maf {
   foreach my $this_data (@$data) {
     if ($this_data->{type} eq "SEQ") {
       if (!defined($this_data->{chr_length})) {
-        die "Cannot write maf in reserve strand becauase there is no length info on EMF original file\n";
+        die "Cannot write maf in reverse strand because there is no length info on EMF original file\n";
       }
       my ($maf_start, $maf_length, $maf_strand);
       if ($this_data->{strand}==1 or $this_data->{strand} eq "+") {
