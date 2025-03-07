@@ -20,6 +20,10 @@ import sys
 import gzip
 from argparse import ArgumentParser
 import numpy as np
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument('-i', '--input',
@@ -40,7 +44,7 @@ parser.add_argument('-d', '--desired',
     required=True)
 
 
-def trim_vcf(in_h, out_h, current, desired) -> None:
+def trim_vcf(in_h: 'file', out_h: 'file', current: int, desired: int) -> None:
     """
     Trims input vcf file of #current variants to output vcf with #desired
     variants. Filtering is performed in-place with the use of a mask
@@ -52,11 +56,15 @@ def trim_vcf(in_h, out_h, current, desired) -> None:
     :param desired: int, desired amount of variants in output vcf.
     :return: None, written to file.
     """
+    logging.debug(f"Current number of variants: {current}")
+    logging.debug(f"Desired number of variants: {desired}")
+
     # Get randomised mask, zeros is faster than directly creating boolean mask
     mask = np.zeros(current, dtype=int)
     mask[:desired] = 1
     np.random.shuffle(mask)
     mask = mask.astype(bool)
+    logging.debug(f"Mask after shuffling: {mask}")
 
     obtained = 0
     entry = 0
@@ -69,6 +77,8 @@ def trim_vcf(in_h, out_h, current, desired) -> None:
             obtained += 1
         entry += 1
 
+    logging.debug(f"Number of variants obtained: {obtained}")
+
     # Verify the right amount of variants was obtained
     if obtained != desired:
         sys.exit(f"Error: Insufficient variants were output: {obtained} of "
@@ -77,19 +87,18 @@ def trim_vcf(in_h, out_h, current, desired) -> None:
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    logging.debug(f"Input file: {args.input}")
+    logging.debug(f"Output file: {args.output}")
+
     # Double conversion enables parsing of scientific notation numbers
     current_n = int(float(args.current))
     desired_n = int(float(args.desired))
     if desired_n > current_n:
-        sys.exit(f"Error: Insufficient variants ({current_n} of {desired_n})."
+        sys.exit(f"Error: Desired number of variants ({desired_n}) exceeds current number of variants ({current_n})."
                  f"\nFile: {args.input}")
 
-    vcf_file = gzip.open(args.input, "rt") \
-        if args.input.endswith('.gz') else open(args.input, "r")
-    outfile = gzip.open(args.output, "wt") \
-        if args.output.endswith('.gz') else open(args.output, "w")
+    with (gzip.open(args.input, "rt") if args.input.endswith('.gz') else open(args.input, "r")) as vcf_file, \
+         (gzip.open(args.output, "wt") if args.output.endswith('.gz') else open(args.output, "w")) as outfile:
+        trim_vcf(vcf_file, outfile, current_n, desired_n)
 
-    trim_vcf(vcf_file, outfile, current_n, desired_n)
-
-    vcf_file.close()
-    outfile.close()
+    logging.debug("VCF trimming completed successfully.")
