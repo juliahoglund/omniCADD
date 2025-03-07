@@ -27,6 +27,10 @@ from argparse import ArgumentParser
 import pandas
 import pysam
 import numpy as np
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-i", "--input",
@@ -40,43 +44,58 @@ parser.add_argument("-a", "--annotation",
                     type=str, required=True)
 args = parser.parse_args()
 
-if __name__ == '__main__':
-    outfile = gzip.open(args.output, "wt") if args.output.endswith(".gz") \
-        else open(args.output, "w")
+# Constants
+ABBREVIATIONS = ["SG", "CS", "NS", "SN", "SL", "S", "U5", "U3", "R",
+                 "IG", "NC", "I", "UP", "DN", "O"]
+NUM_BINS = 52
 
-    df = pandas.read_csv(args.input, sep='\t', na_values=['-'], low_memory=False)
+def initialize_bins(num_bins, abbreviations):
+    return [[0] * len(abbreviations) for _ in range(num_bins)]
 
-    cadd_tabix = pysam.Tabixfile(args.annotation, 'r')
+def process_variant(row, cadd_tabix, bins, abbreviations):
+    pos = row["Pos"]
+    found = False
+    for elem in cadd_tabix.fetch(row["#Chrom"], pos, pos + 1):
+        elem = elem.rstrip("\n").split('\t')
+        if int(elem[1]) == pos and row["Ref"] == elem[2] and row["Alt"] == elem[3]:
+            score = float(elem[5])
+            consequence = row["Consequence"]
+            bin = min(math.floor(score), 51)
+            bins[bin][abbreviations.index(consequence)] += 1
+            found = True
+            break
+    if not found:
+        logging.error(f"No score found for: {pos}, {row['Ref']} {row['Alt']}")
+        sys.exit(1)
 
-    ABBREVIATIONS = ["SG", "CS", "NS", "SN", "SL", "S", "U5", "U3", "R",
-                     "IG", "NC", "I", "UP", "DN", "O"]
-
-    bins = []
-    for i in range(52):
-        bins.append([0] * len(ABBREVIATIONS))
-    # Annotate each variant
-    for index, row in df.iterrows():
-        pos = row["Pos"]
-        found = False
-        #print(f"Search: {pos}, {row['Ref']} {row['Alt']}")
-        for elem in cadd_tabix.fetch(row["#Chrom"], pos, pos + 1):
-            #print(elem)
-            elem = elem.rstrip("\n").split('\t')
-            if int(elem[1]) == pos and row["Ref"] == elem[2] and \
-                    row["Alt"] == elem[3]:
-                score = float(elem[5])
-                consequence = row["Consequence"]
-                #print(f"{pos}: {score}")
-                bin = math.floor(score)
-                if bin > 50:
-                    bin = 51
-                bins[bin][ABBREVIATIONS.index(consequence)] += 1
-                found = True
-                break
-        if not found:
-            sys.exit(f"No score found for: {pos}, {row['Ref']} {row['Alt']}")
+def write_output(outfile, bins):
     for bin, counts in enumerate(bins):
-        outfile.write(str(bin) + "\t" +
-                      ",".join([str(count) for count in counts]) + "\n")
+        outfile.write(str(bin) + "\t" + ",".join([str(count) for count in counts]) + "\n")
 
+if __name__ == '__main__':
+    try:
+        outfile = gzip.open(args.output, "wt") if args.output.endswith(".gz") else open(args.output, "w")
+    except IOError as e:
+        logging.error(f"Error opening output file: {e}")
+        sys.exit(1)
+
+    try:
+        df = pandas.read_csv(args.input, sep='\t', na_values=['-'], low_memory=False)
+    except Exception as e:
+        logging.error(f"Error reading input file: {e}")
+        sys.exit(1)
+
+    try:
+        cadd_tabix = pysam.Tabixfile(args.annotation, 'r')
+    except Exception as e:
+        logging.error(f"Error opening annotation file: {e}")
+        sys.exit(1)
+
+    bins = initialize_bins(NUM_BINS, ABBREVIATIONS)
+
+    for index, row in df.iterrows():
+        process_variant(row, cadd_tabix, bins, ABBREVIATIONS)
+
+    write_output(outfile, bins)
     outfile.close()
+    logging.info("Processing completed successfully.")
