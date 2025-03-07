@@ -29,17 +29,17 @@ import pysam
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument('-i', '--input',
-	help = 'Input vcf file of variants to filter',
-	type = str, 
-	required = True)
+	help='Input vcf file of variants to filter',
+	type=str, 
+	required=True)
 parser.add_argument('-a', '--ancestor',
-	help = 'The ancestral sequence for the chromosome',
-	type = str, 
-	required = True)
+	help='The ancestral sequence for the chromosome',
+	type=str, 
+	required=True)
 parser.add_argument('-o', '--output',
-	help = 'output filename, vcf format.',
-	type = str, 
-	required = True)
+	help='output filename, vcf format.',
+	type=str, 
+	required=True)
 
 
 def filter_vcf_by_ancestral(input_vcf, output_vcf, ancestral) -> None:
@@ -52,31 +52,40 @@ def filter_vcf_by_ancestral(input_vcf, output_vcf, ancestral) -> None:
 	:return: None, written to file
 	"""
 	# Open input/output vcf and ancestral fasta file
-	vcf_file = gzip.open(input_vcf, "rt") \
-		if input_vcf.endswith('.gz') else open(input_vcf, "r")
+	try:
+		with gzip.open(input_vcf, "rt") if input_vcf.endswith('.gz') else open(input_vcf, "r") as vcf_file:
+			print(f"Opened input VCF file: {input_vcf}")
+			try:
+				with gzip.open(output_vcf, "wt") if output_vcf.endswith('.gz') else open(output_vcf, "w") as outfile:
+					print(f"Opened output VCF file: {output_vcf}")
+					try:
+						anc_fasta = pysam.Fastafile(ancestral)
+						print(f"Opened ancestral FASTA file: {ancestral}")
+					except Exception as e:
+						sys.exit(f"Error opening ancestral FASTA file: {e}")
 
-	outfile = gzip.open(output_vcf, "wt") \
-		if output_vcf.endswith('.gz') else open(output_vcf, "w")
-	anc_fasta = pysam.Fastafile(ancestral)
-	if anc_fasta.nreferences != 1:
-		sys.exit(f"Expected 1 sequence in ancestral fasta, not {anc_fasta.nreferences}")
+					if anc_fasta.nreferences != 1:
+						sys.exit(f"Expected 1 sequence in ancestral fasta, not {anc_fasta.nreferences}")
 
-	reference = anc_fasta.references[0]
+					reference = anc_fasta.references[0]
+					print(f"Using reference: {reference}")
 
-	# Iterate over lines in vcf.
-	for lines in vcf_file:
-		if lines[0] == '#':
-			outfile.write(lines)
-			continue
-		pos = lines.split('\t')[1]
-		ancestor = anc_fasta.fetch(reference, int(pos) - 1, int(pos))
-		if ancestor in 'ACGT':
-			outfile.write(lines)
-	outfile.close()
-	vcf_file.close()
-
+					# Iterate over lines in vcf.
+					for lines in vcf_file:
+						if lines[0] == '#':
+							outfile.write(lines)
+							continue
+						pos = lines.split('\t')[1]
+						ancestor = anc_fasta.fetch(reference, int(pos) - 1, int(pos))
+						if ancestor in 'ACGT':
+							outfile.write(lines)
+					print("Filtering complete.")
+	except Exception as e:
+		sys.exit(f"Error processing files: {e}")
 
 if __name__ == '__main__':
 	args = parser.parse_args()
+	print(f"Arguments received: input={args.input}, output={args.output}, ancestor={args.ancestor}")
 	filter_vcf_by_ancestral(args.input, args.output, args.ancestor)
+	print("Script execution finished.")
 
