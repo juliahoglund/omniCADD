@@ -14,6 +14,9 @@
  Params can be adjusted for any given species of interest. 
 '''
 
+configfile: "../config/config.yaml"
+SCRIPTS_2 = "../scripts/"
+
 """ 
  Generates frequency files form the population variants (vcf files).
  Population frequency files are used for the generation of the derived variants, 
@@ -31,11 +34,11 @@ rule freq_files:
 	output:
 		'results/processed_population_frequency/chr{chr}.frq'
 	shell:
-		"vcftools --gzvcf {input}"
-		" --chr {wildcards.chr}"
-		" --remove-indels"
-		" --non-ref-af {params.min_non_ref_freq}"
-		" --max-non-ref-af 1.0"
+		"vcftools --gzvcf {input} "
+		" --chr {wildcards.chr} "
+		" --remove-indels "
+		" --non-ref-af {params.min_non_ref_freq} "
+		" --max-non-ref-af 1.0 "
 		" --stdout --freq > {output}"
 
 """
@@ -56,7 +59,7 @@ rule gen_derived:
 		"results/derived_variants/raw/chr{chr}.vcf",
 	shell:
 		'''
-		if [ `wc -l file.txt | awk '{print $1}'` -ge "3" ]
+		if [ `wc -l {input.reference} | awk '{print $1}'` -ge "3" ]
 		then
 			echo "reference already linearized - continuing to analysis"
 		else
@@ -74,7 +77,7 @@ rule gen_derived:
 		 -a {input.ancestral} \
 		 -r {input.reference} \
 		 -v {input.frequency} \
-		 -o {params.output_prefix} \
+		 -o {params.output_prefix}
 		'''
 
 """
@@ -100,14 +103,14 @@ Variants are generated and filtered for each chromosome in parallel.
 Trimming is done for the whole variant set so they are first merged into one
 """
 rule merge_by_chr:
-    input:
-        raw=expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config['chromosomes']['autosomes'])
-    output:
-        raw="results/derived_variants/singletons/all_chr.vcf"
-    shell:
-        '''
-        echo "##fileformat=VCFv4.1" >> {output.raw}
-        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
-        grep -vh "^#" {input.raw} >> {output.raw}
-        '''
+	input:
+		raw=expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config['chromosomes']['autosomes'])
+	output:
+		raw="results/derived_variants/singletons/all_chr.vcf"
+	shell:
+		'''
+		echo "##fileformat=VCFv4.1" > {output.raw}
+		echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
+		echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
+		grep -vh "^#" {input.raw} >> {output.raw}
+		'''
