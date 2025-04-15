@@ -80,7 +80,7 @@ rule process_vep:
          index="{folder}/chr{chr}.vcf.gz.tbi",
          vep="{folder}/chr{chr}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
+         grantham=workflow.source_path("resources/grantham_matrix/grantham_table.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          "../envs/common.yml"
