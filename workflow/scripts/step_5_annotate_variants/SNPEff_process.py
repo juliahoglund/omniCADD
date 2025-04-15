@@ -8,7 +8,7 @@ Updated script to process VCF input format with `ANN` annotations while retainin
 import csv
 from argparse import ArgumentParser
 import pysam
-import sys
+import sys, os
 
 # OptionParser for input files.
 parser = ArgumentParser(description=__doc__)
@@ -19,6 +19,10 @@ parser.add_argument("-i", "--input",
     required=True)
 parser.add_argument("-r", "--reference",
     help="Path to the reference genome (FASTA file)",
+    type=str,
+    required=True)
+parser.add_argument("-g", "--grantham",
+    help="Path to the Grantham scores file",
     type=str,
     required=True)
 parser.add_argument("-o", "--output",
@@ -58,6 +62,33 @@ HIERARCHY = [
 ##########################################
 ############### FUNCTIONS ################
 ##########################################
+# Function for reading the Grantham file and returning it as a dictionary.
+def read_grantham(filename):
+    grantham = {}
+    if os.path.exists(filename):
+        with open(filename) as in_h:
+            for g_line in in_h:
+                fields = g_line.split()
+                if len(fields) == 2:
+                    aminos = tuple(fields[0].upper().split("-"))
+                    grantham[aminos] = fields[1]
+                else:
+                    sys.stderr.write("Grantham scores, unexpected line, "
+                                     "skipping: %s\n" % g_line.strip())
+    else:
+        sys.stderr.write(
+            "Grantham scores input file does not exist: %s\n" % filename)
+    return grantham
+
+def extract_alleles_locs(output_dict, fVCoord, fVallele, fVName, vepfields):
+    """
+    Extract chromosome, position, Ref, and Alt alleles from the new input format.
+    """
+    output_dict['#Chrom'] = vepfields[fVCoord].split(':')[0]
+    output_dict['Pos'] = int(vepfields[fVCoord].split(':')[1])
+    output_dict['Alt'] = vepfields[fVallele].upper()
+    output_dict['Ref'] = vepfields[fVName].split('/')[0][-1]  # Assuming Ref is in this format
+    return output_dict
 
 def parse_annotation(info_field):
     """
@@ -233,13 +264,24 @@ def extract_consequences(output_dict, vepfields, fVconseq):
 
     return output_dict
 
-# Function for extracting the changed amino acid from VEP. Appends the AA
-# before and after the mutation to the given dict and returns it.
-def extract_Aminoacids(output_dict, vepfields, fVAA):
+# Function for returning the most deleterious annotation for the same variant,
+# when there are two annotations given for a single variant.
+def indexing(previous, current):
+    global HIERACHY1
+
+    index_current = HIERACHY1.index(current)
+    index_previous = HIERACHY1.index(previous)
+
+    if index_previous > index_current:
+        return current
+    else:
+        return previous
+    
+def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
     """
     Extract the original and resulting amino acids from the VEP annotation.
-    Save the original amino acid as oAA and the resulting amino acid as nAA.
-    Use '*' for stop codons.
+    Save the original amino acid as oAA, the resulting amino acid as nAA,
+    and the Grantham score for the amino acid change.
     """
     # Mapping of three-letter amino acid codes to one-letter codes
     aa_three_to_one = {
@@ -250,38 +292,126 @@ def extract_Aminoacids(output_dict, vepfields, fVAA):
         "Ter": "*", "Stop": "*"
     }
 
-    # Debug: Print the entire vepfields and the HGVS.p field
-    print(f"DEBUG: vepfields = {vepfields}")
-    if fVAA >= len(vepfields) or not vepfields[fVAA]:  # Check if HGVS.p field is missing or empty
-        print(f"DEBUG: Missing or empty HGVS.p field: {vepfields}")
+    # Check if the HGVS.p field is valid
+    if fVAA >= len(vepfields) or not vepfields[fVAA]:
         output_dict['oAA'] = "-"  # Assign "-" for missing or irrelevant HGVS.p field
         output_dict['nAA'] = "-"
+        output_dict['Grantham'] = "-"
         return output_dict
 
-    try:
-        # Extract the HGVS.p field (e.g., p.Leu245Arg)
-        hgvs_p = vepfields[fVAA]
-        print(f"DEBUG: vepfields[fVAA] = {hgvs_p}")  # Debug: Print the HGVS.p field
+    # Extract the HGVS.p field (e.g., p.Leu245Arg)
+    hgvs_p = vepfields[fVAA]
 
-        # Extract the original and resulting amino acids
-        if "p." in hgvs_p:
-            aa_change = hgvs_p.split("p.")[-1]  # Get the part after "p."
-            original_aa = ''.join(filter(str.isalpha, aa_change[:3]))  # First three letters are the original AA
-            new_aa = ''.join(filter(str.isalpha, aa_change[3:]))  # Remaining letters are the new AA
+    # Extract the original and resulting amino acids
+    if "p." in hgvs_p:
+        aa_change = hgvs_p.split("p.")[-1]  # Get the part after "p."
+        original_aa = ''.join(filter(str.isalpha, aa_change[:3]))  # First three letters are the original AA
+        new_aa = ''.join(filter(str.isalpha, aa_change[3:]))  # Remaining letters are the new AA
 
-            # Map the original and new amino acids to one-letter codes
-            output_dict['oAA'] = aa_three_to_one.get(original_aa, "-")  # Map original AA
-            output_dict['nAA'] = aa_three_to_one.get(new_aa, "-")  # Map new AA
+        # Map the original and new amino acids to one-letter codes
+        oAA = aa_three_to_one.get(original_aa, "-")  # Map original AA
+        nAA = aa_three_to_one.get(new_aa, "-")  # Map new AA
+
+        output_dict['oAA'] = oAA
+        output_dict['nAA'] = nAA
+
+        # Look up the Grantham score
+        if oAA != "-" and nAA != "-":
+            grantham_key = (oAA, nAA)
+            output_dict['Grantham'] = grantham_scores.get(grantham_key, "-")
         else:
-            print(f"DEBUG: HGVS.p field does not contain 'p.': {hgvs_p}")
-            output_dict['oAA'] = "-"
-            output_dict['nAA'] = "-"
-    except IndexError:
-        print(f"DEBUG: IndexError for vepfields[fVAA] = {vepfields[fVAA]}")  # Debug: Handle malformed input
+            output_dict['Grantham'] = "-"
+    else:
+        # Handle cases where the HGVS.p field does not contain "p."
         output_dict['oAA'] = "-"
-        output_dict['nAA'] = "-"  # Handle malformed input
+        output_dict['nAA'] = "-"
+        output_dict['Grantham'] = "-"
 
     return output_dict
+
+def extract_extra(output_dict, vepfields, fVExtra):
+    """
+    Extract extra information from the VEP annotation and append it to the output dictionary.
+    Handles SIFT, DOMAINS, HIGH_INF_POS, and MOTIF_SCORE_CHANGE fields.
+    """
+    # Check if the fVExtra field exists and is not empty
+    if fVExtra >= len(vepfields) or not vepfields[fVExtra]:
+        # Assign default values if the field is missing
+        output_dict['SIFTcat'] = "-"
+        output_dict['SIFTval'] = "-"
+        output_dict['Domain'] = "-"
+        output_dict['motifEHIPos'] = "-"
+        output_dict['motifEScoreChng'] = "0.0"
+        output_dict['motifECount'] = "0"
+        return output_dict
+
+    # Process the extra field
+    for elem in [x.strip() for x in vepfields[fVExtra].split(";")]:
+        hfields = [x.strip() for x in elem.split("=")]
+        if len(hfields) < 2:
+            continue  # Skip malformed entries
+
+        if hfields[0] == "SIFT":
+            # Extract SIFT category and value
+            hfields2 = [x.strip() for x in hfields[1].rstrip(")").split("(")]
+            output_dict['SIFTcat'] = hfields2[0] if len(hfields2) > 0 else "-"
+            output_dict['SIFTval'] = hfields2[1] if len(hfields2) > 1 else "-"
+        elif hfields[0] == "DOMAINS":
+            # Extract domain-related information
+            ncoils, tmhmm, sigp = False, False, False
+            ndomain, lcompl = False, False
+            for dfields in [x.strip() for x in hfields[1].split(',')]:
+                if len([x.strip() for x in dfields.split(":")]) < 2:
+                    continue
+
+                category, name = [x.strip() for x in dfields.split(":")][0:2]
+                if ("_domain" in category) or ("_profile" in category):
+                    ndomain = True
+                else:
+                    name = name.lower()
+                    if "coil" in name:
+                        ncoils = True
+                    elif "tmhelix" in name:
+                        tmhmm = True
+                    elif "signalp" in name:
+                        sigp = True
+                    elif name == "seg":
+                        lcompl = True
+
+            # Implement simple hierarchy of domain annotations:
+            if ncoils:
+                output_dict['Domain'] = "ncoils"
+            elif tmhmm:
+                output_dict['Domain'] = "tmhmm"
+            elif sigp:
+                output_dict['Domain'] = "sigp"
+            elif ndomain:
+                output_dict['Domain'] = "ndomain"
+            elif lcompl:
+                output_dict['Domain'] = "lcompl"
+        elif hfields[0] == "HIGH_INF_POS":
+            # Extract high information position
+            output_dict['motifEHIPos'] = "True" if hfields[1] == "Y" else "False"
+        elif hfields[0] == "MOTIF_SCORE_CHANGE":
+            # Extract motif score change
+            output_dict['motifEScoreChng'] = hfields[1]
+            output_dict['motifECount'] = "1"
+
+    # Assign default values for missing fields
+    if 'motifEScoreChng' not in output_dict:
+        output_dict['motifEScoreChng'] = "0.0"
+        output_dict['motifECount'] = "0"
+    if 'motifEHIPos' not in output_dict:
+        output_dict['motifEHIPos'] = "-"
+    if 'Domain' not in output_dict:
+        output_dict['Domain'] = "-"
+    if 'SIFTval' not in output_dict:
+        output_dict['SIFTval'] = "-"
+    if 'SIFTcat' not in output_dict:
+        output_dict['SIFTcat'] = "-"
+
+    return output_dict
+
 
 ##########################################
 ############### MAIN SCRIPT ##############
@@ -289,6 +419,8 @@ def extract_Aminoacids(output_dict, vepfields, fVAA):
 
 # Open the reference genome (FASTA file).
 ref_fasta = pysam.FastaFile(args.reference)
+# Load the Grantham scores
+grantham_scores = read_grantham(args.grantham)
 
 # Open the input and output files.
 with open(args.input, "r") as infile, open(args.output, "w") as outfile:
@@ -330,7 +462,7 @@ with open(args.input, "r") as infile, open(args.output, "w") as outfile:
                     output_dict = extract_consequences(output_dict, vepfields, 1)  # Use the correct index for consequences
                     
                     # Extract amino acids
-                    output_dict = extract_Aminoacids(output_dict, vepfields, 10)  # Assuming index 10 for HGVS.p
+                    output_dict = extract_Aminoacids(output_dict, vepfields, 10, grantham_scores)  # Assuming index 10 for HGVS.p
                     
                     break  # Process only the first annotation for simplicity
         
