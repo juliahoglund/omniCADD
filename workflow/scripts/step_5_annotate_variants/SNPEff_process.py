@@ -294,7 +294,7 @@ def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
 
     # Check if the HGVS.p field is valid
     if fVAA >= len(vepfields) or not vepfields[fVAA]:
-        output_dict['oAA'] = "-"  # Assign "-" for missing or irrelevant HGVS.p field
+        output_dict['oAA'] = "-"
         output_dict['nAA'] = "-"
         output_dict['Grantham'] = "-"
         return output_dict
@@ -304,25 +304,31 @@ def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
 
     # Extract the original and resulting amino acids
     if "p." in hgvs_p:
-        aa_change = hgvs_p.split("p.")[-1]  # Get the part after "p."
-        original_aa = ''.join(filter(str.isalpha, aa_change[:3]))  # First three letters are the original AA
-        new_aa = ''.join(filter(str.isalpha, aa_change[3:]))  # Remaining letters are the new AA
+        aa_change = hgvs_p.split("p.")[-1]
+        original_aa = ''.join(filter(str.isalpha, aa_change[:3])).capitalize()
+        new_aa = ''.join(filter(str.isalpha, aa_change[3:])).capitalize()
 
         # Map the original and new amino acids to one-letter codes
-        oAA = aa_three_to_one.get(original_aa, "-")  # Map original AA
-        nAA = aa_three_to_one.get(new_aa, "-")  # Map new AA
+        oAA = aa_three_to_one.get(original_aa, "-")
+        nAA = aa_three_to_one.get(new_aa, "-")
 
         output_dict['oAA'] = oAA
         output_dict['nAA'] = nAA
 
-        # Look up the Grantham score
-        if oAA != "-" and nAA != "-":
-            grantham_key = (oAA, nAA)
-            output_dict['Grantham'] = grantham_scores.get(grantham_key, "-")
+        # Handle synonymous changes (oAA == nAA)
+        if oAA == nAA:
+            output_dict['Grantham'] = "-"  # No Grantham score for synonymous changes
         else:
-            output_dict['Grantham'] = "-"
+            # Look up the Grantham score
+            grantham_key = (oAA, nAA)
+            reverse_grantham_key = (nAA, oAA)
+            if grantham_key in grantham_scores:
+                output_dict['Grantham'] = grantham_scores[grantham_key]
+            elif reverse_grantham_key in grantham_scores:
+                output_dict['Grantham'] = grantham_scores[reverse_grantham_key]
+            else:
+                output_dict['Grantham'] = "-"
     else:
-        # Handle cases where the HGVS.p field does not contain "p."
         output_dict['oAA'] = "-"
         output_dict['nAA'] = "-"
         output_dict['Grantham'] = "-"
