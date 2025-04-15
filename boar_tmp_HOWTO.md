@@ -185,7 +185,12 @@ cat indexfile.txt | grep -v 'scaffold' | sed 's/_pilon//g' | sed 's/chr_//g' > t
 ### 5_annotation ###
 ####################
 
+##########################
+### AUGUSTUS GENE PRED ###
+##########################
+
 ```bash
+
 # 0. gene prediction if no annotation available
 # conda install bioconda::augustus
 # ml SHARED/augustus/2.7
