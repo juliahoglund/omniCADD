@@ -196,8 +196,18 @@ cat indexfile.txt | grep -v 'scaffold' | sed 's/_pilon//g' | sed 's/chr_//g' > t
 # ml SHARED/augustus/2.7
 
 for i in {1..14} 15_17 16 18; do augustus --species=human --protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on --exonnames=on --gff3=on --UTR=on resources/genome/Wild_Boar_chr$i.fa > results/gene_prediction/chr$i_gene_pred.gff3; done
+```
 
-## 1 snpeff
+##############
+### SNPEFF ###
+##############
+
+```bash
+##### REBUILD snpEFF for PSEUDO ANNOTATION
+for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html pseudo_boar results/derived_variants/singletons/chr$i.vcf > pseudo/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html pseudo_boar results/simulated_variants/trimmed_snps/chr$i.vcf > pseudo/simulated/chr$i\_ann.vcf; done
+# this is the one that has been used now as chr1 augustus/snpEFF is wonky!!
+
+
 # 1.1 put reference sequence in /path/to/snpEff/data/genomes and make sure is it only called [species].fa; data/nameofreference
 # structure:
 # snpeff
@@ -217,9 +227,14 @@ snpEff build -gff3 -v -c snpEff.config wild_boar
 # and the loop over those
 # else loop
 
-# for i in {0..9}; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar chr1_ann0$i.vcf > derived_chr1_$i\_ann.vcf; done
-
 for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/derived_variants/singletons/chr$i.vcf > results/annotation/snpEff/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/simulated_variants/trimmed_snps/chr$i.vcf > results/annotation/snpEff/simulated/chr$i\_ann.vcf; done
+
+# 2. process files (like process vep)
+for i in {2..14} 15_17 16 18 1
+do
+    python SNPEff_process.py -i pseudo/derived/chr$i\_ann.vcf -r resources/genome/Wild_Boar_chr$i.fa -o pseudo/derived/chr$i\_ann_processed.vcf -g resources/grantham_matrix/grantham_matrix.tsv
+    python SNPEff_process.py -i pseudo/simulated/chr$i\_ann.vcf -r resources/genome/Wild_Boar_chr$i.fa -o pseudo/simulated/chr$i\_ann_processed.vcf -g resources/grantham_matrix/grantham_matrix.tsv
+done
 ```
 
 
@@ -391,5 +406,29 @@ do
 	Rscript scripts/wig2bed.R -d results/annotation/phast/phastCons/chr$i -t phast
 	Rscript scripts/wig2bed.R -d results/annotation/phast/phastCons/chr$i -t phylo
 done
+```
 
+####################
+### 6_COMBINEIT  ###
+####################
+
+```bash
+## TODO: solve location of directories and make files temporary
+## remove bed chunks after combining -> make temporary
+## mv to outout creates duplicates -> change
+        Rscript combine_constraint_anno.R -c $i -n 30 -f results/annotation/phast/phastCons/ -g results/annotation/phast/phyloP/ -i results/annotation/gerp/ -j results/alignment/indexfiles  #### WHICH ONES ARE THESE HAVE TO CHECK and make if not in alignmentfree
+
+        head -1 constraint.$i\_1.bed >> constraint_chr$i.bed
+
+        for j in {1..30}
+        do 
+        	grep -v "start" constraint.$i\_$j.bed >> constraint_chr$i.bed
+        done
+
+        mkdir -p results/annotation/constraint/
+        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr$i.bed | sed 's/start G/end G/g' > tmp.$i
+        mv tmp.$i results/annotation/constraint/constraint_chr$i.bed
+        rm constraint.$i\_*.bed 
+        echo "chr" $i "done"
+```
 
