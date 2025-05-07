@@ -221,6 +221,7 @@ def extract_consequences(output_dict, vepfields, fVconseq):
         "synonymous_variant": "SN",
         "stop_retained_variant": "SN",
         "intergenic_variant": "IG",
+        "intragenic_variant": "IT",  # Added this
         "intergenic_region": "IG",
         "downstream_gene_variant": "DN",
         "upstream_gene_variant": "UP",
@@ -237,11 +238,10 @@ def extract_consequences(output_dict, vepfields, fVconseq):
         "regulatory_region_ablation": "R",
         "sequence_feature": "SF",
         "conserved_intron_variant": "CI",
-        "5_prime_UTR_premature_start_codon_gain_variant": "U5",  # Added this
-        "3_prime_UTR_truncation": "U3",  # Added this
-        "bidirectional_gene_fusion": "BF",  # Added this
-        "non_coding_transcript_exon_variant": "NC",  # Added this
-        "splice_polypyrimidine_tract_variant": "SP",  # Added this
+        "5_prime_UTR_premature_start_codon_gain_variant": "U5",
+        "3_prime_UTR_truncation": "U3",
+        "bidirectional_gene_fusion": "BF",
+        "splice_polypyrimidine_tract_variant": "SP",
     }
 
     # Extract the consequences from the VEP fields
@@ -255,12 +255,14 @@ def extract_consequences(output_dict, vepfields, fVconseq):
                 output_dict["Consequence"] = consequence_map[term]
                 return output_dict
 
+    # Log unrecognized consequences for debugging
+    with open("unrecognized_consequences.log", "a") as debug_log:
+        debug_log.write(f"Unrecognized Consequence: {consequences}\n")
+
     # Handle unrecognized consequences
     if len(consequences) == 1:
-        sys.stderr.write(f"Unrecognized Consequence: {consequences}\n")
         output_dict["Consequence"] = "O"  # Default to 'UNKNOWN'
     else:
-        sys.stderr.write(f"Need simplification: {consequences}\n")
         output_dict["Consequence"] = "O"  # Default to 'UNKNOWN'
 
     return output_dict
