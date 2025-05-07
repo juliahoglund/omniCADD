@@ -71,7 +71,7 @@ rule derive_impute_means:
     input:
         tsv=lambda wildcards: expand(
         "results/dataset/simulated/chr{chr}_annotated.tsv",
-        chr=config["chromosomes"]["karyotype"]),
+        chr=config["chromosomes"]["train"]),
         processing=config["annotation_config"]["processing"],
         script=workflow.source_path(SCRIPTS_6 + "derive_means.py"),
     conda:
@@ -87,7 +87,7 @@ rule derive_impute_means:
 rule column_analysis:
     input:
         derived=expand("results/dataset/derived/chr{chr}_annotated.tsv",
-                        chr=config["chromosomes"]["karyotype"]),
+                        chr=config["chromosomes"]["train"]),
         simulated=expand("results/dataset/simulated/chr{chr}_annotated.tsv",
                         chr=config["chromosomes"]["karyotype"]),
         script=workflow.source_path(SCRIPTS_6 + "column_analysis.py")
@@ -122,7 +122,7 @@ rule prepare_data:
         data="results/dataset/{type}/chr{chr}_annotated.tsv",
         imputaton="results/dataset/imputation_dict.txt",
         processing=config["annotation_config"]["processing"],
-        # interactions=config["annotation_config"]["interactions"],
+        interactions=config["annotation_config"]["interactions"],
         script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
         derived_variants=lambda wildcards: "-d" if wildcards.type == "derived" else " ",
@@ -141,7 +141,7 @@ rule prepare_data:
     shell:
         "python3 {input.script} -i {input.data} --npz {output.npz} "
         "--processing-config {input.processing} "
-        # "--interaction-config {input.interactions} "
+        "--interaction-config {input.interactions} "
         "--imputation-dict {input.imputaton} "
         "{params.derived_variants} -y {params.y} > {log}"
 
