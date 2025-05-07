@@ -64,6 +64,9 @@ HIERARCHY = [
 ##########################################
 # Function for reading the Grantham file and returning it as a dictionary.
 def read_grantham(filename):
+    """
+    Read the Grantham scores file and return it as a dictionary.
+    """
     grantham = {}
     if os.path.exists(filename):
         with open(filename) as in_h:
@@ -73,11 +76,9 @@ def read_grantham(filename):
                     aminos = tuple(fields[0].upper().split("-"))
                     grantham[aminos] = fields[1]
                 else:
-                    sys.stderr.write("Grantham scores, unexpected line, "
-                                     "skipping: %s\n" % g_line.strip())
+                    sys.stderr.write("Grantham scores, unexpected line, skipping: %s\n" % g_line.strip())
     else:
-        sys.stderr.write(
-            "Grantham scores input file does not exist: %s\n" % filename)
+        sys.stderr.write("Grantham scores input file does not exist: %s\n" % filename)
     return grantham
 
 def extract_alleles_locs(output_dict, fVCoord, fVallele, fVName, vepfields):
@@ -318,6 +319,9 @@ def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
         # Handle synonymous changes (oAA == nAA)
         if oAA == nAA:
             output_dict['Grantham'] = "-"  # No Grantham score for synonymous changes
+        elif "*" in (oAA, nAA):  # Handle stop codon changes; as of now also set to missing
+            output_dict['Grantham'] = "-"  # Assign a default score for stop codon changes
+            
         else:
             # Look up the Grantham score
             grantham_key = (oAA, nAA)
