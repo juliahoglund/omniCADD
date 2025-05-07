@@ -332,6 +332,13 @@ for i in {1..14} 15_17 16 18; do python3 scripts/split_fasta.py results/alignmen
 # how did this work if reference not in tree?
 for i in {1..14} 15_17 16 18; do GERPplusplus/gerpcol -v -f results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa -t resources/tree_43_mammals.nwk -a -e wild_boar; done
 
+#. gerp to coords??
+```
+#################
+##### PHAST #####
+#################
+
+```bash
 # 2. phyloFit
 
 for i in {2..14} 15_17 16 18 1 
@@ -342,12 +349,7 @@ do
     	phast/bin/phyloFit --tree resources/tree_43_mammals.nwk -p HIGH --subst-mod REV --out-root results/annotation/phast/phylo_model/$out --msa-format FASTA results/alignment/chopped/chr$i/$file
     done
 done
-```
-#################
-##### PHAST #####
-#################
 
-```bash
 # 3. phastCons
 ## IF REF NOT IN TREE USE COORDINATE 0 TO USE IN GENERAL --refidx 0 
 for i in 2 3 4 5 7 8 9 10 11 12 16 18
