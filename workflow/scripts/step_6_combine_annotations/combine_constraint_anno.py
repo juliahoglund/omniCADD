@@ -94,16 +94,28 @@ if not phast_combined.empty and not phylo_combined.empty:
     phast_phylo_combined["chr"] = f"chr{args.chromosome}"
 else:
     phast_phylo_combined = pd.DataFrame(columns=["chr", "start", "end", "phyloP", "phastCons"])
+    logging.warning("One or both of phastCons and phyloP data are empty. Proceeding with empty DataFrame.")
 
 # Combine all data
 logging.info("Combining all data...")
 if not gerp_combined.empty and not phast_phylo_combined.empty:
-    constraint_combined = pd.merge(gerp_combined, phast_phylo_combined, on=["chr", "start"], how="outer")
+    try:
+        constraint_combined = pd.merge(gerp_combined, phast_phylo_combined, on=["chr", "start"], how="outer")
+    except KeyError as e:
+        logging.error(f"Error during merging: {e}")
+        constraint_combined = pd.DataFrame(columns=["chr", "start", "end", "GERP_NS", "GERP_RS", "phyloP", "phastCons"])
 else:
+    logging.warning("One or more input DataFrames are empty. Proceeding with empty combined DataFrame.")
     constraint_combined = pd.DataFrame(columns=["chr", "start", "end", "GERP_NS", "GERP_RS", "phyloP", "phastCons"])
 
-# Reorder columns to: chr, start, end, GERP_NS, GERP_RS, phyloP, phastCons
-constraint_combined = constraint_combined[["chr", "start", "end", "GERP_NS", "GERP_RS", "phyloP", "phastCons"]]
+# Ensure correct column order and fill missing columns with NaN
+constraint_combined = constraint_combined.reindex(
+    columns=["chr", "start", "end", "GERP_NS", "GERP_RS", "phyloP", "phastCons"],
+    fill_value="NA"
+)
+
+# Log the number of rows in the final combined DataFrame
+logging.info(f"Final combined DataFrame has {len(constraint_combined)} rows.")
 
 # Write the combined file
 try:
