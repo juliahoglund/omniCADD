@@ -23,27 +23,54 @@ parser.add_argument("-o", "--outfile",
 
 args = parser.parse_args()
 
- # combine vep and evolutionary constraint
-vepfile = pd.read_csv(args.vep, 
- 	sep = "\t",
- 	low_memory = False)
+try:
+    # Read VEP file
+    try:
+        vepfile = pd.read_csv(args.vep, sep="\t", low_memory=False, error_bad_lines=False)
+    except pd.errors.ParserError as e:
+        raise ValueError(f"Error reading VEP file: {e}")
+    
+    # Ensure required columns exist in VEP file
+    required_vep_columns = {'#Chrom', 'Pos'}
+    if not required_vep_columns.issubset(vepfile.columns):
+        raise ValueError(f"The VEP file is missing one or more required columns: {required_vep_columns}")
+    
+    # Rename VEP columns to match BED columns
+    vepfile = vepfile.rename(columns={"#Chrom": "chr", "Pos": "start"})
+    
+    # Read BED file
+    try:
+        bedfile = pd.read_csv(args.bed, sep=" ", low_memory=False, error_bad_lines=False)
+    except pd.errors.ParserError as e:
+        raise ValueError(f"Error reading BED file: {e}")
+    
+    # Ensure required columns exist in BED file
+    required_bed_columns = {'chr', 'start', 'end'}
+    if not required_bed_columns.issubset(bedfile.columns):
+        raise ValueError(f"The BED file is missing one or more required columns: {required_bed_columns}")
+    
+    # Strip 'chr' prefix from BED 'chr' column
+    bedfile['chr'] = bedfile['chr'].str.lstrip('chr')
+    
+    # Drop unwanted columns in BED file
+    bedfile = bedfile.drop(columns=['end'])
+    
+    # Ensure 'chr' and 'start' column data types match between VEP and BED files
+    if vepfile['chr'].dtype != bedfile['chr'].dtype:
+        bedfile['chr'] = bedfile['chr'].astype(vepfile['chr'].dtype)
+    if vepfile['start'].dtype != bedfile['start'].dtype:
+        bedfile['start'] = bedfile['start'].astype(vepfile['start'].dtype)
+    
+    # Perform left outer join
+    left_merged = pd.merge(vepfile, bedfile, how="left", on=["chr", "start"])
+    
+    # Save output
+    left_merged.to_csv(args.outfile, index=False, sep="\t")
+    print(f"Successfully merged files and saved to {args.outfile}")
 
-bedfile = pd.read_csv(args.bed,
- 	sep = " ",
-    low_memory = False)
-
-# 1. remove some unwanted columns in bed file, 
-#	like chrom end maybe more
-bedfile = bedfile.drop(columns = ['chr', 'end'])
-bedfile = bedfile.rename(columns={"start": "Pos"})
-# 2. left outer join with vep versus bed
-left_merged = pd.merge(vepfile, bedfile, how="left", on=["Pos"])
-#	save output. 
-
-## add more annotations here later
-
-# 3. write to file
-left_merged.to_csv(args.outfile, index = False, sep = "\t")
+except Exception as e:
+    print(f"Error: {e}")
+    exit(1)
 
 
 
