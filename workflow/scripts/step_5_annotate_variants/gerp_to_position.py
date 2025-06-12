@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 # Author: Tom van der Valk
+# Edit: julia höglund, 2025-06-12
+# Modification: This script has been modified to add a column with base pair positions
 
 from sys import argv
 from itertools import islice
