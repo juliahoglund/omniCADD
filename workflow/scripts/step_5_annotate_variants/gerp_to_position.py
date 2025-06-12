@@ -33,18 +33,17 @@ def parse_gerp(fasta_file, gerp_file, species_name):
             neutral_score += [splitted[0]]
             RS_score += [splitted[1]]
 
-
     position = 0
     gerp_position = 0
-    for i in (seq):
+    for i in seq:
         position += 1
         if i.upper() == "N":
-            outputfile.write("0\t0" + "\n")
+            outputfile.write(f"{position}\t0\t0\n")
             gerp_position += 1
         else:
-            if (position-gerp_position-1) < len(neutral_score):
-                outputfile.write(neutral_score[position - gerp_position -1] + "\t" + 
-                    RS_score[position - gerp_position -1] + "\n")
+            idx = position - gerp_position - 1
+            if idx < len(neutral_score):
+                outputfile.write(f"{position}\t{neutral_score[idx]}\t{RS_score[idx]}\n")
 
     outputfile.close()
     print('file ' + str(fasta_file) + ' done.')
