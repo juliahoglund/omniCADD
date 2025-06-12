@@ -203,8 +203,7 @@ for i in {1..14} 15_17 16 18; do augustus --species=human --protein=on --codings
 ##############
 
 ```bash
-##### REBUILD snpEFF for PSEUDO ANNOTATION
-for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html pseudo_boar results/derived_variants/singletons/chr$i.vcf > pseudo/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html pseudo_boar results/simulated_variants/trimmed_snps/chr$i.vcf > pseudo/simulated/chr$i\_ann.vcf; done
+for i in {2..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html augustus_boar results/derived_variants/singletons/chr$i.vcf > pseudo/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html augustus_boar results/simulated_variants/trimmed_snps/chr$i.vcf > pseudo/simulated/chr$i\_ann.vcf; done
 # this is the one that has been used now as chr1 augustus/snpEFF is wonky!!
 
 
@@ -216,7 +215,7 @@ for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.
 #         |---- wild_boar: genes.gff
 # mEleMax1.genome : Elephant
 
-for i in {1..14} 15_17 16 18; do cat results/gene_prediction/chr$i\_gene_pred.gff3 >> snpEff/data/wild_boar/genes.gff; done
+for i in {2..14} 15_17 16 18; do cat results/gene_prediction/chr$i\_gene_pred.gff3 >> snpEff/data/wild_boar/genes.gff; done
 nano snpEff.config
 ./seqkit grep -r -f samples.txt infofiles/Wild_Boar_Assembly.fasta -o snpEff/data/genomes/wild_boar.fa # samples.txt includes name of chromosomes one per line
 cd snpEff
@@ -230,10 +229,10 @@ snpEff build -gff3 -v -c snpEff.config wild_boar
 for i in {1..14} 15_17 16 18; do snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/derived_variants/singletons/chr$i.vcf > results/annotation/snpEff/derived/chr$i\_ann.vcf; snpEff -v -c snpEff/snpEff.config -stats chr$i.html wild_boar results/simulated_variants/trimmed_snps/chr$i.vcf > results/annotation/snpEff/simulated/chr$i\_ann.vcf; done
 
 # 2. process files (like process vep)
-for i in {2..14} 15_17 16 18 1
+for i in {2..14} 15_17 16 18
 do
-    python SNPEff_process.py -i pseudo/derived/chr$i\_ann.vcf -r resources/genome/Wild_Boar_chr$i.fa -o pseudo/derived/chr$i\_ann_processed.vcf -g resources/grantham_matrix/grantham_matrix.tsv
-    python SNPEff_process.py -i pseudo/simulated/chr$i\_ann.vcf -r resources/genome/Wild_Boar_chr$i.fa -o pseudo/simulated/chr$i\_ann_processed.vcf -g resources/grantham_matrix/grantham_matrix.tsv
+    python SNPEff_process.py -i results/annotation/snpEff/derived/chr$i\_ann.vcf -r resources/genome/Wild_Boar_chr$i.fa -o results/annotation/snpEff/derived/chr$i\_ann_processed.vcf -g resources/grantham_matrix/grantham_matrix.tsv
+    python SNPEff_process.py -i results/annotation/snpEff/simulated/chr$i\_ann.vcf -r resources/genome/Wild_Boar_chr$i.fa -o results/annotation/snpEff/simulated/chr$i\_ann_processed.vcf -g resources/grantham_matrix/grantham_matrix.tsv
 done
 ```
 
@@ -333,6 +332,10 @@ for i in {1..14} 15_17 16 18; do python3 scripts/split_fasta.py results/alignmen
 for i in {1..14} 15_17 16 18; do GERPplusplus/gerpcol -v -f results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa -t resources/tree_43_mammals.nwk -a -e wild_boar; done
 
 #. gerp to coords??
+# to make sure!!
+for i in {1..14} 15_17 16 18; do python gerp2coords.py results/alignment/multiway/Wild_Boar_chr$i\_multiway.fa results/annotation/gerp/Wild_Boar_chr$i\_multiway.fa.rates wild_boar; done
+
+
 ```
 #################
 ##### PHAST #####
@@ -398,15 +401,14 @@ done
 #	done
 #done
 
-ERROR: hela chr1
 
 
 #5. wig2bed (custom script)
 # did not work with r terminal commandline on annunna not tested have done by copy paste
-for i in 2 3 4 5 7 8 9 10 11 12 16 18 
+for i in 2 3 4 5 6 7 8 9 10 11 12 13 14 15_17 16 18 
 do
-	Rscript scripts/wig2bed.R -d results/annotation/phast/phastCons/chr$i -t phast
-	Rscript scripts/wig2bed.R -d results/annotation/phast/phastCons/chr$i -t phylo
+python scripts/wig2bed.py -d results/annotation/phast/phastCons/chr$i -t phast
+python scripts/wig2bed.py -d results/annotation/phast/phyloP/chr$i -t phylo
 done
 ```
 
@@ -415,22 +417,24 @@ done
 ####################
 
 ```bash
+
+# combine conservation
+for i in {2..14} 15_17 16 18
+do 
+python3 combine_constraint.py -c $i \
+-f results/annotation/phast/phastCons/ \
+-g results/annotation/phast/phyloP/ \
+-i results/annotation/gerp/ \
+-o results/annotation/combined/
+done
+
 ## TODO: solve location of directories and make files temporary
 ## remove bed chunks after combining -> make temporary
 ## mv to outout creates duplicates -> change
-        Rscript combine_constraint_anno.R -c $i -n 30 -f results/annotation/phast/phastCons/ -g results/annotation/phast/phyloP/ -i results/annotation/gerp/ -j results/alignment/indexfiles  #### WHICH ONES ARE THESE HAVE TO CHECK and make if not in alignmentfree
 
-        head -1 constraint.$i\_1.bed >> constraint_chr$i.bed
 
-        for j in {1..30}
-        do 
-        	grep -v "start" constraint.$i\_$j.bed >> constraint_chr$i.bed
-        done
+# then combine with siomulated/derived 
+python merge_annotations.py -v pseudo/derived/chr18_ann_processed.vcf -b results/annotation/combined/constraint.chr18.bed -o chr18_anno_full.vcf
 
-        mkdir -p results/annotation/constraint/
-        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr$i.bed | sed 's/start G/end G/g' > tmp.$i
-        mv tmp.$i results/annotation/constraint/constraint_chr$i.bed
-        rm constraint.$i\_*.bed 
-        echo "chr" $i "done"
 ```
 
