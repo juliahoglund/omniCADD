@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-v", "--vep",
-    help="Processed file (chromosome wide) with vep annotations", 
+    help="Processed file (chromosome wide) with snpeff/vep annotations", 
     type=str, 
     required=True)
 parser.add_argument("-b", "--bed",
@@ -24,48 +24,60 @@ parser.add_argument("-o", "--outfile",
 args = parser.parse_args()
 
 try:
-    # Read VEP file
+    # Read constraint/bed file (from combine_constraint_anno.py) fully into memory (usually smaller)
     try:
-        vepfile = pd.read_csv(args.vep, sep="\t", low_memory=False, error_bad_lines=False)
+        bedfile = pd.read_csv(args.bed, sep="\t", low_memory=False)
     except pd.errors.ParserError as e:
-        raise ValueError(f"Error reading VEP file: {e}")
-    
-    # Ensure required columns exist in VEP file
-    required_vep_columns = {'#Chrom', 'Pos'}
-    if not required_vep_columns.issubset(vepfile.columns):
-        raise ValueError(f"The VEP file is missing one or more required columns: {required_vep_columns}")
-    
-    # Rename VEP columns to match BED columns
-    vepfile = vepfile.rename(columns={"#Chrom": "chr", "Pos": "start"})
-    
-    # Read BED file
-    try:
-        bedfile = pd.read_csv(args.bed, sep=" ", low_memory=False, error_bad_lines=False)
-    except pd.errors.ParserError as e:
-        raise ValueError(f"Error reading BED file: {e}")
-    
-    # Ensure required columns exist in BED file
-    required_bed_columns = {'chr', 'start', 'end'}
+        raise ValueError(f"Error reading constraint/bed file: {e}")
+
+    # Accept both '#Chrom' or 'chr' for chromosome, and 'Pos' for position
+    bed_col_map = {}
+    for col in bedfile.columns:
+        if col.lower() in ['#chrom', 'chr']:
+            bed_col_map[col] = '#Chrom'
+        if col.lower() == 'pos':
+            bed_col_map[col] = 'Pos'
+    bedfile = bedfile.rename(columns=bed_col_map)
+
+    required_bed_columns = {'#Chrom', 'Pos'}
     if not required_bed_columns.issubset(bedfile.columns):
-        raise ValueError(f"The BED file is missing one or more required columns: {required_bed_columns}")
-    
-    # Strip 'chr' prefix from BED 'chr' column
-    bedfile['chr'] = bedfile['chr'].str.lstrip('chr')
-    
-    # Drop unwanted columns in BED file
-    bedfile = bedfile.drop(columns=['end'])
-    
-    # Ensure 'chr' and 'start' column data types match between VEP and BED files
-    if vepfile['chr'].dtype != bedfile['chr'].dtype:
-        bedfile['chr'] = bedfile['chr'].astype(vepfile['chr'].dtype)
-    if vepfile['start'].dtype != bedfile['start'].dtype:
-        bedfile['start'] = bedfile['start'].astype(vepfile['start'].dtype)
-    
-    # Perform left outer join
-    left_merged = pd.merge(vepfile, bedfile, how="left", on=["chr", "start"])
-    
-    # Save output
-    left_merged.to_csv(args.outfile, index=False, sep="\t")
+        raise ValueError(f"The constraint/bed file is missing one or more required columns: {required_bed_columns}")
+
+    bedfile['#Chrom'] = bedfile['#Chrom'].astype(str).str.replace('chr', '', regex=False).astype(int)
+    bedfile['Pos'] = bedfile['Pos'].astype(int)
+
+    # Set index on bedfile for faster join (if memory allows)
+    bedfile.set_index(['#Chrom', 'Pos'], inplace=True)
+
+    # Process VEP/SnpEff file in chunks for memory efficiency
+    chunk_size = 50000  # Reduce chunk size for lower memory usage
+    first_chunk = True
+    for vep_chunk in pd.read_csv(args.vep, sep="\t", low_memory=False, chunksize=chunk_size):
+        vep_col_map = {}
+        for col in vep_chunk.columns:
+            if col.lower() in ['#chrom', 'chrom']:
+                vep_col_map[col] = '#Chrom'
+            if col.lower() == 'pos':
+                vep_col_map[col] = 'Pos'
+        vep_chunk = vep_chunk.rename(columns=vep_col_map)
+
+        required_vep_columns = {'#Chrom', 'Pos'}
+        if not required_vep_columns.issubset(vep_chunk.columns):
+            raise ValueError(f"The SnpEff/VEP file is missing one or more required columns: {required_vep_columns}")
+
+        vep_chunk['#Chrom'] = vep_chunk['#Chrom'].astype(str).str.replace('chr', '', regex=False).astype(int)
+        vep_chunk['Pos'] = vep_chunk['Pos'].astype(int)
+
+        # Set index for join
+        vep_chunk.set_index(['#Chrom', 'Pos'], inplace=True)
+
+        # Join using index for efficiency
+        merged = vep_chunk.join(bedfile, how="left", rsuffix='_bed').reset_index()
+
+        # Write header only for the first chunk
+        merged.to_csv(args.outfile, index=False, sep="\t", mode='w' if first_chunk else 'a', header=first_chunk)
+        first_chunk = False
+
     print(f"Successfully merged files and saved to {args.outfile}")
 
 except Exception as e:
