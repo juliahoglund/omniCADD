@@ -105,6 +105,11 @@ def main():
         raise RuntimeError(f"No GERP .parsed file found for chromosome {chrom} in {args.gerp_folder}")
 
     gerp = pd.read_csv(gerp_file, sep="\t", header=None, names=['Pos', 'GERP_NS', 'GERP_RS'])
+    # make sure the fixedStep pseudo-header is not included ad merged from phast
+    gerp = gerp[pd.to_numeric(gerp['GERP_NS'], errors='coerce').notnull() & pd.to_numeric(gerp['GERP_RS'], errors='coerce').notnull()]
+    gerp['Pos'] = gerp['Pos'].astype(int)
+    gerp['GERP_NS'] = gerp['GERP_NS'].astype(float)
+    gerp['GERP_RS'] = gerp['GERP_RS'].astype(float)
 
     print("Merging all annotations on Pos...")
     constraint = pd.merge(phast, gerp, on='Pos', how='inner')
@@ -116,7 +121,7 @@ def main():
     constraint = constraint[['#Chrom', 'Pos', 'GERP_NS', 'GERP_RS', 'phastCons', 'phyloP']]
 
     print("Writing output...")
-    output_file = args.output or f"constraint.{chrom}.bed"
+    output_file = args.output or f"constraint.chr{chrom}.bed"
     constraint.to_csv(output_file, sep="\t", index=False, header=True, float_format="%.6f")
     print("Done.")
 
