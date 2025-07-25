@@ -36,7 +36,6 @@ parser.add_argument("-o", "--output",
 
 args = parser.parse_args()
 
-
 def load_tsv_configuration(file: str) -> dict:
     """
     Loads configuration from tsv table file.
