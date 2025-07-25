@@ -89,7 +89,7 @@ rule column_analysis:
         derived=expand("results/dataset/derived/chr{chr}_annotated.tsv",
                         chr=config["chromosomes"]["train"]),
         simulated=expand("results/dataset/simulated/chr{chr}_annotated.tsv",
-                        chr=config["chromosomes"]["karyotype"]),
+                        chr=config["chromosomes"]["train"]),
         script=workflow.source_path(SCRIPTS_6 + "column_analysis.py")
     conda:
         "../envs/annotation.yml"
