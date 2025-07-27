@@ -37,3 +37,5 @@ Dependencies are all exported in the conda environment `annotation.yml`. The pip
 
 ## TODO
 - implement the unimplemented rules and annotations
+- change vep to snpeff rule in alignmentfree
+- and later to make it a config option
