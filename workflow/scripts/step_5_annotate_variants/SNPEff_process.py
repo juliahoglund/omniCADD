@@ -9,6 +9,7 @@ import csv
 from argparse import ArgumentParser
 import pysam
 import sys, os
+import gzip
 
 # OptionParser for input files.
 parser = ArgumentParser(description=__doc__)
@@ -62,6 +63,170 @@ HIERARCHY = [
 ##########################################
 ############### FUNCTIONS ################
 ##########################################
+
+def open_file(filename, mode='r'):
+    """
+    Open a file that can be either regular, gzipped, or bgzipped.
+    Uses multiple approaches to handle different compression formats.
+    """
+    # First, try to open as a regular file and check if it starts with VCF header
+    try:
+        with open(filename, 'r') as test_file:
+            first_line = test_file.readline()
+            if first_line.startswith('#'):  # Looks like a VCF file
+                return open(filename, mode)
+    except (UnicodeDecodeError, UnicodeError):
+        # File is likely compressed, continue with compression detection
+        pass
+    except:
+        pass
+    
+    # If that fails, try bgzipped (most common for VCF.gz files)
+    if filename.endswith('.gz') or filename.endswith('.bgz'):
+        try:
+            # Try pysam for bgzipped files
+            tabix_file = pysam.TabixFile(filename, mode='r')
+            return tabix_file
+        except:
+            # Try regular gzip if pysam fails
+            try:
+                return gzip.open(filename, mode + 't')
+            except:
+                pass
+    
+    # Check magic number for compressed files without proper extension
+    try:
+        with open(filename, 'rb') as f:
+            magic = f.read(4)
+            if magic[:2] == b'\x1f\x8b':  # gzip/bgzip magic number
+                try:
+                    # Try bgzipped first
+                    tabix_file = pysam.TabixFile(filename, mode='r')
+                    return tabix_file
+                except:
+                    return gzip.open(filename, mode + 't')
+    except:
+        pass
+    
+    # Fall back to regular file
+    return open(filename, mode)
+
+def detect_compression_type(filename):
+    """
+    Detect if a file is bgzipped, gzipped, or uncompressed.
+    Returns 'bgzip', 'gzip', or 'none'
+    """
+    if not filename.endswith('.gz'):
+        return 'none'
+    
+    try:
+        # Try to open with pysam (bgzip)
+        tabix_file = pysam.TabixFile(filename, mode='r')
+        tabix_file.close()
+        return 'bgzip'
+    except:
+        try:
+            # Try regular gzip
+            with gzip.open(filename, 'rt') as f:
+                f.readline()
+            return 'gzip'
+        except:
+            return 'none'
+
+def open_output_file(filename, mode='w', compression_type='none'):
+    """
+    Open output file with appropriate compression based on compression_type.
+    """
+    if not filename.endswith('.gz'):
+        return open(filename, mode)
+    
+    if compression_type == 'bgzip':
+        # For bgzip output, we'll use regular gzip since pysam doesn't support writing
+        # BGZ files directly in a simple way. The file will still be compressed.
+        return gzip.open(filename, mode + 't')
+    elif compression_type == 'gzip':
+        return gzip.open(filename, mode + 't')
+    else:
+        # If input wasn't compressed but output has .gz extension, use gzip
+        return gzip.open(filename, mode + 't')
+
+def validate_chromosome_naming(vcf_file, ref_fasta):
+    """
+    Validate that chromosome naming is consistent between VCF and reference FASTA.
+    Returns True if compatible, False otherwise. Also prints diagnostic information.
+    """
+    print("Validating chromosome naming between VCF and reference FASTA...")
+    
+    # Get chromosome names from reference FASTA
+    ref_chroms = set(ref_fasta.references)
+    print(f"Reference FASTA chromosomes (first 10): {list(ref_chroms)[:10]}")
+    
+    # Sample chromosome names from VCF
+    vcf_chroms = set()
+    sample_count = 0
+    max_samples = 100  # Sample first 100 variants to check chromosome naming
+    
+    with open_file(vcf_file, "r") as infile:
+        reader = (line for line in infile if not line.startswith("##"))
+        header = next(reader).strip().split("\t")
+        
+        for line in reader:
+            if sample_count >= max_samples:
+                break
+            row = dict(zip(header, line.strip().split("\t")))
+            vcf_chroms.add(row['#CHROM'])
+            sample_count += 1
+    
+    print(f"VCF chromosomes found: {sorted(vcf_chroms)}")
+    
+    # Check for direct matches
+    direct_matches = vcf_chroms.intersection(ref_chroms)
+    if direct_matches:
+        print(f"✓ Found direct chromosome matches: {sorted(direct_matches)}")
+        return True
+    
+    # Check for potential naming pattern mismatches
+    vcf_has_chr_prefix = any(chrom.startswith('chr') for chrom in vcf_chroms)
+    ref_has_chr_prefix = any(chrom.startswith('chr') for chrom in ref_chroms)
+    
+    print(f"VCF uses 'chr' prefix: {vcf_has_chr_prefix}")
+    print(f"Reference uses 'chr' prefix: {ref_has_chr_prefix}")
+    
+    # Test if we can map between naming conventions
+    mappable_chroms = 0
+    for vcf_chrom in vcf_chroms:
+        # Try different naming conventions
+        test_chroms = [vcf_chrom]
+        
+        if vcf_chrom.startswith('chr'):
+            test_chroms.append(vcf_chrom[3:])  # Remove chr prefix
+        else:
+            test_chroms.append(f'chr{vcf_chrom}')  # Add chr prefix
+            test_chroms.append(f'chr_{vcf_chrom}')  # Add chr_ prefix
+        
+        if any(test_chrom in ref_chroms for test_chrom in test_chroms):
+            mappable_chroms += 1
+    
+    if mappable_chroms == len(vcf_chroms):
+        print(f"✓ All {len(vcf_chroms)} VCF chromosomes can be mapped to reference chromosomes")
+        print("✓ Chromosome naming validation passed - automatic conversion will be applied")
+        return True
+    else:
+        print(f"✗ Only {mappable_chroms}/{len(vcf_chroms)} VCF chromosomes can be mapped to reference")
+        print("✗ Chromosome naming validation FAILED")
+        
+        # Show what chromosomes couldn't be mapped
+        unmappable = []
+        for vcf_chrom in vcf_chroms:
+            test_chroms = [vcf_chrom, vcf_chrom[3:] if vcf_chrom.startswith('chr') else f'chr{vcf_chrom}']
+            if not any(test_chrom in ref_chroms for test_chrom in test_chroms):
+                unmappable.append(vcf_chrom)
+        
+        if unmappable:
+            print(f"Unmappable VCF chromosomes: {unmappable}")
+        
+        return False
+
 # Function for reading the Grantham file and returning it as a dictionary.
 def read_grantham(filename):
     """
@@ -124,6 +289,7 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
     Returns percentage GC and CpG counts inside this window.
     """
     # Normalize chromosome name to match reference genome
+    original_chrom = chrom
     if chrom not in seq_tabix.references:
         if f"chr{chrom}" in seq_tabix.references:
             chrom = f"chr{chrom}"  # Prepend 'chr'
@@ -132,17 +298,40 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
         elif chrom.startswith("chr") and chrom[3:] in seq_tabix.references:
             chrom = chrom[3:]  # Remove 'chr' prefix
         else:
-            print(f"Chromosome {chrom} not found in reference genome.")
+            print(f"Chromosome {original_chrom} (tried as {chrom}) not found in reference genome.")
+            print(f"Available chromosomes: {list(seq_tabix.references)[:10]}...")  # Show first 10
             return '-', '-'
+
+    # Calculate the fetch coordinates
+    fetch_start = max(0, start - window)
+    fetch_end = end + window
+    
+    # Check if coordinates are within chromosome bounds
+    try:
+        chrom_length = seq_tabix.get_reference_length(chrom)
+        if fetch_start >= chrom_length:
+            print(f"Warning: Start position {fetch_start} is beyond chromosome {chrom} length {chrom_length}")
+            return '-', '-'
+        if fetch_end > chrom_length:
+            print(f"Warning: End position {fetch_end} is beyond chromosome {chrom} length {chrom_length}, adjusting to {chrom_length}")
+            fetch_end = chrom_length
+    except Exception as e:
+        print(f"Warning: Could not get chromosome length for {chrom}: {e}")
 
     try:
         # Fetch sequence from the reference genome
-        sequence = seq_tabix.fetch(chrom, max(0, start - window), end + window)
+        print(f"Fetching sequence from {chrom}:{fetch_start}-{fetch_end}")
+        sequence = seq_tabix.fetch(chrom, fetch_start, fetch_end)
+        
+        if not sequence:
+            print(f"Warning: Empty sequence retrieved for {chrom}:{fetch_start}-{fetch_end}")
+            return '-', '-'
+            
         CpG, GC = 0, 0
         count = 0
         lbase = ''
         for pos in range(len(sequence)):
-            base = sequence[pos]
+            base = sequence[pos].upper()  # Ensure uppercase
             count += 1
             if base in 'GC':
                 GC += 1
@@ -154,7 +343,9 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
         else:
             return '-', '-'
     except Exception as e:
-        print(f"Error fetching sequence for {chrom}:{start}-{end}: {e}")
+        print(f"Error fetching sequence for {chrom}:{fetch_start}-{fetch_end}: {e}")
+        print(f"Original coordinates: {original_chrom}:{start}-{end}")
+        print(f"Reference file: {seq_tabix.filename}")
         return '-', '-'
 
 def extract_transcript_coding_prot_feature(output_dict, annotation, position, label1, label2):
@@ -434,8 +625,27 @@ ref_fasta = pysam.FastaFile(args.reference)
 # Load the Grantham scores
 grantham_scores = read_grantham(args.grantham)
 
+# Validate chromosome naming consistency between VCF and reference FASTA
+if not validate_chromosome_naming(args.input, ref_fasta):
+    print("\n" + "="*60)
+    print("ERROR: Chromosome naming mismatch detected!")
+    print("="*60)
+    print("The chromosome names in your VCF file don't match those in the reference FASTA.")
+    print("This will cause sequence fetching to fail.")
+    print("\nSuggested solutions:")
+    print("1. Use a reference FASTA with matching chromosome names")
+    print("2. Rename chromosomes in either the VCF or FASTA to match")
+    print("3. Check if you're using the correct reference genome version")
+    print("="*60)
+    sys.exit(1)
+
+print("✓ Chromosome naming validation passed. Starting processing...")
+
+# Detect compression type of input file
+input_compression = detect_compression_type(args.input)
+
 # Open the input and output files.
-with open(args.input, "r") as infile, open(args.output, "w") as outfile:
+with open_file(args.input, "r") as infile, open_output_file(args.output, "w", input_compression) as outfile:
     reader = (line for line in infile if not line.startswith("##"))  # Skip metadata lines.
     header = next(reader).strip().split("\t")  # Read the header line.
     writer = csv.DictWriter(outfile, fieldnames=ELIST, delimiter="\t")
