@@ -86,7 +86,7 @@ annotation_config:
 ## Model training ##
 # The set of derived and simulated variants is split in a train and test set using the rest ratio.
 model:
-  n_folds: 5
+  n_folds: 10
   test_params:
     c:
       - 0.1
