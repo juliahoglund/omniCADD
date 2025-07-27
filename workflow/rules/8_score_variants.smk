@@ -47,8 +47,8 @@ rule generate_all_variants:
          for file in {output.out_dir}/*.vcf
          do
            bgzip "$file"
-           tabix "$file"
-         done
+           tabix -p vcf "$file.gz"
+         done &&
          """
 
 # Determine the {genome} for all downloaded files
