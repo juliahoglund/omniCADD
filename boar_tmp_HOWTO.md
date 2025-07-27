@@ -418,7 +418,7 @@ done
 
 ```bash
 
-# combine conservation
+# 1. combine conservation
 for i in {2..14} 15_17 16 18
 do 
 python3 combine_constraint.py -c $i \
@@ -428,13 +428,85 @@ python3 combine_constraint.py -c $i \
 -o results/annotation/combined/
 done
 
-## TODO: solve location of directories and make files temporary
-## remove bed chunks after combining -> make temporary
-## mv to outout creates duplicates -> change
+# 2. then combine with siomulated/derived 
+```bash
+# DERIVED
+for i in {2..14} 15_17 16 18; 
+do 
+    python merge_annotations.py \
+    -v results/annotation/snpEff/derived/chr$i\_ann_processed.vcf \
+    -b results/annotation/combined/constraint.chr$i.bed \
+    -o results/dataset/derived/chr$i\_annotated.tsv; 
+done
+# SIMULATED
+for i in {2..14} 15_17 16 18; 
+do 
+    python merge_annotations.py \
+    -v results/annotation/snpEff/simulated/chr$i\_ann_processed.vcf \
+    -b results/annotation/combined/constraint.chr$i.bed \
+    -o results/dataset/simulated/chr$i\_annotated.tsv; 
+done
 
+# 3. derive means for imputation
+python derive_means.py \
+-i results/dataset/simulated/chr10_annotated.tsv results/dataset/simulated/chr16_annotated.tsv results/dataset/simulated/chr6_annotated.tsv results/dataset/simulated/chr11_annotated.tsv results/dataset/simulated/chr18_annotated.tsv results/dataset/simulated/chr7_annotated.tsv results/dataset/simulated/chr12_annotated.tsv results/dataset/simulated/chr2_annotated.tsv results/dataset/simulated/chr8_annotated.tsv results/dataset/simulated/chr13_annotated.tsv results/dataset/simulated/chr3_annotated.tsv results/dataset/simulated/chr9_annotated.tsv results/dataset/simulated/chr14_annotated.tsv results/dataset/simulated/chr4_annotated.tsv results/dataset/simulated/chr15_17_annotated.tsv results/dataset/simulated/chr5_annotated.tsv \
+-p config/annot_processing_config.tsv \
+-o impute_dict.txt
 
-# then combine with siomulated/derived 
-python merge_annotations.py -v pseudo/derived/chr18_ann_processed.vcf -b results/annotation/combined/constraint.chr18.bed -o chr18_anno_full.vcf
+# 4. prepare data for training testing
+for i in {2..14} 15_17 16 18
+do
+    #simulated
+    python prepare_annotated_data.py -i results/dataset/simulated/chr$i\_annotated.tsv -n results/dataset/simulated/chr$i.npz --processing-config config/annot_processing_config.tsv --interaction-config config/annot_combinations_config.tsv --imputation-dict results/dataset/impute_dict.txt --y-value 1.0
+    #derived
+    python prepare_annotated_data.py -i results/dataset/derived/chr$i\_annotated.tsv -n results/dataset/derived/chr$i.npz --processing-config config/annot_processing_config.tsv --interaction-config config/annot_combinations_config.tsv --imputation-dict results/dataset/impute_dict.txt --y-value 0.0 --derived
+done
+```
 
+```bash
+# prepare data by imputing and make npz:s
+```
+
+#######################
+### 8_TRAINANDTEST  ###
+#######################
+
+```bash
+1. fold data, 10 folds this time
+python fold_data.py \
+-n 4 \
+-i results/dataset/derived/chr2.npz results/dataset/derived/chr3.npz results/dataset/derived/chr4.npz results/dataset/derived/chr5.npz results/dataset/derived/chr6.npz results/dataset/derived/chr7.npz results/dataset/derived/chr8.npz results/dataset/derived/chr9.npz results/dataset/derived/chr10.npz results/dataset/derived/chr11.npz results/dataset/derived/chr12.npz results/dataset/derived/chr13.npz results/dataset/derived/chr14.npz results/dataset/derived/chr16.npz results/dataset/derived/chr15_17.npz results/dataset/derived/chr18.npz results/dataset/simulated/chr2.npz results/dataset/simulated/chr3.npz results/dataset/simulated/chr4.npz results/dataset/simulated/chr5.npz results/dataset/simulated/chr6.npz results/dataset/simulated/chr7.npz results/dataset/simulated/chr8.npz results/dataset/simulated/chr9.npz results/dataset/simulated/chr10.npz results/dataset/simulated/chr11.npz results/dataset/simulated/chr12.npz results/dataset/simulated/chr13.npz results/dataset/simulated/chr14.npz results/dataset/simulated/chr16.npz results/dataset/simulated/chr15_17.npz results/dataset/simulated/chr18.npz \
+-o results/dataset/fold_0.npz results/dataset/fold_1.npz results/dataset/fold_2.npz results/dataset/fold_3.npz results/dataset/fold_4.npz results/dataset/fold_5.npz results/dataset/fold_6.npz results/dataset/fold_7.npz results/dataset/fold_8.npz results/dataset/fold_9.npz
+
+#2. train model
+# NOTE didnt converge on 100 as PIG
+         python3 train_model.py \
+         --train results/dataset/fold_0.npz results/dataset/fold_1.npz results/dataset/fold_2.npz results/dataset/fold_3.npz results/dataset/fold_4.npz results/dataset/fold_5.npz results/dataset/fold_6.npz results/dataset/fold_7.npz results/dataset/fold_8.npz\
+         --test results/dataset/fold_9.npz \
+         --columns All \
+         -c 10 \
+         -i 200 \
+         --file-pattern results/model/All/fold_9_[C]C_[ITER]iter.mod \
+         -n 4 \
+         --save-weights \
+         --save-scaler results/model/All/fold_9.scaler.pickle
+## test one per fold for 10x cross-validation
+
+# 3. final full model
+python train_model.py --train results/dataset/fold_0.npz results/dataset/fold_1.npz results/dataset/fold_2.npz results/dataset/fold_3.npz results/dataset/fold_4.npz results/dataset/fold_5.npz results/dataset/fold_6.npz results/dataset/fold_7.npz results/dataset/fold_8.npz results/dataset/fold_9.npz  --columns All -c 10.0 -i 200 --file-pattern results/model/All/full.mod--save-weights --save-scaler results/model/All/full.scaler.pickle
+```
+
+################
+### 9_SCORE  ###
+################
+
+```bash 
+python3 create_variants.py -o results/whole_genome_variants/chr18 -s 500000 -r resources/genome/Wild_Boar_chr18.fa -c 18 > results/whole_genome_variants/chr18/stats.txt
+               
+for file in results/whole_genome_variants/chr18/*.vcf
+do
+    bgzip "$file"
+    tabix -p vcf "$file.gz"
+done
 ```
 
