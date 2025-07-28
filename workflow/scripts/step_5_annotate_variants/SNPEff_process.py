@@ -320,7 +320,6 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
 
     try:
         # Fetch sequence from the reference genome
-        print(f"Fetching sequence from {chrom}:{fetch_start}-{fetch_end}")
         sequence = seq_tabix.fetch(chrom, fetch_start, fetch_end)
         
         if not sequence:
