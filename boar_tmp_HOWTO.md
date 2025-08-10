@@ -501,12 +501,47 @@ python train_model.py --train results/dataset/fold_0.npz results/dataset/fold_1.
 ################
 
 ```bash 
+# 1. generate all variants
 python3 create_variants.py -o results/whole_genome_variants/chr18 -s 500000 -r resources/genome/Wild_Boar_chr18.fa -c 18 > results/whole_genome_variants/chr18/stats.txt
                
 for file in results/whole_genome_variants/chr18/*.vcf
 do
     bgzip "$file"
     tabix -p vcf "$file.gz"
+done
+
+#2. snpeff them
+for i in {2..14} 15_17 16 18
+do
+    cd results/whole_genome_variants/chr$i
+    for file in *.vcf.gz
+    do
+        snpEff -v -c ../../../snpEff/snpEff.config augustus_boar $file > ../../../results/whole_genome_annotations/snpeff/chr$i/$file
+    done
+    cd ../../../
+done
+
+#3. prcess snpeff
+for i in {2..14} 15_17 16 18
+do
+    cd results/whole_genome_annotations/snpeff/chr$i
+    for file in *.vcf.gz
+    do
+    python ../../../../scripts/SNPEff_process.py -i $file -r ../../../../resources/genome/Wild_Boar_chr$i.fa -o processed_$file -g ../../../../resources/grantham_matrix/grantham_matrix.tsv
+    done
+    cd ../../../
+done
+
+#4. merge them
+for i in {2..14} 15_17 16 18 
+do
+        cd results/whole_genome_annotations/snpeff/chr$i
+        for file in processed_*
+        do 
+                new=`echo $file | sed 's/processed/annotated/' | sed 's/.vcf.gz/.tsv/'`
+                python ../../../../scripts/merge_annotations.py -v $file -b ../../../../results/annotation/constraint/constraint.chr$i.bed -o ../../../../results/whole_genome_annotations/chr$i/$new
+        done
+        cd ../../../../
 done
 ```
 
