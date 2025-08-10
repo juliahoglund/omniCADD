@@ -166,16 +166,79 @@ def validate_chromosome_naming(vcf_file, ref_fasta):
     sample_count = 0
     max_samples = 100  # Sample first 100 variants to check chromosome naming
     
-    with open_file(vcf_file, "r") as infile:
-        reader = (line for line in infile if not line.startswith("##"))
-        header = next(reader).strip().split("\t")
-        
-        for line in reader:
-            if sample_count >= max_samples:
-                break
-            row = dict(zip(header, line.strip().split("\t")))
-            vcf_chroms.add(row['#CHROM'])
-            sample_count += 1
+    try:
+        with open_file(vcf_file, "r") as infile:
+            # Skip metadata lines and find the header
+            header_line = None
+            for line in infile:
+                if line.startswith('#CHROM'):
+                    header_line = line.strip()
+                    break
+                elif line.startswith('#'):
+                    continue
+                else:
+                    # No proper header found, assume standard VCF format
+                    print("Warning: No #CHROM header line found, assuming standard VCF format")
+                    header_line = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
+                    # Reset file pointer by reopening
+                    break
+            
+            if not header_line:
+                print("Error: Could not find VCF header line")
+                return False
+            
+            header = header_line.split("\t")
+            print(f"VCF header found: {header[:8]}...")  # Show first 8 columns
+            
+            # Check if we have the required CHROM column
+            chrom_col = None
+            for i, col in enumerate(header):
+                if col in ['#CHROM', 'CHROM']:
+                    chrom_col = i
+                    break
+            
+            if chrom_col is None:
+                print("Error: No chromosome column found in VCF header")
+                print(f"Available columns: {header}")
+                return False
+            
+            # If we broke out early to reset file pointer, reopen the file
+            if not line.startswith('#'):
+                infile.close()
+                infile = open_file(vcf_file, "r")
+                # Skip to data lines
+                for line in infile:
+                    if not line.startswith('#'):
+                        break
+            
+            # Process data lines
+            line_count = 0
+            while line and sample_count < max_samples:
+                if line.startswith('#'):
+                    line = next(infile, '')
+                    continue
+                
+                fields = line.strip().split("\t")
+                if len(fields) > chrom_col:
+                    vcf_chroms.add(fields[chrom_col])
+                    sample_count += 1
+                else:
+                    print(f"Warning: Malformed VCF line (insufficient columns): {line.strip()}")
+                
+                line = next(infile, '')
+                line_count += 1
+                
+                # Safety check to prevent infinite loop
+                if line_count > max_samples * 2:
+                    break
+    
+    except Exception as e:
+        print(f"Error reading VCF file: {e}")
+        return False
+    
+    if not vcf_chroms:
+        print("Error: No chromosome names found in VCF file")
+        return False
     
     print(f"VCF chromosomes found: {sorted(vcf_chroms)}")
     
