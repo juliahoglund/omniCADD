@@ -100,7 +100,7 @@ def get_pickle(file, clazz):
     with open(file, "rb") as file_h:
         ins = pickle.load(file_h)
     if not isinstance(ins, clazz):
-        sys.exit(f"Error loading instance from picle file, "
+        sys.exit(f"Error loading instance from pickle file, "
                  f"expected an instance of {clazz} but got {type(ins)}")
     return ins
 
