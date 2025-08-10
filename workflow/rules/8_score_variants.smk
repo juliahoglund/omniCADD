@@ -153,7 +153,7 @@ rule prepare_whole_genome:
          data="results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv",
          imputaton="results/dataset/imputation_dict.txt",
          processing=config["annotation_config"]["processing"],
-         # interactions=config["annotation_config"]["interactions"], # interactions so far not used
+         interactions=config["annotation_config"]["interactions"],
          script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
          derived_variants=" ",
@@ -168,7 +168,7 @@ rule prepare_whole_genome:
     shell:
      "python3 {input.script} -i {input.data} --npz {output.npz} "
      "--processing-config {input.processing} "
-    # "--interaction-config {input.interactions} "
+     "--interaction-config {input.interactions} "
      "--imputation-dict {input.imputaton} "
      "{params.derived_variants} {params.y} > {log}"
 
