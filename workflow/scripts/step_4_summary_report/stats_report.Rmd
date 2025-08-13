@@ -5,11 +5,11 @@ output:
     df_print: paged
 date: "`r Sys.Date()`"
 params:
-  tree: data/tree_43_mammals.nwk
-  ideogram: data/indexfile.txt
-  annotation: data/CDS.regions.bed
-  bedfile: data/Ancestor.bed
-  coverage: data/CDS.coverage.bed
+  tree: resources/tree_43_mammals.nwk
+  ideogram: results/visualisation/indexfile.txt
+  annotation: results/visualisation/CDS.regions.bed
+  bedfile: results/visualisation/Ancestor.bed
+  coverage: results/visualisation/CDS.coverage.bed
   ingroup: sus scrofa
   outgroup: bos taurus
   path: ~/Documents/203.2 localCADD/
@@ -57,7 +57,7 @@ log_file <- file(paste(params$path, "script_log.txt", sep = ""), open = "wt")
 sink(log_file, type = "message")
 
 tryCatch({
-  load(paste(params$path, "data/graphs.RData", sep = ""))
+  load(paste(params$path, "results/visualisation/graphs.RData", sep = ""))
   ancestorset <- ancestorset[-20,]
   derivedset <- derivedset[-20,]
   fullset <- fullset[-20,]
