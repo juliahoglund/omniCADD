@@ -13,8 +13,8 @@ RUN apt-get update && \
 RUN R -e "install.packages('renv')"
 
 WORKDIR /omniCADD
-# change to from config later
-COPY config/renv.lock renv.lock
+# Copy renv.lock from build context
+COPY renv.lock renv.lock
 
 ENV RENV_PATHS_LIBRARY config/renv/library
 
