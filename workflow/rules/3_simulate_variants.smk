@@ -22,7 +22,7 @@ rule create_parameters:
         reference=config["generate_variants"]["reference_genome_wildcard"],
         script=workflow.source_path(SCRIPTS_3 + "create_parameters.py")
     conda:
-        "../envs/simulation.yml"
+        get_conda_env("simulation")
     output:
         "results/simulated_variants/parameters/chr{chr}.txt"
     shell:
@@ -47,7 +47,7 @@ rule process_parameters:
         factor=config["generate_variants"]["simulate"]["overestimation_factor"],
         # kolla upp denna sen alltså vad den multiplicertar
     conda:
-        "../envs/simulation.yml"
+        get_conda_env("simulation")
     output:
         parameters="results/simulated_variants/params.pckl",
         log=report("results/logs/process_parameters.log", category="Logs")
@@ -69,7 +69,7 @@ rule simulate_snps:
         params="results/simulated_variants/params.pckl",
         script=workflow.source_path(SCRIPTS_3 + "simulate_variants.py")
     conda:
-        "../envs/simulation.yml"
+        get_conda_env("simulation")
     output:
         "results/simulated_variants/raw_snps/chr{chr}.vcf"
     shell:
@@ -91,7 +91,7 @@ rule simulate_indels:
         params="results/simulated_variants/params.pckl",
         script=workflow.source_path(SCRIPTS_3 + "simulate_variants.py")
     conda:
-        "../envs/simulation.yml"
+        get_conda_env("simulation")
     output:
         "results/simulated_variants/raw_indels/chr{chr}.vcf"
     shell:
@@ -112,7 +112,7 @@ rule filter_variants:
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         script=workflow.source_path(SCRIPTS_3 + "filter_variants.py")
     conda:
-        "../envs/simulation.yml"
+        get_conda_env("simulation")
     output:
         "results/simulated_variants/filtered_{type}/chr{chr}.vcf"
     shell:
@@ -163,7 +163,7 @@ rule check_substitutions_rates:
             chr=config["chromosomes"]["karyotype"]),
         script=workflow.source_path(SCRIPTS_3 + "check_substitution_rates.py")
     conda:
-         "../envs/simulation.yml"
+         get_conda_env("simulation")
     output:
         raw="results/visualisation/raw_summary.log",
         filtered="results/visualisation/filtered_summary.log",
@@ -194,7 +194,7 @@ rule trim_vcf:
          derived_count="results/derived_variants/singletons/total.count",
          script=workflow.source_path(SCRIPTS_3 + "trim_vcf.py")
     conda:
-         "../envs/simulation.yml"
+         get_conda_env("simulation")
     output:
         "results/simulated_variants/trimmed_snps/all_chr.vcf" # also indels?
     shell:
@@ -218,7 +218,7 @@ rule split_by_chrom:
     output:
         "results/simulated_variants/trimmed_{type}/chr{chr}.vcf"
     conda:
-         "../envs/common.yml"
+         get_conda_env("common")
     shell:
         (
         "bcftools view {input.vcf} --regions {wildcards.chr} -o {output} -O v"
