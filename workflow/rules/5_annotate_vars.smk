@@ -59,7 +59,7 @@ rule run_vep:
           cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
     conda:
-         "../envs/annotation.yml"
+         get_conda_env("annotation")
     # Parts are at most a few million variants, 2 threads is already fast.
     threads: 2
     output:
@@ -83,7 +83,7 @@ rule process_vep:
          grantham=workflow.source_path("resources/grantham_matrix/grantham_table.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
-         "../envs/common.yml"
+         get_conda_env("common")
     output:
          "{folder}/chr{chr}_vep.tsv"
     shell:
@@ -214,7 +214,7 @@ rule gerp2coords: # needed now or can be parsed later?
     output:
        "results/annotation/gerp/{name}/chr{chr}/{part}.rates.parsed"
     conda:
-        "../envs/annotation.yml"
+        get_conda_env("annotation")
     params:
        reference_species = config['species_name']
     log:
@@ -239,7 +239,7 @@ rule phylo_fit:
         precision=config["annotation"]['phast']["train_precision"],
         out="results/annotation/phast/phylo_model/chr{chr}/{part}"
     conda:
-        "../envs/annotation.yml" # TODO add container? 
+        get_conda_env("annotation") # TODO add container? 
     output:
          "results/amnnotation/phast/phylo_model/chr{chr}/{part}.mod"
     shell:
@@ -261,7 +261,7 @@ rule run_phastCons:
         species_interest = config['species_name'],
         phast_params=config['annotation']["phast"]["phastCons_params"]
     conda:
-        "../envs/annotation.yml" # TODO add container?
+        get_conda_env("annotation") # TODO add container?
     output:
          temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig")
     threads: 2
@@ -276,7 +276,7 @@ rule wig2bed_phastCons:
     input:
         "results/annotation/phast/phastCons/chr{chr}/{part}.wig",
     conda:
-        "../envs/anotation.yml"
+        get_conda_env("annotation")
     output:
         "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"    
     shell:
@@ -292,7 +292,7 @@ rule run_phyloP:
     benchmark:
         "logs/annotation/phast/phyloP/chr{chr}/{part}.tsv"
     conda:
-        "../envs/annotation.yml" # TODO add container?
+        get_conda_env("annotation") # TODO add container?
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig")
     threads: 2
@@ -306,7 +306,7 @@ rule wig2bed_phyloP:
     input:
         "results/annotation/phast/phyloP/chr{chr}/{part}.wig",
     conda:
-        "../envs/anotation.yml"
+        get_conda_env("annotation")
     output:
         "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"
     shell:
