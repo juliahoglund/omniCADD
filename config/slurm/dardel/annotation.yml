@@ -1,0 +1,15 @@
+# Annotation environment optimized for PDC Dardel
+# Uses system-available modules and optimized versions
+name: annotation_dardel
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - pandas=2.1
+  - pysam=0.21
+  - ensembl-vep=110
+  - bcftools=1.18
+  - tabix=1.11
+  - htslib=1.18
+  - samtools=1.18
