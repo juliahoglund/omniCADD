@@ -1,0 +1,14 @@
+# Simulation environment optimized for PDC Dardel
+# Uses optimized numpy/scipy versions for HPC
+name: simulation_dardel
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - numpy=1.24
+  - scipy=1.11
+  - pandas=2.1
+  - matplotlib=3.7
+  - seaborn=0.12
+  - pysam=0.21
