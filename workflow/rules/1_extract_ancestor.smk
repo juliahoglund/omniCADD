@@ -26,12 +26,12 @@ from snakemake.io import expand, glob_wildcards
 """
 rule clean_ambiguous:
 	input:
-		maf = lambda wildcards: f"{config['alignments'][wildcards.alignment]['path']}{wildcards.part}.maf.gz",
+		maf = lambda wildcards: f"{config['alignment']['path']}{wildcards.part}.maf.gz",
 		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
 	conda:
 		"../envs/ancestor.yml"
 	output:
-		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
+		temp("results/alignment/cleaned_maf/{part}.maf.gz")
 	shell:
 		"python3 {input.script} -i {input.maf} -o {output}"
 
@@ -49,22 +49,22 @@ rule clean_ambiguous:
 rule mark_ancestor:
 	input:
 		maf = lambda wildcards: (
-			f"results/alignment/cleaned_maf/{wildcards.alignment}/{wildcards.part}.maf.gz"
-			if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
-			f"{config['alignments'][wildcards.alignment]['path']}{wildcards.part}.maf.gz"
+			f"results/alignment/cleaned_maf/{wildcards.part}.maf.gz"
+			if config["alignment"]["clean_maf"] == "True" else
+			f"{config['alignment']['path']}{wildcards.part}.maf.gz"
 		),
 		script = workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')
 	params:
 		ancestor = config['mark_ancestor']['name_ancestor'],
 		sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
 		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
-		name_sp1 = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
+		name_sp1 = config['alignment']['name_species_interest']
 	conda:
 		"../envs/ancestor.yml"
 	log:
-		"results/logs/{alignment}/{part}_mark_ancestor_log.txt"
+		"results/logs/{part}_mark_ancestor_log.txt"
 	output:
-		temp("results/alignment/marked_ancestor/{alignment}/{part}.maf.gz")
+		temp("results/alignment/marked_ancestor/{part}.maf.gz")
 	shell:
 		"python3 {input.script}"
 		" -i {input.maf}"
@@ -76,22 +76,22 @@ rule mark_ancestor:
 		" --sp2-ab {params.sp2_ab}"
 
 
-def get_df_input_maf(alignment):
+def get_df_input_maf():
 	"""
 	Input based on configuration. If ancestor must be marked that rule is input, if not and also no cleaning is needed,
 	the source maf file is taken as input instead. If cleaning is needed that rule is added instead.
 	Otherwise the input MAF file is required directly, skipping the other two steps and saving some time.
-	:param alignment: name of alignment in the config
 	:return: str, input file
 	"""
 
-	if config["mark_ancestor"]["ancestral_alignment"] == alignment:
-		return "results/alignment/marked_ancestor/{alignment}/{part}.maf.gz"
+	# Since we only have one alignment now, check if marking is needed
+	if 'name_ancestor' in config["mark_ancestor"]:
+		return "results/alignment/marked_ancestor/{part}.maf.gz"
 
-	if config["alignments"][alignment]["clean_maf"] == "True":
-		return "results/alignment/cleaned_maf/{alignment}/{part}.maf.gz"
+	if config["alignment"]["clean_maf"] == "True":
+		return "results/alignment/cleaned_maf/{part}.maf.gz"
 
-	return f"{config['alignments'][alignment]['path']}{{part}}.maf.gz"
+	return f"{config['alignment']['path']}{{part}}.maf.gz"
 
 """
  Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
@@ -99,14 +99,14 @@ def get_df_input_maf(alignment):
 """
 rule maf_df:
 	input:
-		lambda wildcards: get_df_input_maf(wildcards.alignment)
+		lambda wildcards: get_df_input_maf()
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	conda:
 		"../envs/ancestor.yml"
 	threads: 2
 	output:
-		temp("results/alignment/dedup/{alignment}/{part}.maf.lz4")
+		temp("results/alignment/dedup/{part}.maf.lz4")
 	shell:
 		"gzip -dc {input} | mafDuplicateFilter --maf /dev/stdin | lz4 -f stdin {output}"
 
@@ -116,22 +116,21 @@ rule maf_df:
 """
 rule maf_ro:
 	input:
-		"results/alignment/dedup/{alignment}/{part}.maf.lz4"
+		"results/alignment/dedup/{part}.maf.lz4"
 	params:
-		order = lambda wildcards: config["alignments"][wildcards.alignment]["filter_order"]
+		order = config["alignment"]["filter_order"]
 	conda:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 2
 	output:
-		temp("results/alignment/row_ordered/{alignment}/{part}.maf.lz4")
+		temp("results/alignment/row_ordered/{part}.maf.lz4")
 	shell:
 		"lz4 -dc {input} | mafRowOrderer --maf /dev/stdin --order {params.order} | lz4 -f stdin {output}"
 
 """
  Helper function to gather alignment part files so they can be merged for each chromosome.
- Input: str, config name of alignment to gather parts for.
  Output: list of str, all part files for that prefix
  Exits the program if no files are found since creating a rule with no inputs would break the workflow.
  
@@ -140,8 +139,8 @@ rule maf_ro:
  otherwise checkpoints would be needed to reevaluate the DAG.
  both emf and maf input files can be checked, based on the config.
 """
-def gather_part_files(alignment):
-	alignment_config = config['alignments'][alignment]
+def gather_part_files():
+	alignment_config = config['alignment']
 	input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
 	parts = glob_wildcards(input_pattern).part
 	parts_filtered = []
@@ -151,7 +150,7 @@ def gather_part_files(alignment):
 
 	# Formulate filenames as output from the previous step
 	infiles = expand(
-		f"results/alignment/row_ordered/{alignment}/{{part}}.maf.lz4", part = parts_filtered)
+		f"results/alignment/row_ordered/{{part}}.maf.lz4", part = parts_filtered)
 
 	# If no files were found fail because the rule cannot be run
 	if len(infiles) == 0:
@@ -165,19 +164,19 @@ def gather_part_files(alignment):
 """
 rule sort_by_chr: # sort by chromosome
 	input:
-		maf = lambda wildcards: gather_part_files(wildcards.alignment),
+		maf = lambda wildcards: gather_part_files(),
 		script = workflow.source_path(SCRIPTS_1 + 'sort_by_chromosome.py')
 	params:
-		species_name=lambda wildcards: config["alignments"][wildcards.alignment]["name_species_interest"],
-		directory = "results/alignment/merged/{alignment}/",
+		species_name=config["alignment"]["name_species_interest"],
+		directory = "results/alignment/merged/",
 		chromosomes = config["chromosomes"]["karyotype"],
 		ancestor = config['mark_ancestor']['name_ancestor']
 	conda:
 		"../envs/ancestor.yml" 
 	log:
-		"results/logs/{alignment}_merging.log"
+		"results/logs/merging.log"
 	output:
-		out_chr = expand("results/alignment/merged/{{alignment}}/chr{chr}.maf",
+		out_chr = expand("results/alignment/merged/chr{chr}.maf",
 			chr=config["chromosomes"]["karyotype"])
 	shell:
 		'''
@@ -195,16 +194,16 @@ rule sort_by_chr: # sort by chromosome
 """
 rule maf_str:
 	input:
-		"results/alignment/merged/{alignment}/chr{chr}.maf.gz"
+		"results/alignment/merged/chr{chr}.maf.gz"
 	params:
-		species_label = lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest']
+		species_label = config['alignment']['name_species_interest']
 	conda:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 6
 	output:
-		temp("results/alignment/stranded/{alignment}/chr{chr}.maf.gz")
+		temp("results/alignment/stranded/chr{chr}.maf.gz")
 	shell:
 		"gzip -dc {input} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + | gzip > {output} && gzip -9 {input}"
 
@@ -217,16 +216,16 @@ rule maf_str:
 """
 rule maf_sorter:
 	input:
-		"results/alignment/stranded/{alignment}/chr{chr}.maf.gz"
+		"results/alignment/stranded/chr{chr}.maf.gz"
 	params:
-		species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
+		species_label=config['alignment']['name_species_interest'],
 	conda:
 		"../envs/ancestor.yml"
 #	container:
 #		"docker://juliahoglund/maftools:latest"
 	threads: 6
 	output:
-		"results/alignment/sorted/{alignment}/chr{chr}.maf.gz"
+		"results/alignment/sorted/chr{chr}.maf.gz"
 	shell:
 		"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. > {output}"
 
@@ -236,10 +235,10 @@ rule maf_sorter:
 """
 rule gen_ancestor_seq:
 	input:
-		maf=f"results/alignment/sorted/{config['mark_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
+		maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
 		script=workflow.source_path(SCRIPTS_1 + 'extract_ancestor.py')
 	params:
-		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"],
+		species_name=config["alignment"]["name_species_interest"],
 		ancestor=config['mark_ancestor']['name_ancestor'],
 		reference=config['mark_ancestor']['reference_genome']
 	conda:
