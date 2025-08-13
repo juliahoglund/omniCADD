@@ -54,7 +54,7 @@ rule fold_data:
         script=workflow.source_path(SCRIPTS_7 + "fold_data.py"),
         lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
     conda: 
-        "../envs/model.yml"
+        get_conda_env("model")
     priority: 20
     threads: 4
     resources:
@@ -95,7 +95,7 @@ rule train_model:
         sel_cols = lambda wildcards: "All" if wildcards.cols == "All" else \
             config["model"]["column_subsets"][wildcards.cols]
     conda:
-        "../envs/model.yml"
+        get_conda_env("model")
     priority: 20
     resources:
         mem_mb = config["memory"]["dataset_mb"]
@@ -149,7 +149,7 @@ rule final_model:
         sel_cols= lambda wildcards: "All" if wildcards.cols == "All" else \
             config["model"]["column_subsets"][wildcards.cols]
     conda:
-         "../envs/model.yml"
+         get_conda_env("model")
     priority: 20
     resources:
         mem_mb=config["memory"]["dataset_mb"]
