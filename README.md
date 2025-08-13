@@ -21,6 +21,27 @@ The plan is to merge and make the pipeline fully modifiable in the future.
 #### :exclamation: **NOTE** :exclamation: 
 The scripts are still under construction and have not yet fully been wrapped into the workflow. 
 
+## :link: user prerequisities 
+To work correctly, the pipeline assumes that critical files, such as the reference genome, epo alignment and population-level-VCF are in subfolders in `resources`. Before running, make sure they are either transfered there, or downloaded directly there before running. 
+```bash
+cd resources/genome
+# download here, example workflow has been run with domesticated pig:
+wget https://ftp.ensembl.org/pub/current_fasta/sus_scrofa/dna/Sus_scrofa.Sscrofa11.1.dna.toplevel.fa.gz
+
+cd ../alignment
+# download here, example workflow has been run with the epo 44 way mammal alignment:
+wget -r -nd --no-parent -e robots=off -A '44_mammals.epo.*.maf.gz' https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/44_mammals.epo/
+
+cd ../pop-level-VCF
+# transfer here, example workflow has been run with local pig vcf files
+```
+
+## :ballot_box_with_check: TO-DO
+
+- clean up scripts and workflow
+- rempove temporary information
+- make cluster profile
+
 ## Information
 *TBA*
 
