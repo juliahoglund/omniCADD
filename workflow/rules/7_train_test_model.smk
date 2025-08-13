@@ -58,7 +58,7 @@ rule fold_data:
     priority: 20
     threads: 4
     resources:
-        mem_mb = int(config["dataset_memory_mb"] * 2)
+        mem_mb = int(config["memory"]["dataset_mb"] * 2)
     output:
         test = expand("results/dataset/fold_{fold}.npz",
                fold = get_folds()),
@@ -98,7 +98,7 @@ rule train_model:
         "../envs/model.yml"
     priority: 20
     resources:
-        mem_mb = config["dataset_memory_mb"]
+        mem_mb = config["memory"]["dataset_mb"]
     threads: len(config["model"]["test_params"]["c"]) * \
              len(config["model"]["test_params"]["max_iter"])
     output:
@@ -152,7 +152,7 @@ rule final_model:
          "../envs/model.yml"
     priority: 20
     resources:
-        mem_mb=config["dataset_memory_mb"]
+        mem_mb=config["memory"]["dataset_mb"]
     output:
           model="results/model/{cols}/full.mod.pickle",
           scaler="results/model/{cols}/full.scaler.pickle",
