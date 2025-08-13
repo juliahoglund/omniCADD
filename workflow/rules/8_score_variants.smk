@@ -34,7 +34,7 @@ rule generate_all_variants:
     params:
          blocksize=config["parallelization"]["whole_genome_positions_per_file"]
     conda:
-         "../envs/score.yml"
+         get_conda_env("score")
     log:
         "results/whole_genome_variants/chr{chr}/stats.txt"
     output:
@@ -90,7 +90,7 @@ rule run_genome_vep:
           cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
     conda:
-         "../envs/score.yml"
+         get_conda_env("score")
     # Parts are at most a few million variants, 2 threads is already fast.
     threads: 2
     priority: 1
@@ -114,7 +114,7 @@ rule process_genome_vep:
          grantham=workflow.source_path("../resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
-         "../envs/common.yml"
+         get_conda_env("common")
     priority: 1
     output:
          temp("results/whole_genome_annotations/chr{chr}/{part}.vep.tsv")
@@ -133,7 +133,7 @@ rule intersect_bed:
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
-        "../envs/score.yml"
+        get_conda_env("score")
     threads: 8
     output:
         "results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv" # TODO: make temp?
@@ -160,7 +160,7 @@ rule prepare_whole_genome:
          y=" "
     threads: 5
     conda:
-        "../envs/score.yml"
+        get_conda_env("score")
     output:
          npz="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
          meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv.gz",
@@ -187,7 +187,7 @@ rule score_variants:
         model="results/model/{cols}/full.mod.pickle",
         script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
     conda:
-         "../envs/score.yml"
+         get_conda_env("score")
     threads: 4
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
