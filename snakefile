@@ -11,9 +11,6 @@ min_version("7.21.0")
 ##### Load config #####
 configfile: "config.yaml"
 
-##### setup report #####
-report: "report/workflow.rst"
-
 ##### PARAMS #####
 REFERENCE = "resources/genome/"
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
@@ -61,6 +58,7 @@ rule all:
                 expand("results/annotation/vep/{type}/chr{chr}_vep.tsv", 
                        chr = config["chromosomes"]["karyotype"],
                        type = ["simulated", "derived"]),
+                # 6. combine annotations
                 expand("results/dataset/{type}/chr{chr}_annotated.tsv",
                        type = ['simulated', 'derived'],
                        chr = config['chromosomes']['karyotype']),
@@ -72,20 +70,13 @@ rule all:
                 expand("results/dataset/{type}/chr{chr}.npz",
                         type = ['simulated', 'derived'],
                         chr = config['chromosomes']['karyotype']),
+                # 7. train test model
                 "results/model/All/full.mod.pickle",
                 "results/model/All/full.scaler.pickle",
                 "results/model/All/full.mod.weights.csv",
-                # 6. combine annotations
+                # 8. score variants
                 expand("results/whole_genome_variants/chr{chr}/stats.txt",
                        chr = config["chromosomes"]["score"]),
-                # 7. train test model
-                expand("results/whole_genome_scores/phred/chr{chr}.tsv",
-                        chr=config["chromosomes"]["score"]),
-                expand("results/cadd_scores/chr{chr}.tsv.gz",
-                        chr=config["chromosomes"]["score"]),
-                expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
-                        chr=config["chromosomes"]["score"]),
-                # 8. score variants
                 expand("results/whole_genome_scores/phred/chr{chr}.tsv",
                         chr=config["chromosomes"]["score"]),
                 expand("results/cadd_scores/chr{chr}.tsv.gz",
