@@ -1,4 +1,5 @@
 # TODO: make this incorporated in the config file or a separate config
+# first make rule work
 
 GENETIC_CODE_TABLE=1
 # for code explanation see: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi
