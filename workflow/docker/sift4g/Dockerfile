@@ -1,8 +1,8 @@
 # from https://github.com/pauline-ng/SIFT4G_Create_Genomic_DB/
 # LICENSE: https://github.com/pauline-ng/SIFT4G_Create_Genomic_DB/blob/master/LICENSE
 
-# Use an official Ubuntu base image
-FROM ubuntu:latest
+# Use an official Ubuntu base image with specific version
+FROM ubuntu:20.04
 
 # Update and install necessary packages
 RUN apt-get update && apt-get install -y \
@@ -16,19 +16,25 @@ RUN apt-get update && apt-get install -y \
     wget \
     vim \
     bash \
-    libswitch-perl
+    libswitch-perl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install GCC 10.3.0 for sift4g
-RUN apt-get install -y \
+RUN apt-get update && apt-get install -y \
     gcc-10 \
     g++-10 \
-    make && apt-get update
+    make \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # create an alias for python3
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # install java for SIFT4G Annotator 
-RUN apt-get update && apt-get install -y openjdk-11-jdk
+RUN apt-get update && apt-get install -y openjdk-11-jdk \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create symlinks to make GCC 10.3.0 the default
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 \
