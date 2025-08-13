@@ -1,110 +1,101 @@
+##### GLOBAL SETTINGS #####
+species_name: "sus_scrofa"
+genome_version: "Sus_scrofa11.1"
+
+##### PATHS #####
+paths:
+  resources: "resources/"
+  reference_genome: "resources/genome/"
+  alignments: "resources/alignment/"
+  population_vcf: "resources/pop-level-VCF/"
+  annotations: "resources/"
+
+##### CHROMOSOME SETS #####
 chromosomes:
   autosomes: [ '18' ]
   karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
   train: [ '1', '2', '3', '4', '5' ]
   score: [ '1', '2', '3', '4', '5' ]
 
-# TODO: reorder config and re-implement for better flow
-species_name: "sus_scrofa"
-genome_version: "Sus_scrofa11.1"
+##### ALIGNMENT SETTINGS #####
+alignment:
+  path: 'resources/alignment/'
+  type: 'maf.gz'
+  clean_maf: 'True'
+  ancestral_label: "Ancestor_Pig_Cow" 
+  filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+    # all species needed / wanted for gerp computation need to be included here, as maf_order removes everything not in this list
+    # Full species list: balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,felis_catus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,mus_spretus,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries_rambouillet,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris,sus_scrofa
+  exclude_patterns: [ "scaffold", "epo.Y" ] 
+  name_species_interest: "sus_scrofa"
+  chrom_prefix: "chr" # prefix of chromosome in sequence label
 
-alignments:
-  43_mammals.epo:
-    path: 'resources/alignment/'
-    type: 'maf.gz'
-    clean_maf: 'True'
-    ancestral_label: "Ancestor_Pig_Cow" 
-      # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
-    filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
-      # bos_taurus, ovis_aries_rambouillet, equus_caballus, loxodonta_africana
-      # balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,felis_catus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,mus_spretus,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries_rambouillet,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris,sus_scrofa
-    exclude_patterns: [ "scaffold", "epo.Y" ] 
-      # Files including these strings will not be processed
-    name_species_interest: "sus_scrofa"
-    chrom_prefix: "chr" # prefix of chromosome in sequence label: mm39.chr[CHR]
-    # is this needed later if not in sort by chr?
-    ancestor: "True"
-
+##### ANCESTOR INFERENCE #####
 mark_ancestor:
-  ancestral_alignment: "43_mammals.epo"
   name_ancestor: 'Ancestor_Pig_Cow'
-    # Ancestor_Pig_Cow, Ancestor_Pig_Sheep, Ancestor_Pig_Horse, Ancestor_Pig_Elephant
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
-    # Btau, Oram, Ecab, Lafr
   reference_genome: 'resources/genome/Sus_scrofa_ref.fa'
 
+##### VARIANT GENERATION #####
 generate_variants:
   reference_genome_wildcard: "resources/genome/Sus_scrofa_ref_{chr}.fa"
-  population_vcf:  "pig/chr{chr}.vcf" #resources/pop_freq... 
+  population_vcf: "resources/pop-level-VCF/chr{chr}.vcf"
   derive:
     frequency_threshold: 0.9
   simulate:
-    overestimation_factor: 5 
+    overestimation_factor: 5
 
-stats_report:
-  annotation: 'True'
-  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
-  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
-  # if gtf is available, put its path here (compressed), 
-  # if not, put the desired name of converted file here
-  is_gtf: 'False'
-  # change to match gtf/gff availablility
-  prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
-  tree: 'resources/tree_43_mammals.nh'
-  ingroup: 'sus scrofa' # has to be small letters only
-  outgroup: 'bos taurus'
-    # bos taurus, ovis aries rambouillet, equus caballus, loxodonta africana
-
+##### ANNOTATION SETTINGS #####
 annotation:
   gerp:
-    alignment: '43_mammals.epo'
     n_chunks: '30'
     tree: 'resources/tree_43_mammals.nwk'
   phast:
-    tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus)(ovis_aries_rambouillet))' # sould sus be in or out
-    tree_species: "sus_scrofa|camelus_dromedarius|catagoœnius_wagneri|bos_taurus|ovis_aries_rambouillet" # temporary file with limited taxa 
+    tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus)(ovis_aries_rambouillet))'
+    tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
     train_precision: "HIGH"
     phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
     phyloP_params: "--method=LRT --mode=CONACC"
-  # later has to become optional steps, as there might be users that cannot 
-  # annotate with vep, in case their species (or adjacent species)
-  # does not have publicly available data deposited.
   vep:
     cache:
-      directory: '$VEP_CACHE' # vep/111.0 $VEP_CACHE resources/vep
-      should_install: False # Should we install or assume that it has been installed by the user?
-      install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1" # Version, species and (optional: assembly).
-  sift:
-
+      directory: '$VEP_CACHE' # Environment variable or path like: resources/vep
+      should_install: False # Set to True to auto-install VEP cache
+      install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1"
 
 annotation_config:
   processing: "config/annot_processing_config.tsv"
   interactions: "config/annot_combinations_config.tsv"
 
-## Model training ##
-# The set of derived and simulated variants is split in a train and test set using the rest ratio.
+##### SUMMARY REPORTS #####
+
+stats_report:
+  annotation: 'True'
+  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
+  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
+  is_gtf: 'False' # Set to True if using GTF instead of GFF
+  prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
+  tree: 'resources/tree_43_mammals.nwk' # Consistent with annotation.gerp.tree
+  ingroup: 'sus scrofa' # Must be lowercase
+  outgroup: 'bos taurus'
+
+##### MODEL TRAINING #####
 model:
   n_folds: 5
   test_params:
-    c:
-      - 0.1
-      - 1.0
-      - 10.0
-    max_iter:
-#      - 10
-      - 100
-#      - 1000
+    c: [0.1, 1.0, 10.0]
+    max_iter: [100]
   final_params:
     c: 10.0
     max_iter: 100
   column_subsets:
     All: "SPECIAL KEY, uses all columns"
 
+##### COMPUTATIONAL RESOURCES #####
 parallelization:
   whole_genome_positions_per_file: 500000
-  # change to how many batches?
 
-dataset_memory_mb: 80000
-scoring_memory_mb: 90000
+memory:
+  dataset_mb: 80000
+  scoring_mb: 90000
 
