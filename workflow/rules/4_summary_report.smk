@@ -63,7 +63,7 @@ if config['stats_report']['annotation'] == 'True':
             '''
             gunzip {input.gff}
             grep "CDS" {input.file}* | cut -f1,4,5 > {output.regions}
-            SCRIPTS_FASTA2BED output/Ancestor.fa > {output.ancestor_genome}
+            python3 workflow/scripts/fasta2bed.py results/ancestral_seq/Ancestor.fa > {output.ancestor_genome}
             bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage}
             mv *.bed results/visualisation/
             '''
