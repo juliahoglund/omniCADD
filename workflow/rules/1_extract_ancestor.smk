@@ -29,7 +29,7 @@ rule clean_ambiguous:
 		maf = lambda wildcards: f"{config['alignment']['path']}{wildcards.part}.maf.gz",
 		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
 	conda:
-		"../envs/ancestor.yml"
+		get_conda_env("ancestor")
 	output:
 		temp("results/alignment/cleaned_maf/{part}.maf.gz")
 	shell:
@@ -60,7 +60,7 @@ rule mark_ancestor:
 		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
 		name_sp1 = config['alignment']['name_species_interest']
 	conda:
-		"../envs/ancestor.yml"
+		get_conda_env("ancestor")
 	log:
 		"results/logs/{part}_mark_ancestor_log.txt"
 	output:
@@ -100,10 +100,10 @@ def get_df_input_maf():
 rule maf_df:
 	input:
 		lambda wildcards: get_df_input_maf()
-#	container:
-#		"docker://juliahoglund/maftools:latest"
+	container:
+		"docker://juliahoglund/maftools:latest"
 	conda:
-		"../envs/ancestor.yml"
+		get_conda_env("ancestor")
 	threads: 2
 	output:
 		temp("results/alignment/dedup/{part}.maf.lz4")
@@ -120,9 +120,9 @@ rule maf_ro:
 	params:
 		order = config["alignment"]["filter_order"]
 	conda:
-		"../envs/ancestor.yml"
-#	container:
-#		"docker://juliahoglund/maftools:latest"
+		get_conda_env("ancestor")
+	container:
+		"docker://juliahoglund/maftools:latest"
 	threads: 2
 	output:
 		temp("results/alignment/row_ordered/{part}.maf.lz4")
@@ -172,7 +172,7 @@ rule sort_by_chr: # sort by chromosome
 		chromosomes = config["chromosomes"]["karyotype"],
 		ancestor = config['mark_ancestor']['name_ancestor']
 	conda:
-		"../envs/ancestor.yml" 
+		get_conda_env("ancestor") 
 	log:
 		"results/logs/merging.log"
 	output:
@@ -198,9 +198,9 @@ rule maf_str:
 	params:
 		species_label = config['alignment']['name_species_interest']
 	conda:
-		"../envs/ancestor.yml"
-#	container:
-#		"docker://juliahoglund/maftools:latest"
+		get_conda_env("ancestor")
+	container:
+		"docker://juliahoglund/maftools:latest"
 	threads: 6
 	output:
 		temp("results/alignment/stranded/chr{chr}.maf.gz")
@@ -220,9 +220,9 @@ rule maf_sorter:
 	params:
 		species_label=config['alignment']['name_species_interest'],
 	conda:
-		"../envs/ancestor.yml"
-#	container:
-#		"docker://juliahoglund/maftools:latest"
+		get_conda_env("ancestor")
+	container:
+		"docker://juliahoglund/maftools:latest"
 	threads: 6
 	output:
 		"results/alignment/sorted/chr{chr}.maf.gz"
@@ -242,7 +242,7 @@ rule gen_ancestor_seq:
 		ancestor=config['mark_ancestor']['name_ancestor'],
 		reference=config['mark_ancestor']['reference_genome']
 	conda:
-		"../envs/ancestor.yml"
+		get_conda_env("ancestor")
 	output:
 		"results/ancestral_seq/{params.ancestor}/chr{chr}.fa"
 	shell:
