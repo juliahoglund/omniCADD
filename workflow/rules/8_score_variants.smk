@@ -289,7 +289,7 @@ rule assign_phred_scores:
         -i {input.data} \
         -o {params.outmask} \
         --chroms {params.chromosomes} \
-        --count-file {input.counts}
+        --count {input.counts}
         """
 
 """
