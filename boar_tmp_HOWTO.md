@@ -195,7 +195,7 @@ cat indexfile.txt | grep -v 'scaffold' | sed 's/_pilon//g' | sed 's/chr_//g' > t
 # conda install bioconda::augustus
 # ml SHARED/augustus/2.7
 
-for i in {1..14} 15_17 16 18; do augustus --species=human --protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on --exonnames=on --gff3=on --UTR=on resources/genome/Wild_Boar_chr$i.fa > results/gene_prediction/chr$i_gene_pred.gff3; done
+for i in {2..14} 15_17 16 18; do augustus --species=human --protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on --exonnames=on --gff3=off --UTR=on resources/genome/Wild_Boar_chr$i.fa > results/gene_prediction/chr$i\_pred.gff; done
 ```
 
 ##############
@@ -219,7 +219,7 @@ for i in {2..14} 15_17 16 18; do cat results/gene_prediction/chr$i\_gene_pred.gf
 nano snpEff.config
 ./seqkit grep -r -f samples.txt infofiles/Wild_Boar_Assembly.fasta -o snpEff/data/genomes/wild_boar.fa # samples.txt includes name of chromosomes one per line
 cd snpEff
-snpEff build -gff3 -v -c snpEff.config wild_boar
+snpEff build -gff3 -v -c snpEff.config augustus_boar
 
 # if file > 1 million lines do
 # split -n l/10 -d --additional-suffix=.vcf results/derived_variants/singletons/chr$i.vcf chr$i\_ann
