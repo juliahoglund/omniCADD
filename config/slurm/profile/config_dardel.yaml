@@ -1,0 +1,26 @@
+# Dardel-specific SLURM profile configuration for omniCADD
+# Based on GenErode's Dardel configuration patterns
+# https://github.com/NBISweden/GenErode/blob/main/config/config.yaml
+
+# Default command line arguments
+cores: 8
+use-conda: True
+use-singularity: True
+singularity-args: "--cleanenv --bind /tmp --bind /cfs/klemming"
+restart-times: 2
+max-jobs-per-second: 1
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 60
+
+# Dardel-specific conda configuration
+# On PDC clusters, use project storage for conda environments
+conda-prefix: "/cfs/klemming/projects/supr/sllstore.../conda-envs"  # Update this path!
+
+# Dardel-specific singularity configuration
+# Use project storage for singularity cache
+singularity-prefix: "/cfs/klemming/projects/supr/sllstore.../singularity-cache"  # Update this path!
+
+# Additional Dardel-specific settings
+default-remote-provider: "S3"
+default-remote-prefix: ""
