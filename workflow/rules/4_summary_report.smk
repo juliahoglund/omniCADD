@@ -17,7 +17,7 @@ rule create_summary:
     input:
         raw_snps = 'results/simulated_variants/raw_snps/all_chr.vcf',
         filtered_snps = 'results/simulated_variants/filtered_snps/all_chr.vcf',
-        derived_vars = 'results/derived_variants/Ancestor_Pig_Cow/singletons/all_chr.vcf',
+        derived_vars = 'results/derived_variants/singletons/all_chr.vcf',
         ancestral_fa = 'results/ancestral_seq/',
         parameter_log = 'results/visualisation/parameter_summary.log',
         raw_log = 'results/visualisation/raw_summary.log',
