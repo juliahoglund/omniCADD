@@ -4,7 +4,28 @@
 
  :Author: Job van Schipstal
  :Date: 21-9-2023
+ :extension and modification: Julia Höglund
+ :Date: 13-8-2025
 """
+
+import subprocess
+import os
+import sys
+
+def get_conda_env(env_name):
+    """
+    Smart conda environment path resolver.
+    Automatically switches between generic and cluster-specific environments.
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, "workflow/conda_env_resolver.py", env_name],
+            capture_output=True, text=True, check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        # Fallback to generic environment
+        return f"workflow/envs/{env_name}.yml"
 
 """
 Global wildcard constraints, ease matching of wildcards in rules.
@@ -73,7 +94,7 @@ rule bgzip_tabix:
      input:
           "{folder}/{file}.vcf"
      conda:
-          "../envs/common.yml"
+          get_conda_env("common")
      output:
           vcf=temp("{folder}/{file}.vcf.gz"),
           index=temp("{folder}/{file}.vcf.gz.tbi")
@@ -88,7 +109,7 @@ rule tabix:
      input:
           "{folder}/{file}.vcf.gz"
      conda:
-          "../envs/common.yml"
+          get_conda_env("common")
      output:
           temp("{folder}/{file}.vcf.gz.tbi")
      shell:
