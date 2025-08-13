@@ -4,6 +4,7 @@ __default__:
   time: "05:00:00"
   ntasks: 1
   cpus-per-task: 1
+  mem: "4G"  # Default memory allocation
 
 # High-resource rules for alignment processing (mafTools containers)
 "maf_df|maf_ro|maf_str|maf_sorter":
