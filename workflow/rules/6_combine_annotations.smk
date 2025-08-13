@@ -32,7 +32,7 @@ rule combine_constraint:
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
     conda:
-        "../envs/annotation.yml" # change to common? 
+        get_conda_env("annotation") # change to common? 
     threads: 2
     output:
         "results/annotation/constraint/constraint_chr{chr}.bed"
@@ -59,7 +59,7 @@ rule intersect_bed:
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
-        "../envs/annotation.yml" # change to common?
+        get_conda_env("annotation") # change to common?
     threads: 8
     output:
         "results/dataset/{type}/chr{chr}_annotated.tsv"
@@ -78,7 +78,7 @@ rule derive_impute_means:
         processing=config["annotation_config"]["processing"],
         script=workflow.source_path(SCRIPTS_6 + "derive_means.py"),
     conda:
-        "../envs/annotation.yml"
+        get_conda_env("annotation")
     output:
         imputation=report("results/dataset/imputation_dict.txt", category="Logs")
     shell:
@@ -96,7 +96,7 @@ rule column_analysis:
                         chr=config["chromosomes"]["karyotype"]),
         script=workflow.source_path(SCRIPTS_6 + "column_analysis.py")
     conda:
-        "../envs/annotation.yml"
+        get_conda_env("annotation")
     params:
         out_folder="results/figures/column_analysis/"
     output:
@@ -138,7 +138,7 @@ rule prepare_data:
     wildcard_constraints:
         type="(derived|simulated|validation)"
     conda:
-        "../envs/annotation.yml"
+        get_conda_env("annotation")
     priority: 10
     log:
         report("results/logs/data_preparation/{type}_chr{chr}.log", category="Logs")
