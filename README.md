@@ -22,7 +22,7 @@ The plan is to merge and make the pipeline fully modifiable in the future.
 The scripts are still under construction and have not yet fully been wrapped into the workflow. 
 
 ## :link: user prerequisities 
-To work correctly, the pipeline assumes that critical files, such as the reference genome, epo alignment and population-level-VCF are in subfolders in `resources`. Before running, make sure they are either transfered there, or downloaded directly there before running. 
+To work correctly, the pipeline assumes that critical files, such as the reference genome, epo alignment and population-level-VCF are in subfolders in `resources`. Before running, make sure they are either transfered there, or downloaded directly there before running. Additionally, it also expects the accompanying newick phylogenetic tree file directly in `resourses`.
 ```bash
 cd resources/genome
 # download here, example workflow has been run with domesticated pig:
@@ -34,13 +34,24 @@ wget -r -nd --no-parent -e robots=off -A '44_mammals.epo.*.maf.gz' https://ftp.e
 
 cd ../pop-level-VCF
 # transfer here, example workflow has been run with local pig vcf files
+
+cd ../
+# add tree file here, example workflow has been run with the 44 mammal version:
+wget https://ftp.ensembl.org/pub/current_compara/species_trees/44_eutherian_mammals_EPO_default.nh
+# (renamed in the pipeline)
+mv 44_eutherian_mammals_EPO_default.nh tree_43_mammals.nwk
 ```
+Lastly, if the reference species / species of interest already have annotation files (gff / gff3 and gtf), they are expected to be in `resources` as well. However, these are (as of now) only used for visualisation in the summary report, and the full report can be rendered without them. 
+It is for cosmetic reasons only :) 
 
 ## :ballot_box_with_check: TO-DO
 
 - clean up scripts and workflow
 - rempove temporary information
 - make cluster profile
+- implement running without pop level vcf files
+- finish up alignmentfree branch
+- alter visualisation to also work with in pipeline ab initio gene predictions
 
 ## Information
 *TBA*
