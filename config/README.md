@@ -21,10 +21,8 @@ rule NAME:
         "input.txt"
     output:
         "output.txt"
-    container:
-        "library://juliahoeglund/collection/maftools:latest" # [change to correct local path]
-        # OR
-        "docker://juliahoglund/maftools"
+	container:
+		"docker://juliahoglund/maftools:latest"
     script:
         '''
         scripts
