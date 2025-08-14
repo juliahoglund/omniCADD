@@ -23,19 +23,20 @@ rule create_summary:
         raw_log = 'results/visualisation/raw_summary.log',
         filtered_log = 'results/visualisation/filtered_summary.log',
         script = workflow.source_path(SCRIPTS_4 + 'generate_summary_info.R')
- 
+    conda:
+        get_conda_env("r_stats")
     output:
         r_clump = 'results/visualisation/graphs.RData',
         indexfile = 'results/visualisation/indexfile.txt'
-
     shell:
         '''
-        # create genomewide ancestral fasta file"
-        cat {input.ancestral_fa}*.fa >> {input.ancestral_fa}Ancestor.fa
+        # create genomewide ancestral fasta file
+        cat {input.ancestral_fa}*.fa > {input.ancestral_fa}Ancestor.fa
 
         # create "ideogram file" / "fasta index"
-        cat {input.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, '0', $2}}' | sort -g > indexfile.txt
+        cat {input.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, "0", $2}}' | sort -g > indexfile.txt
 
+        # Run R script (no renv activation)
         Rscript {input.script} \
         -s {input.raw_snps} \
         -t {input.filtered_snps} \
@@ -55,46 +56,46 @@ if config['stats_report']['annotation'] == 'True':
         input:
             gff = config['stats_report']['gff'],
             file = config['stats_report']['prefix']
+        conda:
+            get_conda_env("common")
         output:
-            regions = 'CDS.regions.bed',
-            coverage = 'CDS.coverage.bed',
-            ancestor_genome = 'Ancestor.bed'
+            regions = 'results/visualisation/CDS.regions.bed',
+            coverage = 'results/visualisation/CDS.coverage.bed',
+            ancestor_genome = 'results/visualisation/Ancestor.bed'
         shell:
             '''
-            gunzip {input.gff}
-            grep "CDS" {input.file}* | cut -f1,4,5 > {output.regions}
-            python3 workflow/scripts/fasta2bed.py results/ancestral_seq/Ancestor.fa > {output.ancestor_genome}
+            gunzip -c {input.gff} > temp_gff.gff
+            grep "CDS" temp_gff.gff | cut -f1,4,5 > {output.regions}
+            python3 {SCRIPTS_FASTA2BED} results/ancestral_seq/Ancestor.fa > {output.ancestor_genome}
             bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage}
-            mv *.bed results/visualisation/
+            rm temp_gff.gff
             '''
 
 rule create_datafiles:
     input:
         tree = config['stats_report']['tree'],
         ideogram = 'results/visualisation/indexfile.txt',
-        annotation = 'results/visualisation/Ancestor.bed',
-        bedfile = 'results/visualisation/CDS.regions.bed',
-        coverage = 'results/visualisation/CDS.coverage.bed',
+        annotation = 'results/visualisation/Ancestor.bed' if config['stats_report']['annotation'] == 'True' else [],
+        bedfile = 'results/visualisation/CDS.regions.bed' if config['stats_report']['annotation'] == 'True' else [],
+        coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else [],
         script = workflow.source_path(SCRIPTS_4 + 'stats_report.Rmd')
-
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
-
+    conda:
+        get_conda_env("r_stats")
     output:
         'results/visualisation/stats_report.html'
-
     shell:
         '''
-        Rscript -e 'rmarkdown::render("{input.script}", \
+        Rscript -e "rmarkdown::render('{input.script}', \
          params=list( \
-         tree="{input.tree}", \
-         ideogram="{input.ideogram}", \
-         annotation="{input.annotation}", \
-         bedfile="{input.bedfile}", \
-         coverage="{input.coverage}", \
-         ingroup="{params.ingroup}", \
-         outgroup="{params.outgroup}" \
-         ))'
-        mv results/visualisation/stats_report.html results/visualisation/
+         tree='{input.tree}', \
+         ideogram='{input.ideogram}', \
+         annotation='{input.annotation}', \
+         bedfile='{input.bedfile}', \
+         coverage='{input.coverage}', \
+         ingroup='{params.ingroup}', \
+         outgroup='{params.outgroup}' \
+         ), output_dir='results/visualisation/')"
         '''
