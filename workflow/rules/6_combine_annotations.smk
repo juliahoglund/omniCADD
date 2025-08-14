@@ -21,23 +21,46 @@ def ensure_dir(path):
     """Helper function to ensure directory exists"""
     return f"mkdir -p $(dirname {path}) && "
 
+def ensure_dirs(*paths):
+    """Helper function to ensure multiple directories exist"""
+    return " && ".join([f"mkdir -p $(dirname {path})" for path in paths])
+
 ## TODO: solve location of directories and make files temporary
 ## remove bed chunks after combining -> make temporary
 ## mv to outout creates duplicates -> change
 
+def get_constraint_files(wildcards):
+    """Get all constraint annotation files after split_alignment checkpoint completes"""
+    # This references the checkpoint from Module 5
+    checkpoint_output = checkpoints.split_alignment.get(**wildcards).output[0]
+    
+    # Find all parts that were created
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.maf")).part
+    
+    return {
+        'gerp': expand("results/annotation/gerp/chr{chr}/{part}.rates.parsed",
+                      chr=wildcards.chr, part=parts),
+        'phylop': expand("results/annotation/phast/phyloP/chr{chr}/{part}.phyloP.bed",
+                        chr=wildcards.chr, part=parts),
+        'phastcons': expand("results/annotation/phast/phastCons/chr{chr}/{part}.phastCons.bed",
+                           chr=wildcards.chr, part=parts),
+        'index': expand("results/alignment/indexfiles/chr{chr}/{part}.index",
+                       chr=wildcards.chr, part=parts)
+    }
+
 # Rule to combine constraint annotations
 rule combine_constraint:
     input:
-        gerp = "results/annotation/gerp/",
-        phylo = "results/annotation/phast/phyloP/",
-        phast = "results/annotation/phast/phastCons/",
-        index = "results/alignment/indexfiles/",
+        unpack(get_constraint_files),  # This replaces the directory inputs
         script = workflow.source_path(SCRIPTS_6 + "combine_constraint_anno.R"),
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
     conda:
         get_conda_env("annotation")
     threads: 2
+    resources:
+        mem_mb=8000,
+        runtime=180
     output:
         main="results/annotation/constraint/constraint_chr{chr}.bed",
         constraint_temp=temp("results/temp/constraint_chr{chr}_combined.bed"),
@@ -46,18 +69,16 @@ rule combine_constraint:
         "logs/benchmarks/combine_constraint_chr{chr}.tsv"
     shell:
         '''
-        mkdir -p $(dirname {output.main})
-        mkdir -p results/temp
+        ''' + ensure_dirs("{output.main}", "results/temp") + '''
         
-        Rscript {input.script} \
-        -c {wildcards.chr} \
-        -n {params.n_chunks} \
-        -f {input.phast} \
-        -g {input.phylo} \
-        -i {input.gerp} \
+        Rscript {input.script} \\
+        -c {wildcards.chr} \\
+        -n {params.n_chunks} \\
+        -f {input.phastcons} \\
+        -g {input.phylop} \\
+        -i {input.gerp} \\
         -j {input.index}
 
-       
         head -1 constraint.{wildcards.chr}_1.bed > {output.constraint_temp}
         for i in {{1..{params.n_chunks}}}; do 
             grep -v "start" constraint.{wildcards.chr}_$i.bed >> {output.constraint_temp}
@@ -77,6 +98,9 @@ rule intersect_bed:
     conda:
         get_conda_env("annotation")
     threads: 8
+    resources:
+        mem_mb=lambda wildcards, attempt: min(24000, 3000 * attempt),  # Memory scales with attempt
+        runtime=lambda wildcards, attempt: min(180, 30 * attempt)
     output:
         "results/dataset/{type}/chr{chr}_annotated.tsv"
     shell:
@@ -84,7 +108,7 @@ rule intersect_bed:
         "python3 {input.script} "
         "-v {input.vep} "
         "-b {input.bed} "
-        "-o {output}"
+        "-o /dev/stdout | gzip > {output}"
 
 # Rule to derive and impute means for simulated data
 rule derive_impute_means:
@@ -98,6 +122,7 @@ rule derive_impute_means:
     output:
         imputation=report("results/dataset/imputation_dict.txt", category="Logs")
     shell:
+        ensure_dir("{output.imputation}") +
         "python3 {input.script} "
         "-i {input.tsv} "
         "-p {input.processing} "
@@ -125,7 +150,7 @@ rule column_analysis:
         combined_cor=report("results/figures/column_analysis/combined_variants_corr.tsv",
                              category="Column Analysis")
     shell:
-        "mkdir -p {params.out_folder} && "
+        ensure_dir("{params.out_folder}") +
         "python3 {input.script} "
         "-s {input.simulated} "
         "-d {input.derived} "
@@ -148,6 +173,9 @@ rule prepare_data:
     params:
         derived_flag=lambda wildcards: "--derived" if wildcards.type == "derived" else "",
         y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0"
+    resources:
+        mem_mb=lambda wildcards, attempt: min(20000, 2500 * attempt),  # Data preparation can be memory intensive
+        runtime=lambda wildcards, attempt: min(120, 20 * attempt)
     output:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",
@@ -161,8 +189,7 @@ rule prepare_data:
     log:
         report("results/logs/data_preparation/{type}_chr{chr}.log", category="Logs")
     shell:
-        "mkdir -p $(dirname {output.npz}) && "
-        "mkdir -p results/temp && "
+        ensure_dirs("{output.npz}", "results/temp", "$(dirname {log})") +
         "python3 {input.script} "
         "-i {input.data} "
         "--npz {output.npz} "
