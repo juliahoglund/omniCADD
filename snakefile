@@ -19,10 +19,10 @@ SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
 SCRIPTS_2 = "scripts/step_2_derive_variants/"
 SCRIPTS_3 = "scripts/step_3_simulate_variants/"
 SCRIPTS_4 = "scripts/step_4_summary_report/"
-SCRIPTS_5 = "scripts/step_5_annotate_variants"
-SCRIPTS_6 = "scripts/step_6_combine_annotations"
-SCRIPTS_7 = "scripts/step_7_train_test_model"
-SCRIPTS_8 = "scripts/step_8_score_variants"
+SCRIPTS_5 = "scripts/step_5_annotate_variants/"
+SCRIPTS_6 = "scripts/step_6_combine_annotations/"
+SCRIPTS_7 = "scripts/step_7_train_test_model/"
+SCRIPTS_8 = "scripts/step_8_score_variants/"
 
 SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
 SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
@@ -77,11 +77,8 @@ rule all:
                 "results/model/All/full.scaler.pickle",
                 "results/model/All/full.mod.weights.csv",
                 # 8. score variants
-                expand("results/whole_genome_variants/chr{chr}/stats.txt",
-                       chr = config["chromosomes"]["score"]),
-                expand("results/whole_genome_scores/phred/chr{chr}.tsv",
-                        chr=config["chromosomes"]["score"]),
                 expand("results/cadd_scores/chr{chr}.tsv.gz",
                         chr=config["chromosomes"]["score"]),
-                expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+                expand("results/cadd_scores/chr{chr}.tsv.gz.tbi",
                         chr=config["chromosomes"]["score"]),
+                "results/cadd_scores/scoring_summary.txt",
