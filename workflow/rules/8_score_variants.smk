@@ -35,19 +35,26 @@ rule generate_all_variants:
          blocksize=config["parallelization"]["whole_genome_positions_per_file"]
     conda:
          get_conda_env("score")
+    resources:
+        mem_mb=8000,
+        runtime=240  # 4 hours for variant generation
     log:
         "results/whole_genome_variants/chr{chr}/stats.txt"
     output:
          out_dir=directory("results/whole_genome_variants/chr{chr}/"),
+    benchmark:
+        "logs/benchmarks/generate_all_variants_chr{chr}.tsv"
     shell:
          """
+         mkdir -p {output.out_dir}
+         mkdir -p logs/benchmarks
+         
          python3 {input.script} -o {output.out_dir} \
          -s {params.blocksize} -r {input.reference} \
          -c {wildcards.chr} > {log} && \
          for file in {output.out_dir}/*.vcf
          do
-           bgzip "$file"
-           tabix "$file"
+           bgzip "$file" && tabix "$file.gz"
          done
          """
 
@@ -90,17 +97,26 @@ rule run_genome_vep:
           cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
     conda:
-         get_conda_env("score")
-    # Parts are at most a few million variants, 2 threads is already fast.
+         get_conda_env("annotation") 
     threads: 2
+    resources:
+        mem_mb=4000,
+        runtime=180
     priority: 1
+    benchmark:
+        "logs/benchmarks/run_genome_vep_chr{chr}_{part}.tsv"
     output:
          temp("results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv")
     shell:
-         "chmod +x {input.script} && "
-         "{input.script} {input.vcf} {output} "
-         "{params.cache_dir} {params.species_name} {threads} && "
-         "[[ -s {output} ]]"
+         """
+         mkdir -p $(dirname {output})
+         mkdir -p logs/benchmarks
+         
+         chmod +x {input.script} && \
+         {input.script} {input.vcf} {output} \
+         {params.cache_dir} {params.species_name} {threads} && \
+         [[ -s {output} ]]
+         """
 
 """
 Processes VEP output into the tsv format used by the later steps.
@@ -111,56 +127,71 @@ rule process_genome_vep:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
          vep="results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("../resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
+         grantham=workflow.source_path("resources/grantham_matrix/grantham_table.tsv"), 
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          get_conda_env("common")
+    resources:
+        mem_mb=6000,
+        runtime=120
     priority: 1
+    benchmark:
+        "logs/benchmarks/process_genome_vep_chr{chr}_{part}.tsv"
     output:
          temp("results/whole_genome_annotations/chr{chr}/{part}.vep.tsv")
     shell:
-         "python3 {input.script} -v {input.vep} -s {input.vcf} "
-         "-r {input.genome} -g {input.grantham} -o {output} --multiple"
-    # TODO; redirect problem files somewhere else, not in ~/
+         """
+         mkdir -p $(dirname {output})
+         mkdir -p logs/benchmarks
+         
+         python3 {input.script} -v {input.vep} -s {input.vcf} \
+         -r {input.genome} -g {input.grantham} -o {output} --multiple
+         """
 
-"""
-Merges the annotations from VEP with the genome-wide generated annotation files for 
-phastCons, phyloP and GERP
-"""  
 rule intersect_bed:
     input:
         vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
-        get_conda_env("score")
+        get_conda_env("annotation")
     threads: 8
+    resources:
+        mem_mb=12000,
+        runtime=90
+    benchmark:
+        "logs/benchmarks/intersect_bed_chr{chr}_{part}.tsv"
     output:
-        "results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv" # TODO: make temp?
+        temp("results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv")  
     shell:
-        "python3 {input.script} "
-        " -v {input.vep} "
-        " -b {input.bed} "
-        " -o {output}"
+        """
+        mkdir -p $(dirname {output})
+        mkdir -p logs/benchmarks
+        
+        python3 {input.script} \
+        -v {input.vep} \
+        -b {input.bed} \
+        -o {output}
+        """
 
-"""
-Run whole_genome data preparaion.
-Building the model has single-threaded elements so it is better to save these
-Final computations for last, when the main tasks are bottleneck or finished.
-"""
 rule prepare_whole_genome:
     input:
          data="results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv",
-         imputaton="results/dataset/imputation_dict.txt",
+         imputation="results/dataset/imputation_dict.txt",
          processing=config["annotation_config"]["processing"],
          interactions=config["annotation_config"]["interactions"], 
          script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
-         derived_variants=" ",
-         y=" "
+         derived_variants="",  # Fixed empty params
+         y=""
     threads: 5
+    resources:
+        mem_mb=8000,
+        runtime=60
     conda:
-        get_conda_env("score")
+        get_conda_env("annotation")
+    benchmark:
+        "logs/benchmarks/prepare_whole_genome_chr{chr}_{part}.tsv"
     output:
          npz="results/dataset/whole_genome_snps/chr{chr}/{part}.npz",
          meta="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.meta.csv.gz",
@@ -168,11 +199,17 @@ rule prepare_whole_genome:
     log:
         "results/logs/data_preparation/whole_genome/chr{chr}/{part}.log"
     shell:
-     "python3 {input.script} -i {input.data} --npz {output.npz} "
-     "--processing-config {input.processing} "
-     "--interaction-config {input.interactions} "
-     "--imputation-dict {input.imputaton} "
-     "{params.derived_variants} {params.y} > {log}"
+        """
+        mkdir -p $(dirname {output.npz})
+        mkdir -p $(dirname {log})
+        mkdir -p logs/benchmarks
+        
+        python3 {input.script} -i {input.data} --npz {output.npz} \
+        --processing-config {input.processing} \
+        --interaction-config {input.interactions} \
+        --imputation-dict {input.imputation} \
+        {params.derived_variants} {params.y} > {log}
+        """
 
 """
 Scores the predicted probability for all possible variants to be of class 1,
@@ -189,10 +226,18 @@ rule score_variants:
     conda:
          get_conda_env("score")
     threads: 4
+    resources:
+        mem_mb=6000,
+        runtime=120
+    benchmark:
+        "logs/benchmarks/score_variants_{cols}_chr{chr}_{part}.tsv"
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
     shell:
         """
+        mkdir -p $(dirname {output})
+        mkdir -p logs/benchmarks
+        
         python3 {input.script} \
         -i {input.data} \
         --model {input.model} \
@@ -219,31 +264,46 @@ rule sort_raw_scores:
          gather_scores
     threads: 8
     resources:
-        mem_mb=config["memory"]["dataset_mb"]
+        mem_mb=config["memory"]["dataset_mb"],
+        runtime=180,
+        tmpdir="results/tmp/sort_raw_{chr}"
+    benchmark:
+        "logs/benchmarks/sort_raw_scores_chr{chr}.tsv"
     output:
          "results/whole_genome_scores/RAW_scores_chr{chr}.csv"
     shell:
         """
+        mkdir -p $(dirname {output})
+        mkdir -p {resources.tmpdir}
+        mkdir -p logs/benchmarks
+        
         LC_ALL=C sort \
         --merge \
         -t "," \
         -k5gr \
         -S {resources.mem_mb}M \
         --parallel={threads} \
+        --temporary-directory={resources.tmpdir} \
          {input} > {output}
         """
 
-"""
-Counts variants in the raw score files, to be passed in the phred scaling.
-"""
 rule count_positions:
     input:
         "results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+    resources:
+        mem_mb=1000,
+        runtime=15
+    benchmark:
+        "logs/benchmarks/count_positions_chr{chr}.tsv"
     output:
         "results/whole_genome_scores/counts/chr{chr}.txt"
     shell:
-        "wc -l {input} > {output}"
-
+        """
+        mkdir -p $(dirname {output})
+        mkdir -p logs/benchmarks
+        
+        wc -l {input} > {output}
+        """
 
 rule merge_raw_scores:
     input:
@@ -252,17 +312,25 @@ rule merge_raw_scores:
     threads: 8
     resources:
         mem_mb=config["memory"]["scoring_mb"],
+        runtime=300,  # 5 hours for large genome merging
         tmpdir="results/whole_genome_tmp"
+    benchmark:
+        "logs/benchmarks/merge_raw_scores.tsv"
     output:
          "results/whole_genome_scores/full_RAW_scores.csv"
     shell:
         """
+        mkdir -p $(dirname {output})
+        mkdir -p {resources.tmpdir}
+        mkdir -p logs/benchmarks
+        
         LC_ALL=C sort \
         --merge \
         -t "," \
         -k5gr \
         -S {resources.mem_mb}M \
         --parallel={threads} \
+        --temporary-directory={resources.tmpdir} \
          {input} > {output}
         """
 
@@ -282,11 +350,19 @@ rule assign_phred_scores:
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
+    resources:
+        mem_mb=16000,
+        runtime=240  # 4 hours for PHRED assignment
+    benchmark:
+        "logs/benchmarks/assign_phred_scores.tsv"
     output:
         expand("results/whole_genome_scores/phred/chr{chr}.tsv",
                chr=config["chromosomes"]["score"])
     shell:
         """
+        mkdir -p results/whole_genome_scores/phred
+        mkdir -p logs/benchmarks
+        
         python3 {input.script} \
         -i {input.data} \
         -o {params.outmask} \
@@ -294,26 +370,69 @@ rule assign_phred_scores:
         --count-file {input.counts}
         """
 
-"""
-sort files based on genomic position instead of scores
-"""
 rule sort_phred_scores:
     input:
         "results/whole_genome_scores/phred/chr{chr}.tsv"
     threads: 4
     resources:
         mem_mb=config["memory"]["scoring_mb"],
+        runtime=120,
         tmpdir="results/tmp/chr{chr}"
+    benchmark:
+        "logs/benchmarks/sort_phred_scores_chr{chr}.tsv"
     output:
         "results/cadd_scores/chr{chr}.tsv.gz"
     shell:
         """
+        mkdir -p $(dirname {output})
+        mkdir -p {resources.tmpdir}
+        mkdir -p logs/benchmarks
+        
         tail -n +2 {input} | \
         LC_ALL=C sort \
         -k2n \
         -S {resources.mem_mb}M \
-        --parallel={threads} | \
+        --parallel={threads} \
+        --temporary-directory={resources.tmpdir} | \
         bgzip > {output}
+        """
+
+rule index_cadd_scores:
+    input:
+        "results/cadd_scores/chr{chr}.tsv.gz"
+    conda:
+        get_conda_env("common")
+    resources:
+        mem_mb=2000,
+        runtime=30
+    output:
+        "results/cadd_scores/chr{chr}.tsv.gz.tbi"
+    shell:
+        "tabix -s1 -b2 -e2 {input}"
+
+rule summarize_cadd_scores:
+    input:
+        scores=expand("results/cadd_scores/chr{chr}.tsv.gz",
+                     chr=config["chromosomes"]["score"]),
+        indices=expand("results/cadd_scores/chr{chr}.tsv.gz.tbi",
+                      chr=config["chromosomes"]["score"]),
+        script=workflow.source_path(SCRIPTS_8 + "summarize_scores.py")
+    conda:
+        get_conda_env("common")
+    resources:
+        mem_mb=4000,
+        runtime=60
+    output:
+        summary=report("results/cadd_scores/scoring_summary.txt", category="Logs"),
+        stats="results/cadd_scores/score_statistics.tsv"
+    shell:
+        """
+        mkdir -p $(dirname {output.summary})
+        
+        python3 {input.script} \
+        --input {input.scores} \
+        --summary {output.summary} \
+        --stats {output.stats}
         """
 
 
