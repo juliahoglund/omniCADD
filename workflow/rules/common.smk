@@ -144,3 +144,81 @@ SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
 SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
 SCRIPTS_HELPER = "workflow/data_helper.py"
 
+def ensure_dir(path):
+    """Helper function to ensure directory exists"""
+    return f"mkdir -p $(dirname {path}) && "
+
+def ensure_dirs(*paths):
+    """Helper function to ensure multiple directories exist"""
+    dirs = " ".join([f"$(dirname {path})" for path in paths])
+    return f"mkdir -p {dirs} && "
+
+# Add standard directory creation rule
+rule create_base_directories:
+    output:
+        touch("results/.directories_created")
+    shell:
+        """
+        mkdir -p results/{{annotation,dataset,logs,temp,model,scores,figures}}/
+        mkdir -p results/annotation/{{vep,constraint,gerp,phast}}/
+        mkdir -p results/dataset/{{simulated,derived,validation,whole_genome_snps}}/
+        mkdir -p results/whole_genome_{{variants,annotations,scores}}/
+        mkdir -p results/cadd_scores/
+        mkdir -p logs/benchmarks/
+        """
+
+# Add cleanup checkpoints:
+
+checkpoint cleanup_temp_files:
+    input:
+        # After annotation is complete
+        expand("results/annotation/constraint/constraint_chr{chr}.bed",
+               chr=config["chromosomes"]["karyotype"])
+    output:
+        touch("results/.cleanup_annotation")
+    shell:
+        """
+        # Clean up large temporary alignment files
+        rm -rf results/alignment/splitted/
+        rm -rf results/alignment/fasta/
+        rm -rf results/alignment/pruned/
+        echo "Cleaned up annotation intermediate files"
+        """
+
+def get_folds():
+    """Get all fold numbers"""
+    return list(range(1, config["model"]["n_folds"] + 1))
+
+def get_train_folds(test_fold):
+    """Get all folds except the test fold"""
+    all_folds = get_folds()
+    return [f for f in all_folds if f != int(test_fold)]
+
+def get_model_columns():
+    """Get all model column subsets"""
+    return list(config["model"]["column_subsets"].keys()) + ["All"]
+
+# Add config validation
+def validate_config():
+    required_keys = [
+        "chromosomes.karyotype",
+        "chromosomes.train", 
+        "chromosomes.score",
+        "species_name",
+        "model.n_folds",
+        "annotation_config.processing",
+        "annotation_config.interactions"
+    ]
+    
+    for key in required_keys:
+        keys = key.split('.')
+        value = config
+        try:
+            for k in keys:
+                value = value[k]
+        except KeyError:
+            raise ValueError(f"Missing required config key: {key}")
+
+# Call validation
+validate_config()
+
