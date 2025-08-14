@@ -14,9 +14,6 @@
  Params can be adjusted for any given species of interest. 
 '''
 
-configfile: "../config/config.yaml"
-SCRIPTS_2 = "../scripts/"
-
 """ 
  Generates frequency files form the population variants (vcf files).
  Population frequency files are used for the generation of the derived variants, 
@@ -25,78 +22,78 @@ SCRIPTS_2 = "../scripts/"
  by filtering for high prevalence or fixation in the population.
 """
 rule freq_files:
-	input:
-		config["generate_variants"]["population_vcf"]
-	params:
-		min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"]
-	conda:
-		get_conda_env("common")
-	output:
-		'results/processed_population_frequency/chr{chr}.frq'
-	shell:
-		"vcftools --gzvcf {input} "
-		" --chr {wildcards.chr} "
-		" --remove-indels "
-		" --non-ref-af {params.min_non_ref_freq} "
-		" --max-non-ref-af 1.0 "
-		" --stdout --freq > {output}"
+    input:
+        config["generate_variants"]["population_vcf"]
+    params:
+        min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"]
+    conda:
+        get_conda_env("common")
+    output:
+        'results/processed_population_frequency/chr{chr}.frq'
+    shell:
+        "vcftools --gzvcf {input} "
+        "--chr {wildcards.chr} "
+        "--remove-indels "
+        "--non-ref-af {params.min_non_ref_freq} "
+        "--max-non-ref-af 1.0 "
+        "--stdout --freq > {output}"
 
 """
  Generates the derived variants by looking at all data sources (ancestral seq, genome, freq files) simultaneously.
 """
 rule gen_derived:
-	input:
-		ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
-		reference=config["generate_variants"]["reference_genome_wildcard"],
-		frequency="results/processed_population_frequency/chr{chr}.frq",
-		script=workflow.source_path(SCRIPTS_2 + "derive_variants.py")
-	params:
-		no_chrs=config['chromosomes']['autosomes'],
-		output_prefix="results/derived_variants/raw/chr{chr}"
-	conda:
-		get_conda_env("simulation")
-	output:
-		"results/derived_variants/raw/chr{chr}.vcf",
-	shell:
-		'''
-		if [ `wc -l {input.reference} | awk '{print $1}'` -ge "3" ]
-		then
-			echo "reference already linearized - continuing to analysis"
-		else
-			echo "Formatting multiline fasta to single line fasta"
+    input:
+        ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
+        reference=config["generate_variants"]["reference_genome_wildcard"],
+        frequency="results/processed_population_frequency/chr{chr}.frq",
+        script=workflow.source_path(SCRIPTS_2 + "derive_variants.py")
+    params:
+        no_chrs=config['chromosomes']['autosomes'],
+        output_prefix="results/derived_variants/raw/chr{chr}"
+    conda:
+        get_conda_env("simulation")
+    output:
+        "results/derived_variants/raw/chr{chr}.vcf",
+    shell:
+        '''
+        if [ `wc -l {input.reference} | awk '{print $1}'` -ge "3" ]
+        then
+            echo "reference already linearized - continuing to analysis"
+        else
+            echo "Formatting multiline fasta to single line fasta"
 
-			start=$(date +%s)
-			awk '/^>/ {{printf("\\n%s\\n",$0); next; }} {{ printf("%s",$0);}} END {{printf("\\n");}}' {input.reference} > tmp{wildcards.chr}
-			mv tmp{wildcards.chr} {input.reference}
-			end=$(date +%s)
-			echo "Elapsed time: $(($end-$start)) seconds"
-		fi
+            start=$(date +%s)
+            awk '/^>/ {{printf("\\n%s\\n",$0); next; }} {{ printf("%s",$0);}} END {{printf("\\n");}}' {input.reference} > tmp{wildcards.chr}
+            mv tmp{wildcards.chr} {input.reference}
+            end=$(date +%s)
+            echo "Elapsed time: $(($end-$start)) seconds"
+        fi
 
-		python3 {input.script} \
-		 -c {wildcards.chr} \
-		 -a {input.ancestral} \
-		 -r {input.reference} \
-		 -v {input.frequency} \
-		 -o {params.output_prefix}
-		'''
+        python3 {input.script} \
+         -c {wildcards.chr} \
+         -a {input.ancestral} \
+         -r {input.reference} \
+         -v {input.frequency} \
+         -o {params.output_prefix}
+        '''
 
 """
  Filters the derived variants for separated and adjacent SNPs.
 """
 rule snp_filter:
-	input:
-		vcf="results/derived_variants/raw/chr{chr}.vcf",
-		script=workflow.source_path(SCRIPTS_2 + "filter_snps.py")
-	conda:
-		get_conda_env("simulation")
-	output:
-		snps="results/derived_variants/singletons/chr{chr}.vcf",
-		series="results/derived_variants/series/chr{chr}.vcf"
-	shell:
-		"python3 {input.script}"
-		" -i {input.vcf}"
-		" --snps {output.snps}"
-		" --series {output.series}"
+    input:
+        vcf="results/derived_variants/raw/chr{chr}.vcf",
+        script=workflow.source_path(SCRIPTS_2 + "filter_snps.py")
+    conda:
+        get_conda_env("simulation")
+    output:
+        snps="results/derived_variants/singletons/chr{chr}.vcf",
+        series="results/derived_variants/series/chr{chr}.vcf"
+    shell:
+        "python3 {input.script} "
+        "-i {input.vcf} "
+        "--snps {output.snps} "
+        "--series {output.series}"
 
 """
 Variants are generated and filtered for each chromosome in parallel.
