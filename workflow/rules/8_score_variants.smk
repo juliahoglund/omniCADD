@@ -39,19 +39,19 @@ checkpoint generate_all_variants:
         mem_mb=8000,
         runtime=240  # 4 hours for variant generation
     log:
-        "results/whole_genome_variants/chr{chr}/stats.txt"
+        "results/whole_genome_variants/chr{chr}/generation.log"
     output:
-         out_dir=directory("results/whole_genome_variants/chr{chr}/"),
+         directory("results/whole_genome_variants/chr{chr}/")  # Directory output
     benchmark:
         "logs/benchmarks/generate_all_variants_chr{chr}.tsv"
     shell:
          '''
-         ''' + ensure_dirs("{output.out_dir}", "logs/benchmarks") + '''
+         ''' + ensure_dirs("{output}", "logs/benchmarks") + '''
          
-         python3 {input.script} -o {output.out_dir} \\
-         -s {params.blocksize} -r {input.reference} \\
-         -c {wildcards.chr} > {log} && \\
-         for file in {output.out_dir}/*.vcf
+         python3 {input.script} -o {output} \
+         -s {params.blocksize} -r {input.reference} \
+         -c {wildcards.chr} > {log} && \
+         for file in {output}/*.vcf
          do
            bgzip "$file" && tabix "$file.gz"
          done
@@ -239,10 +239,10 @@ PHRED score generation
 """
 rule sort_raw_scores:
     input:
-         gather_scores
+         gather_scores  
     threads: 8
     resources:
-        mem_mb=lambda wildcards, attempt: min(128000, config["memory"]["dataset_mb"] * attempt),  # Sorting huge files needs lots of memory
+        mem_mb=lambda wildcards, attempt: min(128000, config["memory"]["dataset_mb"] * attempt),
         runtime=lambda wildcards, attempt: min(720, 90 * attempt),
         tmpdir="results/tmp/sort_raw_{chr}"
     benchmark:
@@ -253,13 +253,13 @@ rule sort_raw_scores:
         '''
         ''' + ensure_dirs("$(dirname {output})", "{resources.tmpdir}", "logs/benchmarks") + '''
         
-        LC_ALL=C sort \\
-        --merge \\
-        -t "," \\
-        -k5gr \\
-        -S {resources.mem_mb}M \\
-        --parallel={threads} \\
-        --temporary-directory={resources.tmpdir} \\
+        LC_ALL=C sort \
+        --merge \
+        -t "," \
+        -k5gr \
+        -S {resources.mem_mb}M \
+        --parallel={threads} \
+        --temporary-directory={resources.tmpdir} \
          {input} > {output}
         '''
 
@@ -367,13 +367,14 @@ rule summarize_cadd_scores:
     output:
         summary=report("results/cadd_scores/scoring_summary.txt", category="Logs")
     shell:
-        """
+        '''
+        ''' + ensure_dir("{output.summary}") + '''
         echo "CADD scoring completed successfully" > {output.summary}
         echo "Files created:" >> {output.summary}
         ls -lh {input.scores} >> {output.summary}
         echo "Total variants scored:" >> {output.summary}
         zcat {input.scores} | wc -l >> {output.summary}
-        """
+        '''
 
 
 
