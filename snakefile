@@ -13,6 +13,8 @@ configfile: "config.yaml"
 
 ##### PARAMS #####
 REFERENCE = "resources/genome/"
+RENV_PREFIX = "config/renv"
+
 SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
 SCRIPTS_2 = "scripts/step_2_derive_variants/"
 SCRIPTS_3 = "scripts/step_3_simulate_variants/"
