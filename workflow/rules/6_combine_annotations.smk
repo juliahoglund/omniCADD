@@ -31,7 +31,7 @@ def ensure_dirs(*paths):
 
 def get_constraint_files(wildcards):
     """Get all constraint annotation files after split_alignment checkpoint completes"""
-    # This references the checkpoint from Module 5
+    # Reference the checkpoint from Module 5
     checkpoint_output = checkpoints.split_alignment.get(**wildcards).output[0]
     
     # Find all parts that were created
@@ -51,7 +51,7 @@ def get_constraint_files(wildcards):
 # Rule to combine constraint annotations
 rule combine_constraint:
     input:
-        unpack(get_constraint_files),  # This replaces the directory inputs
+        unpack(get_constraint_files),  # Use the checkpoint dependency
         script = workflow.source_path(SCRIPTS_6 + "combine_constraint_anno.R"),
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
@@ -69,14 +69,14 @@ rule combine_constraint:
         "logs/benchmarks/combine_constraint_chr{chr}.tsv"
     shell:
         '''
-        ''' + ensure_dirs("{output.main}", "results/temp") + '''
+        ''' + ensure_dirs("{output.main}", "results/temp", "logs/benchmarks") + '''
         
-        Rscript {input.script} \\
-        -c {wildcards.chr} \\
-        -n {params.n_chunks} \\
-        -f {input.phastcons} \\
-        -g {input.phylop} \\
-        -i {input.gerp} \\
+        Rscript {input.script} \
+        -c {wildcards.chr} \
+        -n {params.n_chunks} \
+        -f {input.phastcons} \
+        -g {input.phylop} \
+        -i {input.gerp} \
         -j {input.index}
 
         head -1 constraint.{wildcards.chr}_1.bed > {output.constraint_temp}
