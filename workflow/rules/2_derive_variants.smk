@@ -112,3 +112,37 @@ rule merge_by_chr:
 		echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
 		grep -vh "^#" {input.raw} >> {output.raw}
 		'''
+
+rule bcftools_singleton_stats:
+    input:
+        vcf="results/derived_variants/singletons/all_chr.vcf",
+        script=workflow.source_path(SCRIPTS_2 + "bcftools_singleton_stats.py")
+    params:
+        output_prefix="results/derived_variants/singleton_stats/chr{chr}"
+    conda:
+        get_conda_env("simulation")
+    output:
+        "results/derived_variants/singleton_stats/chr{chr}.tsv",
+    shell:
+        ensure_dir("{output}") +
+        "bcftools view --types snps "
+        "--output-type z "
+        "--output-file {output}.gz "
+        "{input.vcf} && "
+        "bcftools stats {output}.gz > {output}.txt"
+
+rule filter_singletons:
+    input:
+        tsv="results/derived_variants/singleton_stats/chr{chr}.tsv",
+        script=workflow.source_path(SCRIPTS_2 + "filter_singletons.py")
+    params:
+        output_prefix="results/derived_variants/filtered_singletons/chr{chr}"
+    conda:
+        get_conda_env("simulation")
+    output:
+        "results/derived_variants/filtered_singletons/chr{chr}.vcf",
+    shell:
+        ensure_dir("{output}") +
+        "python3 {input.script} "
+        "-i {input.tsv} "
+        "-o {params.output_prefix}"
