@@ -11,6 +11,22 @@
 import subprocess
 import os
 import sys
+import glob
+
+# Add  script variables
+SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
+SCRIPTS_2 = "scripts/step_2_derive_variants/"
+SCRIPTS_3 = "scripts/step_3_simulate_variants/"
+SCRIPTS_4 = "scripts/step_4_summary_report/"
+SCRIPTS_5 = "scripts/step_5_annotate_variants"
+SCRIPTS_6 = "scripts/step_6_combine_annotations"
+SCRIPTS_7 = "scripts/step_7_train_test_model"
+SCRIPTS_8 = "scripts/step_8_score_variants"
+
+SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
+SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
+SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
+SCRIPTS_HELPER = "workflow/data_helper.py"
 
 def get_conda_env(env_name):
     """Return path to conda environment file"""
@@ -22,10 +38,15 @@ Chr is constrained to only be numbers or letters.
 Name, label and file may not contain /, they may not be sub-folders.
 """
 wildcard_constraints:   
-     chr="[a-zA-Z0-9]+",
-     file="[^/][a-zA-Z0-9_.]+",
-     label="[^/]+",
-     name="[^/]+"
+     chr="[0-9XY]+",
+     part="[0-9]+",
+     fold="[0-9]+",
+     type="(simulated|derived|validation)",
+     cols="(All|[A-Za-z0-9_]+)",
+     ancestor="[A-Za-z0-9_]+",
+     c="[0-9.]+",
+     iter="[0-9]+",
+     tool="(phastCons|phyloP)"
 
 """
 Bgzip_tabix combines bgzip and the tabix rule to reduce overhead.
@@ -129,20 +150,6 @@ def load_tsv_configuration(file: str) -> dict:
      return samples
 
 script = workflow.source_path("scripts/step_1_extract_ancestor/clean_maf.py")
-# Add these script variables
-SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
-SCRIPTS_2 = "scripts/step_2_derive_variants/"
-SCRIPTS_3 = "scripts/step_3_simulate_variants/"
-SCRIPTS_4 = "scripts/step_4_summary_report/"
-SCRIPTS_5 = "scripts/step_5_annotate_variants"
-SCRIPTS_6 = "scripts/step_6_combine_annotations"
-SCRIPTS_7 = "scripts/step_7_train_test_model"
-SCRIPTS_8 = "scripts/step_8_score_variants"
-
-SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
-SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
-SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
-SCRIPTS_HELPER = "workflow/data_helper.py"
 
 def ensure_dir(path):
     """Helper function to ensure directory exists"""
