@@ -42,43 +42,45 @@ include: "workflow/rules/8_score_variants.smk"  	# step eight
 
 ##### target rules #####
 rule all:
-        input:
-                # 1. extract ancestor
-                expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
-                       ancestor = config["mark_ancestor"]["name_ancestor"], 
-                       chr = config["chromosomes"]["karyotype"]),
-                # 2. derive variants
-                expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
-                # 3. simulate variants
-                expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
-                # 4. summary report
-                "results/visualisation/raw_summary.log", 
-                "results/visualisation/filtered_summary.log", 
-                "results/visualisation/parameter_summary.log", 
-                "results/visualisation/stats_report.html",
-                # 5. annotate variants
-                expand("results/annotation/vep/{type}/chr{chr}_vep.tsv", 
-                       chr = config["chromosomes"]["karyotype"],
-                       type = ["simulated", "derived"]),
-                # 6. combine annotations
-                expand("results/dataset/{type}/chr{chr}_annotated.tsv",
-                       type = ['simulated', 'derived'],
-                       chr = config['chromosomes']['karyotype']),
-                "results/figures/column_analysis/relevance.tsv",
-                "results/figures/column_analysis/derived_variants_corr.tsv",
-                "results/figures/column_analysis/simulated_variants_corr.tsv",
-                "results/figures/column_analysis/combined_variants_corr.tsv",
-                "results/dataset/imputation_dict.txt",
-                expand("results/dataset/{type}/chr{chr}.npz",
-                        type = ['simulated', 'derived'],
-                        chr = config['chromosomes']['karyotype']),
-                # 7. train test model
-                "results/model/All/full.mod.pickle",
-                "results/model/All/full.scaler.pickle",
-                "results/model/All/full.mod.weights.csv",
-                # 8. score variants
-                expand("results/cadd_scores/chr{chr}.tsv.gz",
-                        chr=config["chromosomes"]["score"]),
-                expand("results/cadd_scores/chr{chr}.tsv.gz.tbi",
-                        chr=config["chromosomes"]["score"]),
-                "results/cadd_scores/scoring_summary.txt",
+    input:
+        # Module 1: Extract ancestor (required for Module 5)
+        expand("results/ancestral_seq/{ancestor}/chr{chr}.fa", 
+               ancestor = config["mark_ancestor"]["name_ancestor"], 
+               chr = config["chromosomes"]["karyotype"]),
+        
+        # Module 2: Derive variants (required for Module 5)
+        expand("results/derived_variants/singletons/chr{chr}.vcf", 
+               chr=config["chromosomes"]["karyotype"]),
+        
+        # Module 3: Simulate variants (required for Module 5)
+        expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", 
+               chr=config["chromosomes"]["karyotype"]),
+        
+        # Module 4: Summary report (standalone)
+        "results/visualisation/stats_report.html",
+        
+        # Module 5: Annotate variants (required for Module 6)
+        expand("results/annotation/vep/{type}/chr{chr}_vep.tsv", 
+               chr = config["chromosomes"]["karyotype"],
+               type = ["simulated", "derived"]),
+        
+        # Module 6: Combine annotations (required for Module 7)
+        expand("results/annotation/constraint/constraint_chr{chr}.bed",
+               chr = config["chromosomes"]["karyotype"]),
+        expand("results/dataset/{type}/chr{chr}.npz",
+               type = ['simulated', 'derived'],
+               chr = config['chromosomes']['karyotype']),
+        "results/dataset/imputation_dict.txt",
+        "results/figures/column_analysis/relevance.tsv",
+        
+        # Module 7: Train test model (required for Module 8)
+        "results/model/All/full.mod.pickle",
+        "results/model/All/full.scaler.pickle",
+        "results/model/All/full.mod.weights.csv",
+        
+        # Module 8: Score variants (final outputs)
+        expand("results/cadd_scores/chr{chr}.tsv.gz",
+               chr=config["chromosomes"]["score"]),
+        expand("results/cadd_scores/chr{chr}.tsv.gz.tbi",
+               chr=config["chromosomes"]["score"]),
+        "results/cadd_scores/scoring_summary.txt"
