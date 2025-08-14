@@ -25,14 +25,15 @@ rule freq_files:
     input:
         config["generate_variants"]["population_vcf"]
     params:
-        min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"]
+        min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"],
+        chr_prefix=config["alignment"]["chrom_prefix"]
     conda:
         get_conda_env("common")
     output:
         'results/processed_population_frequency/chr{chr}.frq'
     shell:
         "vcftools --gzvcf {input} "
-        "--chr {wildcards.chr} "
+        "--chr {params.chr_prefix}{wildcards.chr} "
         "--remove-indels "
         "--non-ref-af {params.min_non_ref_freq} "
         "--max-non-ref-af 1.0 "
