@@ -107,12 +107,12 @@ checkpoint split_alignment:
         maf="results/alignment/sorted/chr{chr}.maf.gz",
         script=workflow.source_path(SCRIPTS_5 + "split_alignments.py")
     output:
-        folder=directory("results/alignment/splitted/chr{chr}/"), # TODO make temporary
+        folder=directory("results/alignment/splitted/chr{chr}/"),
     params:
         n_chunks=config['annotation']['gerp']['n_chunks'],
         reference_species=config['species_name']
     conda:
-        "../env/annotation.yml"
+        get_conda_env("annotation")
     threads: 4
     shell:
         "python3 {input.script} {input.maf} {params.n_chunks} {output.folder} {params.reference_species}"
@@ -122,51 +122,39 @@ checkpoint split_alignment:
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
 rule convert_alignment:
     input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf", # make temporary
+        maf="results/alignment/splitted/chr{chr}/{part}.maf",
         script=workflow.source_path(SCRIPTS_5 + "maf2fasta.pl")    
     output:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta")
     conda:
-        "../env/annotation.yml"
+        get_conda_env("annotation") 
     shell:
         "perl {input.script} < {input.maf} > {output.converted}"
 
-
 rule format_alignment:
-    """
-    fasta files created in the previous step still contains blocks, and thus,
-    many index lines per species. this rule concatenates the blocks, by adding gap sequences
-    where species are missing in blocks. the output is a fully linearized sequence alignment,
-    one sequence per species, all of equal length. 
-    """
     input:
-        fasta="results/alignment/fasta/chr{chr}/{part}.fasta", # make temporary
+        fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
         script=workflow.source_path(SCRIPTS_5 + "format_alignments.py") 
     output:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
-        # does this work with wildcards? change if not.
         index=temp("results/alignment/indexfiles/chr{chr}/{part}.index")
     conda:
-        "../env/annotation.yml"    
+        get_conda_env("annotation")
     shell:
         "python3 {input.script} {input.fasta} {output.formatted} {output.index}"
 
 
 # modified version of script, originally written andreas wilm under the MIT License
-# original (ptyhon < 2.7 included in compbio-utils)
+# original (pythhon < 2.7 included in compbio-utils)
 # REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
 rule prune_columns:
-    """
-    prunes all columns with a gap in the reference species, leaving a continuous alignment
-    to better parse it with genomic positions after gerp scoring.
-    """
     input:
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
         script=workflow.source_path(SCRIPTS_5 + "prune_cols.py") 
     output:
         pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta"
     conda:
-        "../env/annotation.yml"    
+        get_conda_env("annotation")
     shell:
         "python3 {input.script} {input.fasta} {output.pruned}"
 
@@ -201,7 +189,7 @@ rule compute_gerp:
 
 # adapted from generode [ref]
 # https://github.com/NBISweden/GenErode
-rule gerp2coords: # needed now or can be parsed later? 
+rule gerp2coords:
     """
     Convert GERP-scores to the correct genomic coordinates. 
     Script currently written to output positions without contig names.
@@ -212,13 +200,13 @@ rule gerp2coords: # needed now or can be parsed later?
        gerp = "results/annotation/gerp/chr{chr}/{part}.rates",
        script = workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
     output:
-       "results/annotation/gerp/{name}/chr{chr}/{part}.rates.parsed"
+       "results/annotation/gerp/chr{chr}/{part}.rates.parsed"  # Removed {name} wildcard
     conda:
         get_conda_env("annotation")
     params:
        reference_species = config['species_name']
     log:
-       "results/logs/{name}/chr{chr}_{part}_gerp_coord_log.txt"
+       "results/logs/chr{chr}_{part}_gerp_coord_log.txt"  # Removed {name} wildcard
     threads: 2
     shell:
        "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {log} && "
@@ -229,7 +217,6 @@ rule gerp2coords: # needed now or can be parsed later?
 ##### PHYLOP and PHASTCONS #####
 ################################
 
-## TODO: clean up, formats are inconclusive
 rule phylo_fit:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf"
@@ -239,12 +226,12 @@ rule phylo_fit:
         precision=config["annotation"]['phast']["train_precision"],
         out="results/annotation/phast/phylo_model/chr{chr}/{part}"
     conda:
-        get_conda_env("annotation") # TODO add container? 
+        get_conda_env("annotation")
     output:
-         "results/amnnotation/phast/phylo_model/chr{chr}/{part}.mod"
+         "results/annotation/phast/phylo_model/chr{chr}/{part}.mod"
     shell:
        """
-        grep -E -A1 "{params.tree_species}" {input.fasta} > tmp{wildcards.part}.fa
+        grep -E -A1 "{params.tree_species}" {input} > tmp{wildcards.part}.fa
         phyloFit \
          --tree "{params.tree}" \
          -p {params.precision} \
@@ -261,14 +248,14 @@ rule run_phastCons:
         species_interest = config['species_name'],
         phast_params=config['annotation']["phast"]["phastCons_params"]
     conda:
-        get_conda_env("annotation") # TODO add container?
+        get_conda_env("annotation")
     output:
          temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig")
     threads: 2
     shell:
          "phastCons "
          " --msa-format FASTA "
-         # computed using pig right now because cannot disregard reference, should i?
+         # computed using pig right now because cannot disregard reference.
          #" --not-informative={params.species_interest} "
          "{params.phast_params} {input.maf} {input.mod} > {output}"
 
@@ -278,7 +265,7 @@ rule wig2bed_phastCons:
     conda:
         get_conda_env("annotation")
     output:
-        "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"    
+        "results/annotation/phast/phastCons/chr{chr}/{part}.phastCons.bed" 
     shell:
         "wig2bed < {input} > {output}"
 
@@ -288,11 +275,11 @@ rule run_phyloP:
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
         species_interest = config['species_name'],
-        phylo_params=lambda wildcards: config['annotation']["phast"]["phyloP_params"]
+        phylo_params=config['annotation']["phast"]["phyloP_params"]
     benchmark:
         "logs/annotation/phast/phyloP/chr{chr}/{part}.tsv"
     conda:
-        get_conda_env("annotation") # TODO add container?
+        get_conda_env("annotation") 
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig")
     threads: 2
@@ -300,7 +287,7 @@ rule run_phyloP:
         "phyloP --msa-format FASTA "
         "--chrom {wildcards.chr} --wig-scores "
         "{params.phylo_params} {input.mod} "
-        "{input.fasta} > {output} "
+        "{input.maf} > {output} "
 
 rule wig2bed_phyloP:
     input:
