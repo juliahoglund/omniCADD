@@ -99,3 +99,31 @@ rule create_datafiles:
          outgroup='{params.outgroup}' \
          ), output_dir='results/visualisation/')"
         '''
+
+rule raw_singleton_stats:
+    input:
+        "results/derived_variants/singletons/all_chr.vcf"
+    output:
+        "results/derived_variants/singletons/stats.txt"
+    shell:
+        ensure_dir("{output}") +
+        "bcftools stats {input} > {output}"
+
+rule create_stats_report:
+    input:
+        tree = config['stats_report']['tree'],
+        ideogram = 'results/visualisation/indexfile.txt',
+        annotation = 'results/visualisation/Ancestor.bed' if config['stats_report']['annotation'] == 'True' else [],
+        bedfile = 'results/visualisation/CDS.regions.bed' if config['stats_report']['annotation'] == 'True' else [],
+        coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else [],
+        script = workflow.source_path(SCRIPTS_4 + 'stats_report.Rmd')
+    params:
+        ingroup = config['stats_report']['ingroup'],
+        outgroup = config['stats_report']['outgroup']
+    conda:
+        get_conda_env("r_stats")
+    output:
+        'results/visualisation/stats_report.html'
+    shell:
+        ensure_dir("{output}") +
+        "Rscript {input.script} "
