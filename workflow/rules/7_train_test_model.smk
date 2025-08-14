@@ -100,13 +100,14 @@ rule train_model:
         c = config["model"]["test_params"]["c"],
         max_iter = config["model"]["test_params"]["max_iter"],
         file_pattern = "results/model/{cols}/fold_{fold}_[C]C_[ITER]iter.mod",
-        sel_cols = config["model"]["column_subsets"].get("{cols}", "All")
+        sel_cols = lambda wildcards: "All" if wildcards.cols == "All" else \
+            config["model"]["column_subsets"][wildcards.cols]
     conda:
         get_conda_env("model")
     priority: 20
     resources:
         mem_mb = lambda wildcards, attempt: min(64000, config["memory"]["dataset_mb"] * attempt),
-        runtime = lambda wildcards, attempt: min(720, 60 * attempt)  # Model training can take a long time
+        runtime = lambda wildcards, attempt: min(720, 60 * attempt)
     threads: len(config["model"]["test_params"]["c"]) * \
              len(config["model"]["test_params"]["max_iter"])
     output:
@@ -128,19 +129,19 @@ rule train_model:
     log:
         "results/logs/model/train_{cols}_fold_{fold}.log"
     shell:
-        '''
-        ''' + ensure_dirs("results/model/{wildcards.cols}", "results/logs/model", "logs/benchmarks") + '''
-        
-        python3 {input.script} \\
-         -m {input.lib} \\
-         --train {input.train} \\
-         --test {input.test} \\
-         --columns {params.sel_cols} \\
-         -c {params.c} \\
-         -i {params.max_iter} \\
-         --file-pattern {params.file_pattern} \\
-         -n {threads} \\
-         --save-weights \\
+         '''
+         ''' + ensure_dirs("results/model/{wildcards.cols}", "results/logs/model", "logs/benchmarks") + '''
+         
+         python3 {input.script} \
+         -m {input.lib} \
+         --train {input.train} \
+         --test {input.test} \
+         --columns {params.sel_cols} \
+         -c {params.c} \
+         -i {params.max_iter} \
+         --file-pattern {params.file_pattern} \
+         -n {threads} \
+         --save-weights \
          --save-scaler {output.scaler} > {log} 2>&1
          '''
 
