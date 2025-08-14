@@ -17,6 +17,10 @@
 
 import sys
 
+def ensure_dir(path):
+    """Helper function to ensure directory exists"""
+    return f"mkdir -p $(dirname {path}) && "
+
 ## TODO: solve location of directories and make files temporary
 ## remove bed chunks after combining -> make temporary
 ## mv to outout creates duplicates -> change
@@ -32,24 +36,36 @@ rule combine_constraint:
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
     conda:
-        get_conda_env("annotation") # change to common? 
+        get_conda_env("annotation")
     threads: 2
     output:
-        "results/annotation/constraint/constraint_chr{chr}.bed"
+        main="results/annotation/constraint/constraint_chr{chr}.bed",
+        constraint_temp=temp("results/temp/constraint_chr{chr}_combined.bed"),
+        tmp_processed=temp("results/temp/tmp_processed_{chr}.bed")
+    benchmark:
+        "logs/benchmarks/combine_constraint_chr{chr}.tsv"
     shell:
         '''
+        mkdir -p $(dirname {output.main})
+        mkdir -p results/temp
+        
         Rscript {input.script} \
         -c {wildcards.chr} \
         -n {params.n_chunks} \
         -f {input.phast} \
         -g {input.phylo} \
         -i {input.gerp} \
-        -j {input.index} &&
+        -j {input.index}
 
-        head -1 constraint.{wildcards.chr}_1.bed >> constraint_chr{wildcards.chr}.bed && 
-        for i in {{1..30}}; do grep -v "start" constraint.{wildcards.chr}_$i.bed >> constraint_chr{wildcards.chr}.bed; done && 
-        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' constraint_chr{wildcards.chr}.bed | sed 's/start G/end G/g' > tmp.{wildcards.chr} &&
-        mv tmp.{wildcards.chr} {output}; rm constraint.{wildcards.chr}_*.bed; echo "chr" {wildcards.chr} "done"
+       
+        head -1 constraint.{wildcards.chr}_1.bed > {output.constraint_temp}
+        for i in {{1..{params.n_chunks}}}; do 
+            grep -v "start" constraint.{wildcards.chr}_$i.bed >> {output.constraint_temp}
+        done
+        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' {output.constraint_temp} | sed 's/start G/end G/g' > {output.tmp_processed}
+        mv {output.tmp_processed} {output.main}
+        rm constraint.{wildcards.chr}_*.bed
+        echo "chr {wildcards.chr} done"
         '''
 
 # Rule to intersect bed files with VEP annotations
@@ -59,22 +75,22 @@ rule intersect_bed:
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
-        get_conda_env("annotation") # change to common?
+        get_conda_env("annotation")
     threads: 8
     output:
         "results/dataset/{type}/chr{chr}_annotated.tsv"
     shell:
+        ensure_dir("{output}") +
         "python3 {input.script} "
-        " -v {input.vep} "
-        " -b {input.bed} "
-        " -o {output}"
+        "-v {input.vep} "
+        "-b {input.bed} "
+        "-o {output}"
 
 # Rule to derive and impute means for simulated data
 rule derive_impute_means:
     input:
-        tsv=lambda wildcards: expand(
-        "results/dataset/simulated/chr{chr}_annotated.tsv",
-        chr=config["chromosomes"]["karyotype"]),
+        tsv=expand("results/dataset/simulated/chr{chr}_annotated.tsv",
+                   chr=config["chromosomes"]["karyotype"]),
         processing=config["annotation_config"]["processing"],
         script=workflow.source_path(SCRIPTS_6 + "derive_means.py"),
     conda:
@@ -83,9 +99,9 @@ rule derive_impute_means:
         imputation=report("results/dataset/imputation_dict.txt", category="Logs")
     shell:
         "python3 {input.script} "
-        " -i {input.tsv} "
-        " -p {input.processing} "
-        " -o {output}"
+        "-i {input.tsv} "
+        "-p {input.processing} "
+        "-o {output.imputation}"
 
 # Rule for column analysis
 rule column_analysis:
@@ -109,10 +125,11 @@ rule column_analysis:
         combined_cor=report("results/figures/column_analysis/combined_variants_corr.tsv",
                              category="Column Analysis")
     shell:
+        "mkdir -p {params.out_folder} && "
         "python3 {input.script} "
-        " -s {input.simulated} "
-        " -d {input.derived} "
-        " -o {params.out_folder} "
+        "-s {input.simulated} "
+        "-d {input.derived} "
+        "-o {params.out_folder}"
 
 """
 Prepare data takes the fully annotated variants and processes 
@@ -129,12 +146,13 @@ rule prepare_data:
         interactions=config["annotation_config"]["interactions"],
         script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
     params:
-        derived_variants=lambda wildcards: "-d" if wildcards.type == "derived" else " ",
-        y=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
+        derived_flag=lambda wildcards: "--derived" if wildcards.type == "derived" else "",
+        y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0"
     output:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",
-        cols="results/dataset/{type}/chr{chr}.npz.columns.csv"
+        cols="results/dataset/{type}/chr{chr}.npz.columns.csv",
+        temp_processed=temp("results/temp/{type}_chr{chr}_processed.tsv")
     wildcard_constraints:
         type="(derived|simulated|validation)"
     conda:
@@ -143,9 +161,14 @@ rule prepare_data:
     log:
         report("results/logs/data_preparation/{type}_chr{chr}.log", category="Logs")
     shell:
-        "python3 {input.script} -i {input.data} --npz {output.npz} "
+        "mkdir -p $(dirname {output.npz}) && "
+        "mkdir -p results/temp && "
+        "python3 {input.script} "
+        "-i {input.data} "
+        "--npz {output.npz} "
         "--processing-config {input.processing} "
         "--interaction-config {input.interactions} "
         "--imputation-dict {input.imputation} "
-        "{params.derived_variants} -y {params.y} > {log}"
+        "{params.derived_flag} "
+        "-y {params.y_value} > {log}"
 
