@@ -27,7 +27,7 @@ CHROMSOME_LIST = config['chromosomes']['score']
 Generates all possible variants for a chromosome in blocks.
 The files are also directly bgzipped.
 """
-rule generate_all_variants:
+checkpoint generate_all_variants:
     input:
          reference=config["generate_variants"]["reference_genome_wildcard"],
          script=workflow.source_path(SCRIPTS_8 + "create_variants.py")
@@ -45,37 +45,25 @@ rule generate_all_variants:
     benchmark:
         "logs/benchmarks/generate_all_variants_chr{chr}.tsv"
     shell:
-         """
-         mkdir -p {output.out_dir}
-         mkdir -p logs/benchmarks
+         '''
+         ''' + ensure_dirs("{output.out_dir}", "logs/benchmarks") + '''
          
-         python3 {input.script} -o {output.out_dir} \
-         -s {params.blocksize} -r {input.reference} \
-         -c {wildcards.chr} > {log} && \
+         python3 {input.script} -o {output.out_dir} \\
+         -s {params.blocksize} -r {input.reference} \\
+         -c {wildcards.chr} > {log} && \\
          for file in {output.out_dir}/*.vcf
          do
            bgzip "$file" && tabix "$file.gz"
          done
-         """
+         '''
 
-# Determine the {genome} for all downloaded files
-(CHRs,) = glob_wildcards("results/whole_genome_variants/chr{chr}")
-
-
-"""
-Combines all log files for variant generation for all chromosomes.
-This rule also serves as a checkpoint, after which it is checked how 
-many blocks were generated for each chromosome and thus how many runs 
-of the annotation and scoring modules will be needed.
-"""
-checkpoint summarize_generation:
-    input:
-         expand("results/whole_genome_variants/chr{chr}/stats.txt",
-                chr=config["chromosomes"]["score"])
-    output:
-         report("results/logs/whole_genome_variants.txt", category="Logs")
-    shell:
-         "tail -n +2 {input} > {output}"
+# hardcoded to All columns as of now
+def gather_scores(wildcards):
+    """Gather all score files from generate_all_variants checkpoint"""
+    checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.vcf.gz")).part
+    return expand("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv",
+                  cols=wildcards.cols, chr=wildcards.chr, part=parts)
 
 """
 Annotate a vcf file using Ensembl-VEP.
@@ -108,15 +96,14 @@ rule run_genome_vep:
     output:
          temp("results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv")
     shell:
-         """
-         mkdir -p $(dirname {output})
-         mkdir -p logs/benchmarks
+         '''
+         ''' + ensure_dirs("$(dirname {output})", "logs/benchmarks") + '''
          
-         chmod +x {input.script} && \
-         {input.script} {input.vcf} {output} \
-         {params.cache_dir} {params.species_name} {threads} && \
+         chmod +x {input.script} && \\
+         {input.script} {input.vcf} {output} \\
+         {params.cache_dir} {params.species_name} {threads} && \\
          [[ -s {output} ]]
-         """
+         '''
 
 """
 Processes VEP output into the tsv format used by the later steps.
@@ -234,26 +221,17 @@ rule score_variants:
     output:
         temp("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv")
     shell:
-        """
-        mkdir -p $(dirname {output})
-        mkdir -p logs/benchmarks
+        '''
+        ''' + ensure_dirs("$(dirname {output})", "logs/benchmarks") + '''
         
-        python3 {input.script} \
-        -i {input.data} \
-        --model {input.model} \
-        --scaler {input.scaler} \
-        -o {output} \
-        --sort \
+        python3 {input.script} \\
+        -i {input.data} \\
+        --model {input.model} \\
+        --scaler {input.scaler} \\
+        -o {output} \\
+        --sort \\
         --no-header
-        """
-
-# hardcoded to All columns as of now
-def gather_scores(wildcards):
-  checkpoints.summarize_generation.get()
-  globed = glob_wildcards(f"results/whole_genome_annotations/chr{wildcards.chr}/{{part}}.vcf.gz")
-  return natsorted(
-    expand(f"results/whole_genome_scores/raw_parts/All/chr{wildcards.chr}/{{part}}.csv",
-                  part=globed.part))
+        '''
 
 """
 sorts all raw scores from highest to lowest, i.e. ranking them later for the
@@ -264,28 +242,26 @@ rule sort_raw_scores:
          gather_scores
     threads: 8
     resources:
-        mem_mb=config["memory"]["dataset_mb"],
-        runtime=180,
+        mem_mb=lambda wildcards, attempt: min(128000, config["memory"]["dataset_mb"] * attempt),  # Sorting huge files needs lots of memory
+        runtime=lambda wildcards, attempt: min(720, 90 * attempt),
         tmpdir="results/tmp/sort_raw_{chr}"
     benchmark:
         "logs/benchmarks/sort_raw_scores_chr{chr}.tsv"
     output:
          "results/whole_genome_scores/RAW_scores_chr{chr}.csv"
     shell:
-        """
-        mkdir -p $(dirname {output})
-        mkdir -p {resources.tmpdir}
-        mkdir -p logs/benchmarks
+        '''
+        ''' + ensure_dirs("$(dirname {output})", "{resources.tmpdir}", "logs/benchmarks") + '''
         
-        LC_ALL=C sort \
-        --merge \
-        -t "," \
-        -k5gr \
-        -S {resources.mem_mb}M \
-        --parallel={threads} \
-        --temporary-directory={resources.tmpdir} \
+        LC_ALL=C sort \\
+        --merge \\
+        -t "," \\
+        -k5gr \\
+        -S {resources.mem_mb}M \\
+        --parallel={threads} \\
+        --temporary-directory={resources.tmpdir} \\
          {input} > {output}
-        """
+        '''
 
 rule count_positions:
     input:
@@ -305,41 +281,11 @@ rule count_positions:
         wc -l {input} > {output}
         """
 
-rule merge_raw_scores:
-    input:
-         expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
-         chr=config["chromosomes"]["score"])
-    threads: 8
-    resources:
-        mem_mb=config["memory"]["scoring_mb"],
-        runtime=300,  # 5 hours for large genome merging
-        tmpdir="results/whole_genome_tmp"
-    benchmark:
-        "logs/benchmarks/merge_raw_scores.tsv"
-    output:
-         "results/whole_genome_scores/full_RAW_scores.csv"
-    shell:
-        """
-        mkdir -p $(dirname {output})
-        mkdir -p {resources.tmpdir}
-        mkdir -p logs/benchmarks
-        
-        LC_ALL=C sort \
-        --merge \
-        -t "," \
-        -k5gr \
-        -S {resources.mem_mb}M \
-        --parallel={threads} \
-        --temporary-directory={resources.tmpdir} \
-         {input} > {output}
-        """
-
 """
 Assigns phred scores to all variants, in addition to the raw scores.
 The phred scores are based on a genome-wide level; or as many chromosomes
 included in the analysis, rather than a chromosome wide ranking
-"""
- ## (i think)
+""""
 
 rule assign_phred_scores:
     input:
@@ -351,50 +297,47 @@ rule assign_phred_scores:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
     resources:
-        mem_mb=16000,
-        runtime=240  # 4 hours for PHRED assignment
+        mem_mb=lambda wildcards, attempt: min(192000, 24000 * attempt),  # PHRED assignment is very memory intensive
+        runtime=lambda wildcards, attempt: min(960, 120 * attempt)
     benchmark:
         "logs/benchmarks/assign_phred_scores.tsv"
     output:
         expand("results/whole_genome_scores/phred/chr{chr}.tsv",
                chr=config["chromosomes"]["score"])
     shell:
-        """
-        mkdir -p results/whole_genome_scores/phred
-        mkdir -p logs/benchmarks
+        '''
+        ''' + ensure_dirs("results/whole_genome_scores/phred", "logs/benchmarks") + '''
         
-        python3 {input.script} \
-        -i {input.data} \
-        -o {params.outmask} \
-        --chroms {params.chromosomes} \
+        python3 {input.script} \\
+        -i {input.data} \\
+        -o {params.outmask} \\
+        --chroms {params.chromosomes} \\
         --count-file {input.counts}
-        """
+        '''
 
-rule sort_phred_scores:
+rule sort_and_merge_scores:
     input:
-        "results/whole_genome_scores/phred/chr{chr}.tsv"
-    threads: 4
+         gather_scores
+    threads: 16
     resources:
-        mem_mb=config["memory"]["scoring_mb"],
-        runtime=120,
-        tmpdir="results/tmp/chr{chr}"
-    benchmark:
-        "logs/benchmarks/sort_phred_scores_chr{chr}.tsv"
+        mem_mb=config["memory"]["dataset_mb"],
+        runtime=240,
+        tmpdir="results/tmp/sort_merge"
     output:
-        "results/cadd_scores/chr{chr}.tsv.gz"
+         "results/whole_genome_scores/full_RAW_scores.csv.gz"  # Direct to final compressed
     shell:
         """
-        mkdir -p $(dirname {output})
         mkdir -p {resources.tmpdir}
-        mkdir -p logs/benchmarks
         
-        tail -n +2 {input} | \
+        # Pipe directly from sort to compression
         LC_ALL=C sort \
-        -k2n \
+        --merge \
+        -t "," \
+        -k5gr \
         -S {resources.mem_mb}M \
         --parallel={threads} \
-        --temporary-directory={resources.tmpdir} | \
-        bgzip > {output}
+        --temporary-directory={resources.tmpdir} \
+         {input} | gzip > {output}
         """
 
 rule index_cadd_scores:
@@ -415,24 +358,21 @@ rule summarize_cadd_scores:
         scores=expand("results/cadd_scores/chr{chr}.tsv.gz",
                      chr=config["chromosomes"]["score"]),
         indices=expand("results/cadd_scores/chr{chr}.tsv.gz.tbi",
-                      chr=config["chromosomes"]["score"]),
-        script=workflow.source_path(SCRIPTS_8 + "summarize_scores.py")
+                      chr=config["chromosomes"]["score"])
     conda:
         get_conda_env("common")
     resources:
         mem_mb=4000,
         runtime=60
     output:
-        summary=report("results/cadd_scores/scoring_summary.txt", category="Logs"),
-        stats="results/cadd_scores/score_statistics.tsv"
+        summary=report("results/cadd_scores/scoring_summary.txt", category="Logs")
     shell:
         """
-        mkdir -p $(dirname {output.summary})
-        
-        python3 {input.script} \
-        --input {input.scores} \
-        --summary {output.summary} \
-        --stats {output.stats}
+        echo "CADD scoring completed successfully" > {output.summary}
+        echo "Files created:" >> {output.summary}
+        ls -lh {input.scores} >> {output.summary}
+        echo "Total variants scored:" >> {output.summary}
+        zcat {input.scores} | wc -l >> {output.summary}
         """
 
 
