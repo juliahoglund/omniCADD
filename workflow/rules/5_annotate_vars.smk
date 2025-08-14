@@ -82,17 +82,19 @@ rule process_vep:
          genome=config["generate_variants"]["reference_genome_wildcard"],
          grantham=workflow.source_path("resources/grantham_matrix/grantham_table.tsv"),
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
+    params:
+         output_type=lambda wildcards: "derived" if "derived_variants" in wildcards.folder else "simulated"
     conda:
          get_conda_env("common")
     output:
-         "{folder}/chr{chr}_vep.tsv"
+         vep_tsv="{folder}/chr{chr}_vep.tsv",
+         moved_vep="results/annotation/vep/{params.output_type}/chr{chr}_vep.tsv"  # Direct output
     shell:
          "python3 {input.script} -v {input.vep} -s {input.vcf} "
-         "-r {input.genome} -g {input.grantham} -o {output} && "
-         "mkdir -p results/annotation/vep/derived && "
-         "mkdir -p results/annotation/vep/simulated && "
-         "mv results/derived_variants/singletons/*vep* results/annotation/vep/derived && "
-         "mv results/simulated_variants/trimmed_snps/*vep* results/annotation/vep/simulated "
+         "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} && "
+         "mkdir -p results/annotation/vep/{params.output_type} && "
+         "cp {output.vep_tsv} {output.moved_vep}"
+
 
 ################
 ##### GERP #####
@@ -180,6 +182,9 @@ rule compute_gerp:
     threads: 8
     singularity:
         "docker://quay.io/biocontainers/gerp:2.1--hfc679d8_0"
+    resources:
+        mem_mb=4000,
+        runtime=120  # 2 hours
     shell:
         '''
         gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log} &&
@@ -196,22 +201,20 @@ rule gerp2coords:
     This analysis is run as one job per genome chunk, but is internally run per contig.
     """
     input:
-       fasta = "results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-       gerp = "results/annotation/gerp/chr{chr}/{part}.rates",
-       script = workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
+       fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
+       gerp="results/annotation/gerp/chr{chr}/{part}.rates",
+       script=workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
     output:
-       "results/annotation/gerp/chr{chr}/{part}.rates.parsed"  # Removed {name} wildcard
+       "results/annotation/gerp/chr{chr}/{part}.rates.parsed"
     conda:
         get_conda_env("annotation")
     params:
-       reference_species = config['species_name']
+       reference_species=config['species_name']
     log:
-       "results/logs/chr{chr}_{part}_gerp_coord_log.txt"  # Removed {name} wildcard
+       "results/logs/chr{chr}_{part}_gerp_coord_log.txt"
     threads: 2
     shell:
-       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {log} && "
-       "mv {input.gerp} {output} 2>> {log} && "
-       "echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
+       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"
 
 ################################
 ##### PHYLOP and PHASTCONS #####
@@ -230,15 +233,14 @@ rule phylo_fit:
     output:
          "results/annotation/phast/phylo_model/chr{chr}/{part}.mod"
     shell:
-       """
-        grep -E -A1 "{params.tree_species}" {input} > tmp{wildcards.part}.fa
-        phyloFit \
-         --tree "{params.tree}" \
-         -p {params.precision} \
-         --subst-mod REV \
-         --out-root {params.out} \
-         tmp{wildcards.part}.fa && rm tmp{wildcards.part}.fa
-        """
+       "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa && "
+       "phyloFit "
+       "--tree '{params.tree}' "
+       "-p {params.precision} "
+       "--subst-mod REV "
+       "--out-root {params.out} "
+       "tmp{wildcards.part}.fa && "
+       "rm tmp{wildcards.part}.fa"
 
 rule run_phastCons: 
     input:
@@ -296,5 +298,17 @@ rule wig2bed_phyloP:
         get_conda_env("annotation")
     output:
         "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"
+    shell:
+        "wig2bed < {input} > {output}"
+
+rule wig2bed:
+    input:
+        "results/annotation/phast/{tool}/chr{chr}/{part}.wig"
+    conda:
+        get_conda_env("annotation")
+    output:
+        "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed"
+    wildcard_constraints:
+        tool="(phastCons|phyloP)"
     shell:
         "wig2bed < {input} > {output}"
