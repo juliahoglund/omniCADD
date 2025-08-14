@@ -58,8 +58,8 @@ rule fold_data:
     priority: 20
     threads: 4
     resources:
-        mem_mb = int(config["memory"]["dataset_mb"] * 2),
-        runtime = 120  # 2 hours for data folding
+        mem_mb = lambda wildcards, attempt: min(128000, int(config["memory"]["dataset_mb"] * attempt)),  # Aggressive scaling for large datasets
+        runtime = lambda wildcards, attempt: min(960, 120 * attempt)  # Up to 16 hours for large datasets
     output:
         test = expand("results/dataset/fold_{fold}.npz",
                fold = get_folds()),
@@ -70,12 +70,18 @@ rule fold_data:
     benchmark:
         "logs/benchmarks/fold_data.tsv"
     shell:
-        "mkdir -p results/dataset logs/benchmarks && "
+        ensure_dirs(*[f"results/dataset/fold_{fold}.npz" for fold in get_folds()]) +
         "python3 {input.script} "
         " -m {input.lib} "
         " -n {threads} "
         " -i {input.derived} {input.simulated} "
         " -o {output.test}"
+
+# Add function to handle fold dependencies
+def get_train_folds(fold):
+    """Get all folds except the test fold"""
+    all_folds = list(range(1, config["model"]["n_folds"] + 1))
+    return [f for f in all_folds if f != int(fold)]
 
 rule train_model:
     input:
@@ -83,25 +89,24 @@ rule train_model:
         test_m = "results/dataset/fold_{fold}.npz.meta.csv.gz",
         test_c ="results/dataset/fold_{fold}.npz.columns.csv",
         train = lambda wildcards: expand("results/dataset/fold_{fold}.npz",
-                                          fold=get_folds(wildcards.fold)),
+                                          fold=get_train_folds(wildcards.fold)),
         train_m = lambda wildcards: expand("results/dataset/fold_{fold}.npz.meta.csv.gz",
-                                            fold=get_folds(wildcards.fold)),
+                                            fold=get_train_folds(wildcards.fold)),
         train_c = lambda wildcards: expand("results/dataset/fold_{fold}.npz.columns.csv",
-                                            fold=get_folds(wildcards.fold)),
+                                            fold=get_train_folds(wildcards.fold)),
         script = workflow.source_path(SCRIPTS_7 + "train_model.py"),
         lib = workflow.source_path(SCRIPTS_7 + "data_helper.py")
     params:
         c = config["model"]["test_params"]["c"],
         max_iter = config["model"]["test_params"]["max_iter"],
         file_pattern = "results/model/{cols}/fold_{fold}_[C]C_[ITER]iter.mod",
-        sel_cols = lambda wildcards: "All" if wildcards.cols == "All" else \
-            config["model"]["column_subsets"][wildcards.cols]
+        sel_cols = config["model"]["column_subsets"].get("{cols}", "All")
     conda:
         get_conda_env("model")
     priority: 20
     resources:
-        mem_mb = config["memory"]["dataset_mb"],
-        runtime = 300  # 5 hours for model training (can be intensive)
+        mem_mb = lambda wildcards, attempt: min(64000, config["memory"]["dataset_mb"] * attempt),
+        runtime = lambda wildcards, attempt: min(720, 60 * attempt)  # Model training can take a long time
     threads: len(config["model"]["test_params"]["c"]) * \
              len(config["model"]["test_params"]["max_iter"])
     output:
@@ -123,22 +128,21 @@ rule train_model:
     log:
         "results/logs/model/train_{cols}_fold_{fold}.log"
     shell:
-         """
-         mkdir -p results/model/{wildcards.cols}
-         mkdir -p results/logs/model logs/benchmarks
-         
-         python3 {input.script} \
-         -m {input.lib} \
-         --train {input.train} \
-         --test {input.test} \
-         --columns {params.sel_cols} \
-         -c {params.c} \
-         -i {params.max_iter} \
-         --file-pattern {params.file_pattern} \
-         -n {threads} \
-         --save-weights \
+        '''
+        ''' + ensure_dirs("results/model/{wildcards.cols}", "results/logs/model", "logs/benchmarks") + '''
+        
+        python3 {input.script} \\
+         -m {input.lib} \\
+         --train {input.train} \\
+         --test {input.test} \\
+         --columns {params.sel_cols} \\
+         -c {params.c} \\
+         -i {params.max_iter} \\
+         --file-pattern {params.file_pattern} \\
+         -n {threads} \\
+         --save-weights \\
          --save-scaler {output.scaler} > {log} 2>&1
-         """
+         '''
 
 rule final_model:
     input:
@@ -160,8 +164,8 @@ rule final_model:
          get_conda_env("model")
     priority: 20
     resources:
-        mem_mb=config["memory"]["dataset_mb"],
-        runtime = 180  # 3 hours for final model training
+        mem_mb=lambda wildcards, attempt: min(96000, config["memory"]["dataset_mb"] * attempt),  # Final model needs lots of memory
+        runtime=lambda wildcards, attempt: min(1440, 180 * attempt)  # Up to 24 hours
     output:
           model="results/model/{cols}/full.mod.pickle",
           scaler="results/model/{cols}/full.scaler.pickle",
@@ -171,20 +175,19 @@ rule final_model:
     log:
         "results/logs/model/final_model_{cols}.log"
     shell:
-         """
-         mkdir -p results/model/{wildcards.cols}
-         mkdir -p results/logs/model logs/benchmarks
-         
-         python3 {input.script} \
-         -m {input.lib} \
-         --train {input.train} \
-         --columns {params.sel_cols} \
-         -c {params.c} \
-         -i {params.max_iter} \
-         --file-pattern {params.file_pattern} \
-         --save-weights \
+        '''
+        ''' + ensure_dirs("results/model/{wildcards.cols}", "results/logs/model", "logs/benchmarks") + '''
+        
+        python3 {input.script} \\
+         -m {input.lib} \\
+         --train {input.train} \\
+         --columns {params.sel_cols} \\
+         -c {params.c} \\
+         -i {params.max_iter} \\
+         --file-pattern {params.file_pattern} \\
+         --save-weights \\
          --save-scaler {output.scaler} > {log} 2>&1
-         """
+         '''
 
 rule evaluate_models:
     input:
@@ -210,7 +213,7 @@ rule evaluate_models:
     log:
         "results/logs/model/evaluate_models_{cols}.log"
     shell:
-        "mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks && "
+        ensure_dirs("results/model/{wildcards.cols}", "results/logs/model", "logs/benchmarks") +
         "python3 {input.script} "
         "--stats {input.stats} "
         "--summary {output.summary} "
