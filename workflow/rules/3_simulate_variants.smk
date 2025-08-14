@@ -70,6 +70,7 @@ rule simulate_snps:
     output:
         "results/simulated_variants/raw_snps/chr{chr}.vcf"
     shell:
+        ensure_dir("{output}") +
         "python3 {input.script} "
         "-i {input.reference} "
         "-c {wildcards.chr} "
