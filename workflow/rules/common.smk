@@ -13,19 +13,8 @@ import os
 import sys
 
 def get_conda_env(env_name):
-    """
-    Smart conda environment path resolver.
-    Automatically switches between generic and cluster-specific environments.
-    """
-    try:
-        result = subprocess.run(
-            [sys.executable, "workflow/conda_env_resolver.py", env_name],
-            capture_output=True, text=True, check=True
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        # Fallback to generic environment
-        return f"workflow/envs/{env_name}.yml"
+    """Return path to conda environment file"""
+    return f"workflow/envs/{env_name}.yml"
 
 """
 Global wildcard constraints, ease matching of wildcards in rules.
@@ -138,3 +127,20 @@ def load_tsv_configuration(file: str) -> dict:
           samples[parts[0]] = dict([(label, value) for label, value in zip(elements, parts[1:])])
      
      return samples
+
+script = workflow.source_path("scripts/step_1_extract_ancestor/clean_maf.py")
+# Add these script variables
+SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
+SCRIPTS_2 = "scripts/step_2_derive_variants/"
+SCRIPTS_3 = "scripts/step_3_simulate_variants/"
+SCRIPTS_4 = "scripts/step_4_summary_report/"
+SCRIPTS_5 = "scripts/step_5_annotate_variants"
+SCRIPTS_6 = "scripts/step_6_combine_annotations"
+SCRIPTS_7 = "scripts/step_7_train_test_model"
+SCRIPTS_8 = "scripts/step_8_score_variants"
+
+SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
+SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
+SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
+SCRIPTS_HELPER = "workflow/data_helper.py"
+
