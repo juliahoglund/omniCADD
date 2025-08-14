@@ -84,7 +84,7 @@ model:
   n_folds: 5
   test_params:
     c: [0.1, 1.0, 10.0]
-    max_iter: [100]
+    max_iter: [100, 200]
   final_params:
     c: 10.0
     max_iter: 100
