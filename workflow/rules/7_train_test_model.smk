@@ -58,7 +58,8 @@ rule fold_data:
     priority: 20
     threads: 4
     resources:
-        mem_mb = int(config["memory"]["dataset_mb"] * 2)
+        mem_mb = int(config["memory"]["dataset_mb"] * 2),
+        runtime = 120  # 2 hours for data folding
     output:
         test = expand("results/dataset/fold_{fold}.npz",
                fold = get_folds()),
@@ -66,7 +67,10 @@ rule fold_data:
                  fold = get_folds()),
         test_c = expand("results/dataset/fold_{fold}.npz.columns.csv",
                  fold = get_folds())
+    benchmark:
+        "logs/benchmarks/fold_data.tsv"
     shell:
+        "mkdir -p results/dataset logs/benchmarks && "
         "python3 {input.script} "
         " -m {input.lib} "
         " -n {threads} "
@@ -84,8 +88,6 @@ rule train_model:
                                             fold=get_folds(wildcards.fold)),
         train_c = lambda wildcards: expand("results/dataset/fold_{fold}.npz.columns.csv",
                                             fold=get_folds(wildcards.fold)),
-        sel_cols = lambda wildcards: [] if wildcards.cols == "All" else \
-                     config["model"]["column_subsets"][wildcards.cols],
         script = workflow.source_path(SCRIPTS_7 + "train_model.py"),
         lib = workflow.source_path(SCRIPTS_7 + "data_helper.py")
     params:
@@ -98,7 +100,8 @@ rule train_model:
         get_conda_env("model")
     priority: 20
     resources:
-        mem_mb = config["memory"]["dataset_mb"]
+        mem_mb = config["memory"]["dataset_mb"],
+        runtime = 300  # 5 hours for model training (can be intensive)
     threads: len(config["model"]["test_params"]["c"]) * \
              len(config["model"]["test_params"]["max_iter"])
     output:
@@ -115,8 +118,15 @@ rule train_model:
                        c=config["model"]["test_params"]["c"],
                        iter=config["model"]["test_params"]["max_iter"]),
         scaler = "results/model/{cols}/fold_{fold}.scaler.pickle"
+    benchmark:
+        "logs/benchmarks/train_model_{cols}_fold_{fold}.tsv"
+    log:
+        "results/logs/model/train_{cols}_fold_{fold}.log"
     shell:
          """
+         mkdir -p results/model/{wildcards.cols}
+         mkdir -p results/logs/model logs/benchmarks
+         
          python3 {input.script} \
          -m {input.lib} \
          --train {input.train} \
@@ -127,7 +137,7 @@ rule train_model:
          --file-pattern {params.file_pattern} \
          -n {threads} \
          --save-weights \
-         --save-scaler {output.scaler}
+         --save-scaler {output.scaler} > {log} 2>&1
          """
 
 rule final_model:
@@ -138,8 +148,6 @@ rule final_model:
                          fold=get_folds()),
           train_c=expand("results/dataset/fold_{fold}.npz.columns.csv",
                          fold=get_folds()),
-          sel_cols = lambda wildcards: [] if wildcards.cols == "All" else \
-            config["model"]["column_subsets"][wildcards.cols],
           script=workflow.source_path(SCRIPTS_7 + "train_model.py"),
           lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
     params:
@@ -152,13 +160,21 @@ rule final_model:
          get_conda_env("model")
     priority: 20
     resources:
-        mem_mb=config["memory"]["dataset_mb"]
+        mem_mb=config["memory"]["dataset_mb"],
+        runtime = 180  # 3 hours for final model training
     output:
           model="results/model/{cols}/full.mod.pickle",
           scaler="results/model/{cols}/full.scaler.pickle",
           weights="results/model/{cols}/full.mod.weights.csv"
+    benchmark:
+        "logs/benchmarks/final_model_{cols}.tsv"
+    log:
+        "results/logs/model/final_model_{cols}.log"
     shell:
          """
+         mkdir -p results/model/{wildcards.cols}
+         mkdir -p results/logs/model logs/benchmarks
+         
          python3 {input.script} \
          -m {input.lib} \
          --train {input.train} \
@@ -167,9 +183,38 @@ rule final_model:
          -i {params.max_iter} \
          --file-pattern {params.file_pattern} \
          --save-weights \
-         --save-scaler {output.scaler}
+         --save-scaler {output.scaler} > {log} 2>&1
          """
 
+rule evaluate_models:
+    input:
+        models = expand("results/model/{{cols}}/fold_{fold}_{c}C_{iter}iter.mod.pickle",
+                       fold=get_folds(),
+                       c=config["model"]["test_params"]["c"],
+                       iter=config["model"]["test_params"]["max_iter"]),
+        stats = expand("results/model/{{cols}}/fold_{fold}_{c}C_{iter}iter.mod.stats.txt",
+                      fold=get_folds(),
+                      c=config["model"]["test_params"]["c"],
+                      iter=config["model"]["test_params"]["max_iter"]),
+        script = workflow.source_path(SCRIPTS_7 + "evaluate_models.py")
+    conda:
+        get_conda_env("model")
+    resources:
+        mem_mb=4000,
+        runtime=60
+    output:
+        summary="results/model/{cols}/model_evaluation_summary.tsv",
+        best_params="results/model/{cols}/best_parameters.json"
+    benchmark:
+        "logs/benchmarks/evaluate_models_{cols}.tsv"
+    log:
+        "results/logs/model/evaluate_models_{cols}.log"
+    shell:
+        "mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks && "
+        "python3 {input.script} "
+        "--stats {input.stats} "
+        "--summary {output.summary} "
+        "--best-params {output.best_params} > {log} 2>&1"
 
 
 
