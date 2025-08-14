@@ -30,15 +30,15 @@ SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
 SCRIPTS_HELPER = "workflow/data_helper.py"
 
 ##### load modules  #####
-include: "rules/common.smk"     		# common functions
-include: "rules/1_extract_ancestor.smk"         # step one
-include: "rules/2_derive_variants.smk"          # step two
-include: "rules/3_simulate_variants.smk"        # step three
-include: "rules/4_summary_report.smk"           # step four
-include: "rules/5_annotate_vars.smk"   		# step five
-include: "rules/6_combine_annotations.smk"  	# step six
-include: "rules/7_train_test_model.smk"     	# step seven
-include: "rules/8_score_variants.smk"  		# step eight
+include: "workflow/rules/common.smk"
+include: "workflow/rules/1_extract_ancestor.smk"        # step one
+include: "workflow/rules/2_derive_variants.smk"         # step two
+include: "workflow/rules/3_simulate_variants.smk"       # step three
+include: "workflow/rules/4_summary_report.smk"          # step four
+include: "workflow/rules/5_annotate_vars.smk"   	# step five
+include: "workflow/rules/6_combine_annotations.smk"  	# step six
+include: "workflow/rules/7_train_test_model.smk"     	# step seven
+include: "workflow/rules/8_score_variants.smk"  	# step eight
 
 ##### target rules #####
 rule all:
