@@ -4,12 +4,55 @@ name: annotation_dardel
 channels:
   - conda-forge
   - bioconda
+  - intel
+  - defaults
 dependencies:
+  # Python environment
   - python=3.11
-  - pandas=2.1
-  - pysam=0.21
+  - pip
+  - setuptools
+  - wheel
+  
+  # Core bioinformatics tools
+  - bedops
   - ensembl-vep=110
+  - gffread
+  - htslib=1.18
+  - phast
+  - gerp
+  - samtools=1.18
+  - seqtk
+  - sift4g
   - bcftools=1.18
   - tabix=1.11
-  - htslib=1.18
-  - samtools=1.18
+  
+  # Scientific computing
+  - numpy
+  - pandas=2.1
+  
+  # System libraries and utilities
+  - bzip2
+  - ca-certificates
+  - certifi
+  - openssl
+  - ncurses
+  - tk
+  - xz
+  - zstd
+  
+  # Jupyter and notebook support
+  - jupyter_core
+  - nbformat
+  - jinja2
+  - markupsafe
+  
+  # pip packages
+  - pip:
+      - biopython>=1.83
+      - bioutils
+      - bx
+      - cialign
+      - configargparse
+      - matplotlib
+      - pysam=0.21
+      - scipy

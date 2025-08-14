@@ -4,11 +4,58 @@ name: simulation_dardel
 channels:
   - conda-forge
   - bioconda
+  - intel
+  - defaults
 dependencies:
+  # Python environment
   - python=3.11
+  - pip
+  - setuptools
+  - wheel
+  
+  # Essential utilities
+  - packaging
+  - platformdirs
+  - tqdm
+  - colorama
+  
+  # Network and requests
+  - requests
+  - urllib3
+  - cffi
+  - pycparser
+  - charset-normalizer
+  - idna
+  - pysocks
+  
+  # Scientific computing (Intel optimized)
   - numpy=1.24
   - scipy=1.11
   - pandas=2.1
   - matplotlib=3.7
   - seaborn=0.12
+  
+  # Bioinformatics
   - pysam=0.21
+  
+  # System libraries
+  - bzip2
+  - ca-certificates
+  - certifi
+  - libffi
+  - libzlib
+  - ncurses
+  - openssl
+  - readline
+  - tk
+  - xz
+  - zstd
+  
+  # Archive handling
+  - libarchive
+  - lz4-c
+  - lzo
+  
+  # pip packages
+  - pip:
+      - natsort>=8.0
