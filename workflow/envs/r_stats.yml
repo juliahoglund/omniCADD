@@ -1,0 +1,93 @@
+name: r_stats
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  - r-base=4.3
+  # Core R packages for data manipulation and visualization
+  - r-ggplot2
+  - r-dplyr
+  - r-tidyr
+  - r-readr
+  - r-stringr
+  - r-forcats
+  - r-purrr
+  - r-tibble
+  
+  # Statistical and modeling packages
+  - r-mass
+  - r-mgcv
+  - r-nlme
+  - r-survival
+  - r-cluster
+  - r-lattice
+  - r-matrix
+  - r-boot
+  - r-class
+  - r-codetools
+  - r-foreign
+  - r-kernsmooth
+  - r-nnet
+  - r-rpart
+  - r-spatial
+  
+  # Documentation and reporting
+  - r-rmarkdown
+  - r-knitr
+  - r-markdown
+  - r-yaml
+  - r-htmltools
+  - r-evaluate
+  - r-highr
+  - r-xfun
+  - r-tinytex
+  
+  # Graphics and plotting
+  - r-scales
+  - r-gtable
+  - r-munsell
+  - r-colorspace
+  - r-rcolorbrewer
+  - r-viridislite
+  - r-farver
+  - r-labeling
+  - r-isoband
+  
+  # Utilities
+  - r-magrittr
+  - r-rlang
+  - r-glue
+  - r-cli
+  - r-crayon
+  - r-fansi
+  - r-utf8
+  - r-pillar
+  - r-pkgconfig
+  - r-lifecycle
+  - r-vctrs
+  - r-ellipsis
+  - r-backports
+  - r-digest
+  - r-mime
+  - r-jsonlite
+  - r-base64enc
+  - r-htmlwidgets
+  
+  # Development and parsing
+  - r-rstudioapi
+  - r-remotes
+  - r-withr
+  - r-processx
+  - r-callr
+  - r-ps
+  - r-assertthat
+  - r-cpp11
+  
+  # Bioinformatics tools and miscellaneous
+  - bedtools
+  - samtools
+  - bcftools
+  - gzip
+  - grep
+  - awk

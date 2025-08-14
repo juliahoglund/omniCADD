@@ -1,0 +1,130 @@
+name: r_stats
+channels:
+  - conda-forge
+  - bioconda
+  - r
+  - defaults
+  - file:///sw/apps/conda/latest/rackham/local_repo/conda-forge
+  - file:///sw/apps/conda/latest/rackham/local_repo/scilifelab-lts
+  - file:///sw/apps/conda/latest/rackham/local_repo/r
+  - file:///sw/apps/conda/latest/rackham/local_repo/main
+  - file:///sw/apps/conda/latest/rackham/local_repo/bioconda
+  - file:///sw/apps/conda/latest/rackham/local_repo/free
+  - file:///sw/apps/conda/latest/rackham/local_repo/pro
+  - file:///sw/apps/conda/latest/rackham/local_repo/qiime2
+  - file:///sw/apps/conda/latest/rackham/local_repo/biocore
+  - file:///sw/apps/conda/latest/rackham/local_repo/dranew
+  - file:///sw/apps/conda/latest/rackham/local_repo/r2018.11
+  - file:///sw/apps/conda/latest/rackham/local_repo/nvidia
+  - file:///sw/apps/conda/latest/rackham/local_repo/pytorch
+  - file:///sw/apps/conda/latest/rackham/local_repo/anaconda
+dependencies:
+  # R environment
+  - r-base=4.3
+  - r-essentials
+  
+  # Core R packages for data manipulation and visualization
+  - r-ggplot2
+  - r-dplyr
+  - r-tidyr
+  - r-readr
+  - r-stringr
+  - r-forcats
+  - r-purrr
+  - r-tibble
+  
+  # Statistical and modeling packages
+  - r-mass
+  - r-mgcv
+  - r-nlme
+  - r-survival
+  - r-cluster
+  - r-lattice
+  - r-matrix
+  - r-boot
+  - r-class
+  - r-codetools
+  - r-foreign
+  - r-kernsmooth
+  - r-nnet
+  - r-rpart
+  - r-spatial
+  
+  # Documentation and reporting
+  - r-rmarkdown
+  - r-knitr
+  - r-markdown
+  - r-yaml
+  - r-htmltools
+  - r-evaluate
+  - r-highr
+  - r-xfun
+  - r-tinytex
+  
+  # Graphics and plotting
+  - r-scales
+  - r-gtable
+  - r-munsell
+  - r-colorspace
+  - r-rcolorbrewer
+  - r-viridislite
+  - r-farver
+  - r-labeling
+  - r-isoband
+  
+  # Utilities
+  - r-magrittr
+  - r-rlang
+  - r-glue
+  - r-cli
+  - r-crayon
+  - r-fansi
+  - r-utf8
+  - r-pillar
+  - r-pkgconfig
+  - r-lifecycle
+  - r-vctrs
+  - r-ellipsis
+  - r-backports
+  - r-digest
+  - r-mime
+  - r-jsonlite
+  - r-base64enc
+  - r-htmlwidgets
+  
+  # Development and parsing
+  - r-rstudioapi
+  - r-remotes
+  - r-withr
+  - r-processx
+  - r-callr
+  - r-ps
+  - r-assertthat
+  - r-cpp11
+  
+  # Bioinformatics tools
+  - bedtools
+  - samtools
+  - bcftools
+  
+  # System tools
+  - gzip
+  - grep
+  - gawk
+  
+  # Python for mixed workflows
+  - python=3.10
+  - pip
+  
+  # System libraries
+  - bzip2
+  - ca-certificates
+  - certifi
+  - libffi
+  - libzlib
+  - ncurses
+  - openssl
+  - readline
+  - tk
+  - xz
+  - zstd
