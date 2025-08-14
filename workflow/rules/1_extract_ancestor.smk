@@ -25,15 +25,28 @@ from snakemake.io import expand, glob_wildcards
  This is because MAF duplicate finder only supports [actgACTG-Nn].
 """
 rule clean_ambiguous:
-	input:
-		maf = lambda wildcards: f"{config['alignment']['path']}{wildcards.part}.maf.gz",
-		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
-	conda:
-		get_conda_env("ancestor")
-	output:
-		temp("results/alignment/cleaned_maf/{part}.maf.gz")
-	shell:
-		"python3 {input.script} -i {input.maf} -o {output}"
+    input:
+        "resources/alignment/{part}.maf.gz"
+    params:
+        name_ancestor=config["mark_ancestor"]["name_ancestor"],
+        name_reference=config["species_name"],
+        name_outgroup=config["mark_ancestor"]["outgroup"],
+        p_n=config["mark_ancestor"]["p_n"],
+        p_gap=config["mark_ancestor"]["p_gap"],
+        script=workflow.source_path(SCRIPTS_1 + "clean_ambiguous_sites.py")
+    conda:
+        get_conda_env("alignment")
+    resources:
+        mem_mb=lambda wildcards, attempt: min(32000, 4000 * attempt),  # Scale memory on retry
+        runtime=lambda wildcards, attempt: min(480, 60 * attempt)      # Scale runtime on retry
+    threads: 2
+    output:
+        temp("results/alignment/cleaned_maf/{part}.maf.gz")
+    shell:
+        ensure_dir("{output}") +
+        "python3 {params.script} "
+        " -i {input.maf} "
+        " -o {output}"
 
 
 """
@@ -108,7 +121,9 @@ rule maf_df:
 	output:
 		temp("results/alignment/dedup/{part}.maf.lz4")
 	shell:
-		"gzip -dc {input} | mafDuplicateFilter --maf /dev/stdin | lz4 -f stdin {output}"
+		ensure_dir("{output}") +
+		"lz4 -dc {input} | "
+		"mafDuplicateFilter --maf /dev/stdin | lz4 -f stdin {output}"
 
 """
  Reorders species within any alignment block, so that the wanted species are in front.
@@ -164,29 +179,25 @@ def gather_part_files():
 """
 rule sort_by_chr: # sort by chromosome
 	input:
-		maf = lambda wildcards: gather_part_files(),
-		script = workflow.source_path(SCRIPTS_1 + 'sort_by_chromosome.py')
-	params:
-		species_name=config["alignment"]["name_species_interest"],
-		directory = "results/alignment/merged/",
-		chromosomes = config["chromosomes"]["karyotype"],
-		ancestor = config['mark_ancestor']['name_ancestor']
-	conda:
-		get_conda_env("ancestor") 
-	log:
-		"results/logs/merging.log"
+		get_split_alignment
+    conda:
+        get_conda_env("alignment")
+    resources:
+        mem_mb=lambda wildcards, attempt: min(64000, 8000 * attempt),  # Large memory for sorting
+        runtime=lambda wildcards, attempt: min(720, 120 * attempt),
+        tmpdir="results/tmp/sort_chr"
+    threads: 8
 	output:
 		out_chr = expand("results/alignment/merged/chr{chr}.maf",
 			chr=config["chromosomes"]["karyotype"])
 	shell:
-		'''
-		mkdir -p {params.directory}
-		python3 {input.script} \
-		 -s {params.species_name} \
-		 -i {input.maf} \
-		 -c {params.chromosomes} \
-		 -a {params.ancestor} \
-		 -o {params.directory}
+		ensure_dirs(*[f"results/alignment/merged/chr{chr}.maf" for chr in config["chromosomes"]["karyotype"]]) +
+		"python3 {input.script} "
+		 "-s {params.species_name} "
+		 "-i {input.maf} "
+		 "-c {params.chromosomes} "
+		 "-a {params.ancestor} "
+		 "-o {params.directory}"
 		'''
 
 """	
