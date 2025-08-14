@@ -180,13 +180,13 @@ rule sort_by_chr: # sort by chromosome
 			chr=config["chromosomes"]["karyotype"])
 	shell:
 		'''
+		mkdir -p {params.directory}
 		python3 {input.script} \
 		 -s {params.species_name} \
 		 -i {input.maf} \
 		 -c {params.chromosomes} \
-		 -a {params.ancestor} &&
-		
-		gzip -9 chr*.maf && mv chr*.maf.gz {params.directory}
+		 -a {params.ancestor} \
+		 -o {params.directory}
 		'''
 
 """	
