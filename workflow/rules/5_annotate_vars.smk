@@ -65,6 +65,7 @@ rule run_vep:
     output:
           temp("{folder}/{file}_vep_output.tsv")
     shell:
+         ensure_dir("{output}") +
          "chmod +x {input.script} && "
          "{input.script} {input.vcf} {output} "
          "{params.cache_dir} {params.species_name} {threads} && "
@@ -90,7 +91,9 @@ rule process_vep:
          vep_tsv="{folder}/chr{chr}_vep.tsv",
          moved_vep="results/annotation/vep/{params.output_type}/chr{chr}_vep.tsv"  # Direct output
     shell:
-         "python3 {input.script} -v {input.vep} -s {input.vcf} "
+         ensure_dir("{output}") +
+         "python3 {input.script} "
+         "-v {input.vep} -s {input.vcf} "
          "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} && "
          "mkdir -p results/annotation/vep/{params.output_type} && "
          "cp {output.vep_tsv} {output.moved_vep}"
@@ -173,18 +176,19 @@ rule compute_gerp:
     input:
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
         tree=config["annotation"]['gerp']["tree"],
+        script=workflow.source_path(SCRIPTS_5 + "run_gerp.py")
+    conda:
+        get_conda_env("annotation")
+    resources:
+        mem_mb=lambda wildcards, attempt: min(16000, 2000 * attempt),  # GERP can be memory intensive
+        runtime=lambda wildcards, attempt: min(360, 60 * attempt)
+    threads: 4
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates")
     params:
         reference_species =  config['species_name']
     log:
        "results/logs/chr{chr}_{part}_gerpcol_log.txt",
-    threads: 8
-    singularity:
-        "docker://quay.io/biocontainers/gerp:2.1--hfc679d8_0"
-    resources:
-        mem_mb=4000,
-        runtime=120  # 2 hours
     shell:
         '''
         gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log} &&
@@ -261,16 +265,6 @@ rule run_phastCons:
          #" --not-informative={params.species_interest} "
          "{params.phast_params} {input.maf} {input.mod} > {output}"
 
-rule wig2bed_phastCons:
-    input:
-        "results/annotation/phast/phastCons/chr{chr}/{part}.wig",
-    conda:
-        get_conda_env("annotation")
-    output:
-        "results/annotation/phast/phastCons/chr{chr}/{part}.phastCons.bed" 
-    shell:
-        "wig2bed < {input} > {output}"
-
 rule run_phyloP:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
@@ -278,28 +272,19 @@ rule run_phyloP:
     params:
         species_interest = config['species_name'],
         phylo_params=config['annotation']["phast"]["phyloP_params"]
-    benchmark:
-        "logs/annotation/phast/phyloP/chr{chr}/{part}.tsv"
     conda:
-        get_conda_env("annotation") 
+        get_conda_env("annotation")
+    resources:
+        mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
+        runtime=lambda wildcards, attempt: min(240, 40 * attempt)
+    threads: 2
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig")
-    threads: 2
     shell:
         "phyloP --msa-format FASTA "
         "--chrom {wildcards.chr} --wig-scores "
         "{params.phylo_params} {input.mod} "
         "{input.maf} > {output} "
-
-rule wig2bed_phyloP:
-    input:
-        "results/annotation/phast/phyloP/chr{chr}/{part}.wig",
-    conda:
-        get_conda_env("annotation")
-    output:
-        "results/annotation/phast/phyloP/chr{chr}/{part}.phylo.bed"
-    shell:
-        "wig2bed < {input} > {output}"
 
 rule wig2bed:
     input:
