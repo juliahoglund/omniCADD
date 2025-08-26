@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/env perl 
 # from mugsy; multiple whole genome alignment tool
 # from fork https://github.com/kloetzl/mugsy of 
 # Angiuoli et al 2010; https://sourceforge.net/projects/mugsy/

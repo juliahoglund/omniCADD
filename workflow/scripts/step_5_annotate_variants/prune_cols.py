@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Prune certain columns from alignment
 Modified by: Julia Höglund 2025-03-05
