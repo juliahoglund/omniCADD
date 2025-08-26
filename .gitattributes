@@ -1,0 +1,40 @@
+# .gitattributes
+# Define language detection for omniCADD repository
+
+# Snakemake files
+*.smk linguist-language=Python
+Snakefile linguist-language=Python
+
+# Python scripts
+*.py linguist-language=Python
+
+# R scripts  
+*.R linguist-language=R
+*.r linguist-language=R
+
+# Shell scripts
+*.sh linguist-language=Shell
+*.bash linguist-language=Shell
+
+# Perl scripts
+*.pl linguist-language=Perl
+
+# Configuration files
+*.yaml linguist-language=YAML
+*.yml linguist-language=YAML
+*.json linguist-language=JSON
+
+# Documentation (don't count towards language stats)
+*.md linguist-documentation=true
+*.rst linguist-documentation=true
+*.txt linguist-documentation=true
+
+# Generated/vendor files (exclude from language stats)
+*.html linguist-generated=true
+results/* linguist-generated=true
+logs/* linguist-generated=true
+.snakemake/* linguist-generated=true
+
+# Config and data directories
+config/* linguist-vendored=true
+resources/* linguist-vendored=true
