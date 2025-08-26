@@ -109,18 +109,22 @@ checkpoint split_alignment:
     chunks, they are also converted to fasta format in preparation for annotations
     """
     input:
-        maf="results/alignment/sorted/chr{chr}.maf.gz",
-        script=workflow.source_path(SCRIPTS_5 + "split_alignments.py")
-    output:
-        folder=directory("results/alignment/splitted/chr{chr}/"),
+        "results/alignment/merged/chr{chr}.maf"
     params:
-        n_chunks=config['annotation']['gerp']['n_chunks'],
-        reference_species=config['species_name']
+        blocksize=config["parallelization"]["alignment_positions_per_file"]
     conda:
-        get_conda_env("annotation")
-    threads: 4
+        get_conda_env("alignment")
+    resources:
+        mem_mb=4000,
+        runtime=60
+    output:
+        directory("results/alignment/splitted/chr{chr}/")  
     shell:
-        "python3 {input.script} {input.maf} {params.n_chunks} {output.folder} {params.reference_species}"
+        ensure_dir("{output}") +
+        "python3 {workflow.source_path(SCRIPTS_5 + 'split_alignment.py')} "
+        "-i {input} "
+        "-o {output} "
+        "-s {params.blocksize}"
 
 
 # script from mugsy [ref]; 
@@ -186,14 +190,12 @@ rule compute_gerp:
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates")
     params:
-        reference_species =  config['species_name']
+        reference_species = config['species_name']
     log:
        "results/logs/chr{chr}_{part}_gerpcol_log.txt",
     shell:
         '''
-        gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log} &&
-          mv {input.fasta}.rates {output} 2>> {log} &&
-          echo "Computed GERP++ scores for" {input.fasta} >> {log}
+        gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log}
         '''
 
 # adapted from generode [ref]
@@ -255,15 +257,20 @@ rule run_phastCons:
         phast_params=config['annotation']["phast"]["phastCons_params"]
     conda:
         get_conda_env("annotation")
+    resources:
+        mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
+        runtime=lambda wildcards, attempt: min(240, 40 * attempt)
     output:
          temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig")
     threads: 2
     shell:
-         "phastCons "
-         " --msa-format FASTA "
-         # computed using pig right now because cannot disregard reference.
-         #" --not-informative={params.species_interest} "
-         "{params.phast_params} {input.maf} {input.mod} > {output}"
+         '''
+         ''' + ensure_dir("{output}") + '''
+         phastCons \
+         --msa-format FASTA \
+         --not-informative={params.species_interest} \
+         {params.phast_params} {input.maf} {input.mod} > {output}
+         '''
 
 rule run_phyloP:
     input:
@@ -281,10 +288,14 @@ rule run_phyloP:
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig")
     shell:
-        "phyloP --msa-format FASTA "
-        "--chrom {wildcards.chr} --wig-scores "
-        "{params.phylo_params} {input.mod} "
-        "{input.maf} > {output} "
+        '''
+        ''' + ensure_dir("{output}") + '''
+        phyloP --msa-format FASTA \
+        --chrom {wildcards.chr} --wig-scores \
+        --not-informative={params.species_interest} \
+        {params.phylo_params} {input.mod} \
+        {input.maf} > {output}
+        '''
 
 rule wig2bed:
     input:
