@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from data_helper import load_dataset, save_npz_with_meta
 
