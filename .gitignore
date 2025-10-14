@@ -13,6 +13,7 @@ data/graphsSheep.RData
 data/indexfile.txt
 
 .DS_Store
+.snakemake/
 .snakemake/.DS_Store
 .snakemake/log/.DS_Store
 config/.DS_Store
