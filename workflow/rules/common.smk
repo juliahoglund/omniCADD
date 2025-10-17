@@ -37,17 +37,16 @@ Global wildcard constraints, ease matching of wildcards in rules.
 Chr is constrained to only be numbers or letters.
 Name, label and file may not contain /, they may not be sub-folders.
 """
-wildcard_constraints:   
-     chr="[0-9XY]+",
-     part="[0-9]+",
-     fold="[0-9]+",
-     type="(simulated|derived|validation)",
-     cols="(All|[A-Za-z0-9_]+)",
-     ancestor="[A-Za-z0-9_]+",
-     c="[0-9.]+",
-     iter="[0-9]+",
-     tool="(phastCons|phyloP)"
-
+wildcard_constraints:
+    chr="[0-9XY]+",
+    part="[0-9]+",
+    fold="[0-9]+",
+    type="(simulated|derived|validation)",
+    cols="(All|[A-Za-z0-9_]+)",
+    ancestor="[A-Za-z0-9_]+",
+    c="[0-9.]+",
+    iter="[0-9]+",
+    tool="(phastCons|phyloP)"
 """
 Bgzip_tabix combines bgzip and the tabix rule to reduce overhead.
 This prioritises the combined rule over just tabix,
