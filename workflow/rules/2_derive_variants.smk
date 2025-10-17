@@ -18,7 +18,7 @@
  Generates frequency files form the population variants (vcf files).
  Population frequency files are used for the generation of the derived variants, 
  since the genome is only constructed with one organism in mind and there may be some variations varying between different individuals.
- The intent is to filter out young derived variants that have not been subject to many generations of natural selection,
+ The intent is to filter out young derived variants that have not been subject to many generations
  by filtering for high prevalence or fixation in the population.
 """
 rule freq_files:
