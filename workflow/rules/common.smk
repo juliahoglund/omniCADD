@@ -24,9 +24,9 @@ SCRIPTS_7 = "scripts/step_7_train_test_model"
 SCRIPTS_8 = "scripts/step_8_score_variants"
 
 SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
-SCRIPTS_FASTA2BED = "workflow/fasta2bed.py"
-SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
-SCRIPTS_HELPER = "workflow/data_helper.py"
+SCRIPTS_FASTA2BED = "scripts/fasta2bed.py"
+SCRIPTS_EMF2MAF = "scripts/emftomaf.pl"
+SCRIPTS_HELPER = "scripts/data_helper.py"
 
 def get_conda_env(env_name):
     """Return path to conda environment file"""
@@ -149,7 +149,7 @@ def load_tsv_configuration(file: str) -> dict:
      
      return samples
 
-script = workflow.source_path("scripts/step_1_extract_ancestor/clean_maf.py")
+script = workflow.source_path("../scripts/step_1_extract_ancestor/clean_maf.py")
 
 def ensure_dir(path):
     """Helper function to ensure directory exists"""
