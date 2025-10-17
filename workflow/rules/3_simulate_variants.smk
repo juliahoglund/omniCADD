@@ -91,12 +91,12 @@ rule simulate_indels:
     output:
         "results/simulated_variants/raw_indels/chr{chr}.vcf"
     shell:
-        "python3 {input.script}"
-        " -i {input.reference}"
-        " -c {wildcards.chr}"
-        " -p {input.params}"
-        " --indels {output}"
-        
+        ensure_dir("{output}") + \
+        "python3 {input.script} " \
+        "-i {input.reference} " \
+        "-c {wildcards.chr} " \
+        "-p {input.params} " \
+        "--indels {output}"
 
 """
  Filters the simulated variants for variants that are generated on the ancestral sequence (and not on gaps).
@@ -111,17 +111,16 @@ rule filter_variants:
     output:
         "results/simulated_variants/filtered_{type}/chr{chr}.vcf"
     shell:
-        "python3 {input.script} "
-        "-i {input.variants} "
-        "-a {input.ancestral} "
-        "-o {output} "
-
+        "python3 {input.script} " \
+        "-i {input.variants} " \
+        "-a {input.ancestral} " \
+        "-o {output}"
 
 """
 Variants are generated and filtered for each chromosome in parallel.
 Trimming is done for the whole variant set so they are first merged into one
 """
-rule merge_by_chr:
+rule chrom_to_all:
     input:
         raw=expand("results/simulated_variants/raw_{{type}}/chr{chr}.vcf", 
             chr=config["chromosomes"]["karyotype"]),
@@ -161,17 +160,14 @@ rule check_substitutions_rates:
         raw="results/visualisation/raw_summary.log",
         filtered="results/visualisation/filtered_summary.log",
         params="results/visualisation/parameter_summary.log"
-
     shell:
-        
-        "python3 {input.script} "
-        "--sim-snps {input.snps} "
-        "--trimmed-snps {input.trimmed_snps} "
-        "--param-logfiles {input.params} "
-        "--snp-outfile {output.raw} "
-        "--trimmed-outfile {output.filtered} "
+        "python3 {input.script} " \
+        "--sim-snps {input.snps} " \
+        "--trimmed-snps {input.trimmed_snps} " \
+        "--param-logfiles {input.params} " \
+        "--snp-outfile {output.raw} " \
+        "--trimmed-outfile {output.filtered} " \
         "--param-outfile {output.params}"
-        
 
 """
 Trims the vcf file to the desired number of variants. This is done because 
@@ -191,10 +187,10 @@ rule trim_vcf:
     output:
         "results/simulated_variants/trimmed_snps/all_chr.vcf"
     shell:
-        "python3 {input.script} "
-        "-i {input.vcf} "
-        "-o {output} "
-        "-c $(cat {input.simulated_count}) "
+        "python3 {input.script} " \
+        "-i {input.vcf} " \
+        "-o {output} " \
+        "-c $(cat {input.simulated_count}) " \
         "-d $(cat {input.derived_count})"
 
 """
