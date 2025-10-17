@@ -20,7 +20,7 @@ rule create_parameters:
     input:
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         reference=config["generate_variants"]["reference_genome_wildcard"],
-        script=workflow.source_path(SCRIPTS_3 + "create_parameters.py")
+        script=workflow.source_path("../scripts/step_3_simulate_variants/create_parameters.py")
     conda:
         get_conda_env("simulation")
     output:
@@ -40,7 +40,7 @@ rule process_parameters:
     input:
         parameters=expand("results/simulated_variants/parameters/chr{chr}.txt", chr=config["chromosomes"]["karyotype"]),
         derived_count="results/derived_variants/singletons/total.count",
-        script=workflow.source_path(SCRIPTS_3 + "process_parameters.py")
+        script=workflow.source_path("../scripts/step_3_simulate_variants/process_parameters.py")
     params:
         factor=config["generate_variants"]["simulate"]["overestimation_factor"]
     conda:
@@ -64,7 +64,7 @@ rule simulate_snps:
     input:
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl",
-        script=workflow.source_path(SCRIPTS_3 + "simulate_variants.py")
+        script=workflow.source_path("../scripts/step_3_simulate_variants/simulate_variants.py")
     conda:
         get_conda_env("simulation")
     output:
@@ -85,7 +85,7 @@ rule simulate_indels:
     input:
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl",
-        script=workflow.source_path(SCRIPTS_3 + "simulate_variants.py")
+        script=workflow.source_path("../scripts/step_3_simulate_variants/simulate_variants.py")
     conda:
         get_conda_env("simulation")
     output:
@@ -105,7 +105,7 @@ rule filter_variants:
     input:
         variants="results/simulated_variants/raw_{type}/chr{chr}.vcf",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
-        script=workflow.source_path(SCRIPTS_3 + "filter_variants.py")
+        script=workflow.source_path("../scripts/step_3_simulate_variants/filter_variants.py")
     conda:
         get_conda_env("simulation")
     output:
@@ -154,7 +154,7 @@ rule check_substitutions_rates:
         trimmed_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         params=expand("results/simulated_variants/parameters/chr{chr}.txt", 
             chr=config["chromosomes"]["karyotype"]),
-        script=workflow.source_path(SCRIPTS_3 + "check_substitution_rates.py")
+        script=workflow.source_path("../scripts/step_3_simulate_variants/check_substitution_rates.py")
     conda:
          get_conda_env("simulation")
     output:
@@ -185,7 +185,7 @@ rule trim_vcf:
          vcf="results/simulated_variants/filtered_snps/all_chr.vcf",
          simulated_count="results/simulated_variants/filtered_snps/all_chr.vcf.count",
          derived_count="results/derived_variants/singletons/total.count",
-         script=workflow.source_path(SCRIPTS_3 + "trim_vcf.py")
+         script=workflow.source_path("../scripts/step_3_simulate_variants/trim_vcf.py")
     conda:
          get_conda_env("simulation")
     output:

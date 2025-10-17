@@ -22,7 +22,7 @@ rule create_summary:
         parameter_log = 'results/visualisation/parameter_summary.log',
         raw_log = 'results/visualisation/raw_summary.log',
         filtered_log = 'results/visualisation/filtered_summary.log',
-        script = workflow.source_path(SCRIPTS_4 + 'generate_summary_info.R')
+        script = workflow.source_path("../scripts/step_4_summary_report/generate_summary_info.R")
     conda:
         get_conda_env("r_stats")
     output:
@@ -78,7 +78,7 @@ rule create_datafiles:
         annotation = 'results/visualisation/Ancestor.bed' if config['stats_report']['annotation'] == 'True' else [],
         bedfile = 'results/visualisation/CDS.regions.bed' if config['stats_report']['annotation'] == 'True' else [],
         coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else [],
-        script = workflow.source_path(SCRIPTS_4 + 'stats_report.Rmd')
+        script = workflow.source_path("../scripts/step_4_summary_report/stats_report.Rmd")
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
@@ -116,7 +116,7 @@ rule create_stats_report:
         annotation = 'results/visualisation/Ancestor.bed' if config['stats_report']['annotation'] == 'True' else [],
         bedfile = 'results/visualisation/CDS.regions.bed' if config['stats_report']['annotation'] == 'True' else [],
         coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else [],
-        script = workflow.source_path(SCRIPTS_4 + 'stats_report.Rmd')
+        script = workflow.source_path("../scripts/step_4_summary_report/stats_report.Rmd")
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
