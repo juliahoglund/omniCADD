@@ -94,6 +94,7 @@ model:
 ##### COMPUTATIONAL RESOURCES #####
 parallelization:
   whole_genome_positions_per_file: 500000
+  alignment_positions_per_file: 500000
 
 memory:
   dataset_mb: 32000      # Base memory for dataset operations
