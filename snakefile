@@ -9,7 +9,7 @@ omniCADD_version = "0.0.1"
 min_version("7.21.0")
 
 ##### Load config #####
-configfile: "config.yaml"
+configfile: "config/config.yaml"
 
 ##### PARAMS #####
 REFERENCE = "resources/genome/"
