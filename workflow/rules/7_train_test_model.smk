@@ -33,10 +33,8 @@ def get_folds(excluding = None) -> list:
             folds.remove(excluding)
     return folds
 
-"""
-Loads the different dataset chunks and merges them.
-The dataset is then split into n_folds which are each written to disk
-"""
+# Loads the different dataset chunks and merges them.
+# The dataset is then split into n_folds which are each written to disk
 rule fold_data:
     input:
         derived = expand("results/dataset/derived/chr{chr}.npz",
@@ -53,6 +51,8 @@ rule fold_data:
                       chr=config["chromosomes"]["train"]),
         script=workflow.source_path(f"{SCRIPTS_7}fold_data.py"),
         lib=workflow.source_path(SCRIPTS_HELPER)
+    log:
+        "results/logs/train_test_model/fold_data.log"
     conda: 
         get_conda_env("model")
     priority: 20
@@ -75,12 +75,12 @@ rule fold_data:
         " -m {input.lib} "
         " -n {threads} "
         " -i {input.derived} {input.simulated} "
-        " -o {output.test}"
+        " -o {output.test} 2> {log}"
 
-# Add function to handle fold dependencies
+# Helper function to get training folds (all except test fold)
 def get_train_folds(fold):
     """Get all folds except the test fold"""
-    all_folds = list(range(1, config["model"]["n_folds"] + 1))
+    all_folds = list(range(config["model"]["n_folds"]))
     return [f for f in all_folds if f != int(fold)]
 
 rule train_model:

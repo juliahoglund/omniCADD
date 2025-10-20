@@ -83,6 +83,8 @@ rule run_genome_vep:
     params:
           cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
+    log:
+          "results/logs/score_variants/run_genome_vep/chr{chr}_{part}.log"
     conda:
          get_conda_env("annotation") 
     threads: 2
@@ -98,10 +100,10 @@ rule run_genome_vep:
          '''
          ''' + ensure_dirs("$(dirname {output})", "logs/benchmarks") + '''
          
-         chmod +x {input.script} && \\
+         chmod +x {input.script} 2>> {log} && \\
          {input.script} {input.vcf} {output} \\
-         {params.cache_dir} {params.species_name} {threads} && \\
-         [[ -s {output} ]]
+         {params.cache_dir} {params.species_name} {threads} 2>> {log} && \\
+         [[ -s {output} ]] 2>> {log}
          '''
 
 """
@@ -115,6 +117,8 @@ rule process_genome_vep:
          genome=config["generate_variants"]["reference_genome_wildcard"],
          grantham=workflow.source_path("../../resources/grantham_matrix/grantham_table.tsv"), 
          script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
+    log:
+         "results/logs/score_variants/process_genome_vep/chr{chr}_{part}.log"
     conda:
          get_conda_env("common")
     resources:
@@ -127,11 +131,11 @@ rule process_genome_vep:
          temp("results/whole_genome_annotations/chr{chr}/{part}.vep.tsv")
     shell:
          """
-         mkdir -p $(dirname {output})
-         mkdir -p logs/benchmarks
+         mkdir -p $(dirname {output}) 2>> {log}
+         mkdir -p logs/benchmarks 2>> {log}
          
          python3 {input.script} -v {input.vep} -s {input.vcf} \
-         -r {input.genome} -g {input.grantham} -o {output} --multiple
+         -r {input.genome} -g {input.grantham} -o {output} --multiple 2>> {log}
          """
 
 rule intersect_genomewide:
@@ -139,6 +143,8 @@ rule intersect_genomewide:
         vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(f"{SCRIPTS_6}merge_annotations.py"),
+    log:
+        "results/logs/score_variants/intersect_genomewide/chr{chr}_{part}.log"
     conda:
         get_conda_env("annotation")
     threads: 8
@@ -151,13 +157,13 @@ rule intersect_genomewide:
         temp("results/whole_genome_annotations/chr{chr}/{part}_annotated.tsv")  
     shell:
         """
-        mkdir -p $(dirname {output})
-        mkdir -p logs/benchmarks
+        mkdir -p $(dirname {output}) 2>> {log}
+        mkdir -p logs/benchmarks 2>> {log}
         
         python3 {input.script} \
         -v {input.vep} \
         -b {input.bed} \
-        -o {output}
+        -o {output} 2>> {log}
         """
 
 rule prepare_whole_genome:
@@ -209,6 +215,8 @@ rule score_variants:
         scaler="results/model/{cols}/full.scaler.pickle",
         model="results/model/{cols}/full.mod.pickle",
         script=workflow.source_path(f"{SCRIPTS_8}model_predict.py"),
+    log:
+        "results/logs/score_variants/score_variants/{cols}_chr{chr}_{part}.log"
     conda:
          get_conda_env("score")
     threads: 4
@@ -229,7 +237,7 @@ rule score_variants:
         --scaler {input.scaler} \\
         -o {output} \\
         --sort \\
-        --no-header
+        --no-header 2> {log}
         '''
 
 """
@@ -239,6 +247,8 @@ PHRED score generation
 rule sort_raw_scores:
     input:
          gather_scores  
+    log:
+         "results/logs/score_variants/sort_raw_scores/chr{chr}.log"
     threads: 8
     resources:
         mem_mb=lambda wildcards, attempt: min(128000, config["memory"]["dataset_mb"] * attempt),
@@ -248,6 +258,8 @@ rule sort_raw_scores:
         "logs/benchmarks/sort_raw_scores_chr{chr}.tsv"
     output:
          "results/whole_genome_scores/RAW_scores_chr{chr}.csv"
+    conda:
+         get_conda_env("common")
     shell:
         '''
         ''' + ensure_dirs("$(dirname {output})", "{resources.tmpdir}", "logs/benchmarks") + '''
@@ -259,12 +271,14 @@ rule sort_raw_scores:
         -S {resources.mem_mb}M \
         --parallel={threads} \
         --temporary-directory={resources.tmpdir} \
-         {input} > {output}
+         {input} > {output} 2> {log}
         '''
 
 rule count_positions:
     input:
         "results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+    log:
+        "results/logs/score_variants/count_positions/chr{chr}.log"
     resources:
         mem_mb=1000,
         runtime=15
@@ -272,12 +286,14 @@ rule count_positions:
         "logs/benchmarks/count_positions_chr{chr}.tsv"
     output:
         "results/whole_genome_scores/counts/chr{chr}.txt"
+    conda:
+        get_conda_env("common")
     shell:
         """
-        mkdir -p $(dirname {output})
-        mkdir -p logs/benchmarks
+        mkdir -p $(dirname {output}) 2>> {log}
+        mkdir -p logs/benchmarks 2>> {log}
         
-        wc -l {input} > {output}
+        wc -l {input} > {output} 2>> {log}
         """
 
 """
@@ -295,6 +311,8 @@ rule assign_phred_scores:
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
+    log:
+        "results/logs/score_variants/assign_phred_scores.log"
     resources:
         mem_mb=lambda wildcards, attempt: min(192000, 24000 * attempt),  # PHRED assignment is very memory intensive
         runtime=lambda wildcards, attempt: min(960, 120 * attempt)
@@ -303,6 +321,8 @@ rule assign_phred_scores:
     output:
         expand("results/whole_genome_scores/phred/chr{chr}.tsv",
                chr=config["chromosomes"]["score"])
+    conda:
+        get_conda_env("score")
     shell:
         '''
         ''' + ensure_dirs("results/whole_genome_scores/phred", "logs/benchmarks") + '''
@@ -311,12 +331,14 @@ rule assign_phred_scores:
         -i {input.data} \\
         -o {params.outmask} \\
         --chroms {params.chromosomes} \\
-        --count-file {input.counts}
+        --count-file {input.counts} 2> {log}
         '''
 
 rule sort_and_merge_scores:
     input:
          gather_scores
+    log:
+         "results/logs/score_variants/sort_and_merge_scores.log"
     threads: 16
     resources:
         mem_mb=config["memory"]["dataset_mb"],
@@ -324,9 +346,11 @@ rule sort_and_merge_scores:
         tmpdir="results/tmp/sort_merge"
     output:
          "results/whole_genome_scores/full_RAW_scores.csv.gz"  # Direct to final compressed
+    conda:
+         get_conda_env("common")
     shell:
         """
-        mkdir -p {resources.tmpdir}
+        mkdir -p {resources.tmpdir} 2>> {log}
         
         # Pipe directly from sort to compression
         LC_ALL=C sort \
@@ -336,12 +360,14 @@ rule sort_and_merge_scores:
         -S {resources.mem_mb}M \
         --parallel={threads} \
         --temporary-directory={resources.tmpdir} \
-         {input} | gzip > {output}
+         {input} 2>> {log} | gzip > {output}
         """
 
 rule index_cadd_scores:
     input:
         "results/cadd_scores/chr{chr}.tsv.gz"
+    log:
+        "results/logs/score_variants/index_cadd_scores/chr{chr}.log"
     conda:
         get_conda_env("common")
     resources:
@@ -350,7 +376,7 @@ rule index_cadd_scores:
     output:
         "results/cadd_scores/chr{chr}.tsv.gz.tbi"
     shell:
-        "tabix -s1 -b2 -e2 {input}"
+        "tabix -s1 -b2 -e2 {input} 2> {log}"
 
 rule summarize_cadd_scores:
     input:
@@ -358,6 +384,8 @@ rule summarize_cadd_scores:
                      chr=config["chromosomes"]["score"]),
         indices=expand("results/cadd_scores/chr{chr}.tsv.gz.tbi",
                       chr=config["chromosomes"]["score"])
+    log:
+        "results/logs/score_variants/summarize_cadd_scores.log"
     conda:
         get_conda_env("common")
     resources:
@@ -368,11 +396,11 @@ rule summarize_cadd_scores:
     shell:
         '''
         ''' + ensure_dir("{output.summary}") + '''
-        echo "CADD scoring completed successfully" > {output.summary}
-        echo "Files created:" >> {output.summary}
-        ls -lh {input.scores} >> {output.summary}
-        echo "Total variants scored:" >> {output.summary}
-        zcat {input.scores} | wc -l >> {output.summary}
+        echo "CADD scoring completed successfully" > {output.summary} 2>> {log}
+        echo "Files created:" >> {output.summary} 2>> {log}
+        ls -lh {input.scores} >> {output.summary} 2>> {log}
+        echo "Total variants scored:" >> {output.summary} 2>> {log}
+        zcat {input.scores} | wc -l >> {output.summary} 2>> {log}
         '''
 
 

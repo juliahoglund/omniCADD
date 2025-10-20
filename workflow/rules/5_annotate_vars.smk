@@ -36,10 +36,14 @@ The VEP cache and program should be from the same release, hence care should be 
 rule vep_cache:
     params:
           version_species=config['annotation']["vep"]["cache"]["install_params"]
+    log:
+          "results/logs/annotate_vars/vep_cache.log"
     output:
           directory(config['annotation']["vep"]["cache"]["directory"])
+    conda:
+          get_conda_env("annotation")
     shell:
-         "vep_install -a cf -n {params.version_species} -c {output} --CONVERT"
+         "vep_install -a cf -n {params.version_species} -c {output} --CONVERT 2> {log}"
 
 
 """
@@ -58,6 +62,8 @@ rule run_vep:
     params:
           cache_dir=config['annotation']["vep"]["cache"]["directory"],
           species_name=config["species_name"]
+    log:
+          "{folder}/{file}_vep.log"
     conda:
          get_conda_env("annotation")
     # Parts are at most a few million variants, 2 threads is already fast.
@@ -66,10 +72,10 @@ rule run_vep:
           temp("{folder}/{file}_vep_output.tsv")
     shell:
          ensure_dir("{output}") +
-         "chmod +x {input.script} && "
+         "chmod +x {input.script} 2>> {log} && "
          "{input.script} {input.vcf} {output} "
-         "{params.cache_dir} {params.species_name} {threads} && "
-         "[[ -s {output} ]]"
+         "{params.cache_dir} {params.species_name} {threads} 2>> {log} && "
+         "[[ -s {output} ]] 2>> {log}"
 
 """
 Processes VEP output into the tsv format used by the later steps.
@@ -85,6 +91,8 @@ rule process_vep:
          grantham=workflow.source_path("../../resources/grantham_matrix/grantham_table.tsv")
     params:
          output_type=lambda wildcards: "derived" if "derived_variants" in wildcards.folder else "simulated"
+    log:
+         "{folder}/chr{chr}_process_vep.log"
     conda:
          get_conda_env("common")
     output:
@@ -93,9 +101,9 @@ rule process_vep:
          ensure_dir("{output}") + \
          "python3 {input.script} " \
          "-v {input.vep} -s {input.vcf} " \
-         "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} && " \
-         "mkdir -p results/annotation/vep/{params.output_type} && " \
-         "cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv"
+         "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} 2>> {log} && " \
+         "mkdir -p results/annotation/vep/{params.output_type} 2>> {log} && " \
+         "cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv 2>> {log}"
 
 
 ################
@@ -112,6 +120,8 @@ checkpoint split_alignment:
         maf="results/alignment/merged/chr{chr}.maf"
     params:
         blocksize=config["parallelization"]["alignment_positions_per_file"]
+    log:
+        "results/logs/annotate_vars/split_alignment/chr{chr}.log"
     conda:
         get_conda_env("alignment")
     resources:
@@ -124,7 +134,7 @@ checkpoint split_alignment:
         "python3 {input.script} " \
         "-i {input.maf} " \
         "-o {output} " \
-        "-s {params.blocksize}"
+        "-s {params.blocksize} 2> {log}"
 
 
 # script from mugsy [ref]; 
@@ -133,24 +143,28 @@ rule convert_alignment:
     input:
         script=workflow.source_path(f"{SCRIPTS_5}maf2fasta.pl"),
         maf="results/alignment/splitted/chr{chr}/{part}.maf"
+    log:
+        "results/logs/annotate_vars/convert_alignment/chr{chr}_{part}.log"
     output:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta")
     conda:
         get_conda_env("annotation") 
     shell:
-        "perl {input.script} < {input.maf} > {output.converted}"
+        "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
 
 rule format_alignment:
     input:
         script=workflow.source_path(f"{SCRIPTS_5}format_alignments.py"),
         fasta="results/alignment/fasta/chr{chr}/{part}.fasta"
+    log:
+        "results/logs/annotate_vars/format_alignment/chr{chr}_{part}.log"
     output:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
         index=temp("results/alignment/indexfiles/chr{chr}/{part}.index")
     conda:
         get_conda_env("annotation")
     shell:
-        "python3 {input.script} {input.fasta} {output.formatted} {output.index}"
+        "python3 {input.script} {input.fasta} {output.formatted} {output.index} 2> {log}"
 
 
 # modified version of script, originally written andreas wilm under the MIT License
@@ -160,12 +174,14 @@ rule prune_columns:
     input:
         script=workflow.source_path(f"{SCRIPTS_5}prune_cols.py"),
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta"
+    log:
+        "results/logs/annotate_vars/prune_columns/chr{chr}_{part}.log"
     output:
         pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta"
     conda:
         get_conda_env("annotation")
     shell:
-        "python3 {input.script} {input.fasta} {output.pruned}"
+        "python3 {input.script} {input.fasta} {output.pruned} 2> {log}"
 
 
 # adapted from generode [ref]
@@ -191,7 +207,7 @@ rule compute_gerp:
     params:
         reference_species = config['species_name']
     log:
-       "results/logs/chr{chr}_{part}_gerpcol_log.txt",
+       "results/logs/chr{chr}_{part}_gerpcol_log.txt"
     shell:
         '''
         gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log}
@@ -233,19 +249,21 @@ rule phylo_fit:
         tree_species=config['annotation']['phast']['tree_species'],
         precision=config["annotation"]['phast']["train_precision"],
         out="results/annotation/phast/phylo_model/chr{chr}/{part}"
+    log:
+        "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log"
     conda:
         get_conda_env("annotation")
     output:
          "results/annotation/phast/phylo_model/chr{chr}/{part}.mod"
     shell:
-       "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa && "
+       "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa 2>> {log} && "
        "phyloFit "
        "--tree '{params.tree}' "
        "-p {params.precision} "
        "--subst-mod REV "
        "--out-root {params.out} "
-       "tmp{wildcards.part}.fa && "
-       "rm tmp{wildcards.part}.fa"
+       "tmp{wildcards.part}.fa 2>> {log} && "
+       "rm tmp{wildcards.part}.fa 2>> {log}"
 
 rule run_phastCons: 
     input:
@@ -254,6 +272,8 @@ rule run_phastCons:
     params:
         species_interest = config['species_name'],
         phast_params=config['annotation']["phast"]["phastCons_params"]
+    log:
+        "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log"
     conda:
         get_conda_env("annotation")
     resources:
@@ -268,7 +288,7 @@ rule run_phastCons:
          phastCons \
          --msa-format FASTA \
          --not-informative={params.species_interest} \
-         {params.phast_params} {input.maf} {input.mod} > {output}
+         {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
          '''
 
 rule run_phyloP:
@@ -278,6 +298,8 @@ rule run_phyloP:
     params:
         species_interest = config['species_name'],
         phylo_params=config['annotation']["phast"]["phyloP_params"]
+    log:
+        "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log"
     conda:
         get_conda_env("annotation")
     resources:
@@ -293,12 +315,14 @@ rule run_phyloP:
         --chrom {wildcards.chr} --wig-scores \
         --not-informative={params.species_interest} \
         {params.phylo_params} {input.mod} \
-        {input.maf} > {output}
+        {input.maf} > {output} 2> {log}
         '''
 
 rule wig2bed:
     input:
         "results/annotation/phast/{tool}/chr{chr}/{part}.wig"
+    log:
+        "results/logs/annotate_vars/wig2bed/{tool}_chr{chr}_{part}.log"
     conda:
         get_conda_env("annotation")
     output:
@@ -306,4 +330,4 @@ rule wig2bed:
     wildcard_constraints:
         tool="(phastCons|phyloP)"
     shell:
-        "wig2bed < {input} > {output}"
+        "wig2bed < {input} > {output} 2> {log}"

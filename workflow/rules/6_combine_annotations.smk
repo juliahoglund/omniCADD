@@ -17,14 +17,6 @@
 
 import sys
 
-def ensure_dir(path):
-    """Helper function to ensure directory exists"""
-    return f"mkdir -p $(dirname {path}) && "
-
-def ensure_dirs(*paths):
-    """Helper function to ensure multiple directories exist"""
-    return " && ".join([f"mkdir -p $(dirname {path})" for path in paths])
-
 ## TODO: solve location of directories and make files temporary
 ## remove bed chunks after combining -> make temporary
 ## mv to outout creates duplicates -> change
@@ -55,6 +47,8 @@ rule combine_constraint:
         script = workflow.source_path(f"{SCRIPTS_6}combine_constraint_anno.R"),
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
+    log:
+        "results/logs/combine_annotations/combine_constraint/chr{chr}.log"
     conda:
         get_conda_env("annotation")
     threads: 2
@@ -77,16 +71,16 @@ rule combine_constraint:
         -f {input.phastcons} \
         -g {input.phylop} \
         -i {input.gerp} \
-        -j {input.index}
+        -j {input.index} 2>> {log}
 
-        head -1 constraint.{wildcards.chr}_1.bed > {output.constraint_temp}
+        head -1 constraint.{wildcards.chr}_1.bed > {output.constraint_temp} 2>> {log}
         for i in {{1..{params.n_chunks}}}; do 
-            grep -v "start" constraint.{wildcards.chr}_$i.bed >> {output.constraint_temp}
+            grep -v "start" constraint.{wildcards.chr}_$i.bed >> {output.constraint_temp} 2>> {log}
         done
-        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' {output.constraint_temp} | sed 's/start G/end G/g' > {output.tmp_processed}
-        mv {output.tmp_processed} {output.main}
-        rm constraint.{wildcards.chr}_*.bed
-        echo "chr {wildcards.chr} done"
+        awk '{{print $4, $1, $1, $2, $3, $6, $7}}' {output.constraint_temp} | sed 's/start G/end G/g' > {output.tmp_processed} 2>> {log}
+        mv {output.tmp_processed} {output.main} 2>> {log}
+        rm constraint.{wildcards.chr}_*.bed 2>> {log}
+        echo "chr {wildcards.chr} done" 2>> {log}
         '''
 
 # Rule to intersect bed files with VEP annotations
@@ -95,6 +89,8 @@ rule intersect_bed:
         vep = "results/annotation/vep/{type}/chr{chr}_vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(f"{SCRIPTS_6}merge_annotations.py"),
+    log:
+        "results/logs/combine_annotations/intersect_bed/{type}_chr{chr}.log"
     conda:
         get_conda_env("annotation")
     threads: 8
@@ -108,7 +104,7 @@ rule intersect_bed:
         "python3 {input.script} "
         "-v {input.vep} "
         "-b {input.bed} "
-        "-o /dev/stdout | gzip > {output}"
+        "-o /dev/stdout | gzip > {output} 2> {log}"
 
 # Rule to derive and impute means for simulated data
 rule derive_impute_means:
@@ -117,6 +113,8 @@ rule derive_impute_means:
                    chr=config["chromosomes"]["karyotype"]),
         processing=config["annotation_config"]["processing"],
         script=workflow.source_path(f"{SCRIPTS_6}derive_means.py"),
+    log:
+        "results/logs/combine_annotations/derive_impute_means.log"
     conda:
         get_conda_env("annotation")
     output:
@@ -126,7 +124,7 @@ rule derive_impute_means:
         "python3 {input.script} "
         "-i {input.tsv} "
         "-p {input.processing} "
-        "-o {output.imputation}"
+        "-o {output.imputation} 2> {log}"
 
 # Rule for column analysis
 rule column_analysis:
@@ -136,10 +134,12 @@ rule column_analysis:
         simulated=expand("results/dataset/simulated/chr{chr}_annotated.tsv",
                         chr=config["chromosomes"]["karyotype"]),
         script=workflow.source_path(f"{SCRIPTS_6}column_analysis.py")
+    log:
+        "results/logs/combine_annotations/column_analysis.log"
     conda:
         get_conda_env("annotation")
     params:
-        out_folder="results/figures/column_analysis/"
+        out_folder=lambda wildcards, output: "results/figures/column_analysis/"
     output:
         relevance=report("results/figures/column_analysis/relevance.tsv",
                           category="Column Analysis"),
@@ -154,7 +154,7 @@ rule column_analysis:
         "python3 {input.script} "
         "-s {input.simulated} "
         "-d {input.derived} "
-        "-o {params.out_folder}"
+        "-o {params.out_folder} 2> {log}"
 
 """
 Prepare data takes the fully annotated variants and processes 

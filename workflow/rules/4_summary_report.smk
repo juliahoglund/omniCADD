@@ -23,6 +23,8 @@ rule create_summary:
         parameter_log = 'results/visualisation/parameter_summary.log',
         raw_log = 'results/visualisation/raw_summary.log',
         filtered_log = 'results/visualisation/filtered_summary.log'
+    log:
+        "results/logs/summary_report/create_summary.log"
     conda:
         get_conda_env("r_stats")
     output:
@@ -31,10 +33,10 @@ rule create_summary:
     shell:
         '''
         # create genomewide ancestral fasta file
-        cat {input.ancestral_fa}*.fa > {input.ancestral_fa}Ancestor.fa
+        cat {input.ancestral_fa}*.fa > {input.ancestral_fa}Ancestor.fa 2>> {log}
 
         # create "ideogram file" / "fasta index"
-        cat {input.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, "0", $2}}' | sort -g > indexfile.txt
+        cat {input.ancestral_fa}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, "0", $2}}' | sort -g > indexfile.txt 2>> {log}
 
         # Run R script (no renv activation)
         Rscript {input.script} \
@@ -45,17 +47,20 @@ rule create_summary:
         -a {input.ancestral_fa} \
         -p {input.parameter_log} \
         -u {input.raw_log} \
-        -f {input.filtered_log}
+        -f {input.filtered_log} 2>> {log}
 
-        mv graphs.RData {output.r_clump}
-        mv indexfile.txt {output.indexfile}
+        mv graphs.RData {output.r_clump} 2>> {log}
+        mv indexfile.txt {output.indexfile} 2>> {log}
         '''
 
 if config['stats_report']['annotation'] == 'True':
     rule create_input:
         input:
             gff = config['stats_report']['gff'],
-            file = config['stats_report']['prefix']
+            file = config['stats_report']['prefix'],
+            script = workflow.source_path("../scripts/fasta2bed.py")
+        log:
+            "results/logs/summary_report/create_input.log"
         conda:
             get_conda_env("common")
         output:
@@ -64,11 +69,11 @@ if config['stats_report']['annotation'] == 'True':
             ancestor_genome = 'results/visualisation/Ancestor.bed'
         shell:
             '''
-            gunzip -c {input.gff} > temp_gff.gff
-            grep "CDS" temp_gff.gff | cut -f1,4,5 > {output.regions}
-            python3 {SCRIPTS_FASTA2BED} results/ancestral_seq/Ancestor.fa > {output.ancestor_genome}
-            bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage}
-            rm temp_gff.gff
+            gunzip -c {input.gff} > temp_gff.gff 2>> {log}
+            grep "CDS" temp_gff.gff | cut -f1,4,5 > {output.regions} 2>> {log}
+            python3 {input.script} results/ancestral_seq/Ancestor.fa > {output.ancestor_genome} 2>> {log}
+            bedtools coverage -a {output.ancestor_genome} -b {output.regions} > {output.coverage} 2>> {log}
+            rm temp_gff.gff 2>> {log}
             '''
 
 rule create_datafiles:
@@ -82,6 +87,8 @@ rule create_datafiles:
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
+    log:
+        "results/logs/summary_report/create_datafiles.log"
     conda:
         get_conda_env("r_stats")
     output:
@@ -97,17 +104,21 @@ rule create_datafiles:
          coverage='{input.coverage}', \
          ingroup='{params.ingroup}', \
          outgroup='{params.outgroup}' \
-         ), output_dir='results/visualisation/')"
+         ), output_dir='results/visualisation/')" 2> {log}
         '''
 
 rule raw_singleton_stats:
     input:
         "results/derived_variants/singletons/all_chr.vcf"
+    log:
+        "results/logs/summary_report/raw_singleton_stats.log"
     output:
         "results/derived_variants/singletons/stats.txt"
+    conda:
+        get_conda_env("common")
     shell:
         ensure_dir("{output}") +
-        "bcftools stats {input} > {output}"
+        "bcftools stats {input} > {output} 2> {log}"
 
 rule create_stats_report:
     input:
@@ -120,6 +131,8 @@ rule create_stats_report:
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
+    log:
+        "results/logs/summary_report/create_stats_report.log"
     conda:
         get_conda_env("r_stats")
     output:
@@ -135,4 +148,4 @@ rule create_stats_report:
         "coverage='{input.coverage}', " \
         "ingroup='{params.ingroup}', " \
         "outgroup='{params.outgroup}' " \
-        "), output_dir='results/visualisation/')\""
+        "), output_dir='results/visualisation/')\" 2> {log}"

@@ -21,6 +21,8 @@ rule create_parameters:
         script=workflow.source_path(f"{SCRIPTS_3}create_parameters.py"),
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         reference=config["generate_variants"]["reference_genome_wildcard"]
+    log:
+        "results/logs/simulate_variants/create_parameters/chr{chr}.log"
     conda:
         get_conda_env("simulation")
     output:
@@ -30,7 +32,7 @@ rule create_parameters:
         "-a {input.ancestral} " \
         "-r {input.reference} " \
         "-c {wildcards.chr} " \
-        "-o {output}"
+        "-o {output} 2> {log}"
 
 """
 Gathers the found mutation parameters for each chromosome into one file.
@@ -43,6 +45,8 @@ rule process_parameters:
         derived_count="results/derived_variants/singletons/total.count"
     params:
         factor=config["generate_variants"]["simulate"]["overestimation_factor"]
+    log:
+        "results/logs/simulate_variants/process_parameters.log"
     conda:
         get_conda_env("simulation")
     output:
@@ -53,7 +57,7 @@ rule process_parameters:
         "-n $(cat {input.derived_count} | awk '{{s+=$1}} END {{print s * {params.factor}}}') " \
         "-p {input.parameters} " \
         "-l {output.log} " \
-        "-o {output.parameters}"
+        "-o {output.parameters} 2> {log}"
 
 """
 Simulate SNPs for a specific chromosome based on preprocessed parameters.
@@ -65,6 +69,8 @@ rule simulate_snps:
         script=workflow.source_path(f"{SCRIPTS_3}simulate_variants.py"),
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl"
+    log:
+        "results/logs/simulate_variants/simulate_snps/chr{chr}.log"
     conda:
         get_conda_env("simulation")
     output:
@@ -75,7 +81,7 @@ rule simulate_snps:
         "-i {input.reference} " \
         "-c {wildcards.chr} " \
         "-p {input.params} " \
-        "--snps {output}"
+        "--snps {output} 2> {log}"
 
 """
 Simulate indels for a specific chromosome based on preprocessed parameters.
@@ -86,6 +92,8 @@ rule simulate_indels:
         script=workflow.source_path(f"{SCRIPTS_3}simulate_variants.py"),
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl"
+    log:
+        "results/logs/simulate_variants/simulate_indels/chr{chr}.log"
     conda:
         get_conda_env("simulation")
     output:
@@ -96,7 +104,7 @@ rule simulate_indels:
         "-i {input.reference} " \
         "-c {wildcards.chr} " \
         "-p {input.params} " \
-        "--indels {output}"
+        "--indels {output} 2> {log}"
 
 """
  Filters the simulated variants for variants that are generated on the ancestral sequence (and not on gaps).
@@ -106,6 +114,8 @@ rule filter_variants:
         script=workflow.source_path(f"{SCRIPTS_3}filter_variants.py"),
         variants="results/simulated_variants/raw_{type}/chr{chr}.vcf",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa"
+    log:
+        "results/logs/simulate_variants/filter_variants/{type}_chr{chr}.log"
     conda:
         get_conda_env("simulation")
     output:
@@ -114,7 +124,7 @@ rule filter_variants:
         "python3 {input.script} " \
         "-i {input.variants} " \
         "-a {input.ancestral} " \
-        "-o {output}"
+        "-o {output} 2> {log}"
 
 """
 Variants are generated and filtered for each chromosome in parallel.
@@ -126,20 +136,24 @@ rule chrom_to_all:
             chr=config["chromosomes"]["karyotype"]),
         filtered=expand("results/simulated_variants/filtered_{{type}}/chr{chr}.vcf", 
             chr=config["chromosomes"]["karyotype"])
+    log:
+        "results/logs/simulate_variants/chrom_to_all/{type}.log"
     output:
         raw="results/simulated_variants/raw_{type}/all_chr.vcf",
         filtered="results/simulated_variants/filtered_{type}/all_chr.vcf"
+    conda:
+        get_conda_env("common")
     shell:
         '''
-        echo "##fileformat=VCFv4.1" > {output.raw}
-        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
-        grep -vh "^#" {input.raw} >> {output.raw}
+        echo "##fileformat=VCFv4.1" > {output.raw} 2>> {log}
+        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw} 2>> {log}
+        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw} 2>> {log}
+        grep -vh "^#" {input.raw} >> {output.raw} 2>> {log}
 
-        echo "##fileformat=VCFv4.1" > {output.filtered}
-        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.filtered}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.filtered}
-        grep -vh "^#" {input.filtered} >> {output.filtered}
+        echo "##fileformat=VCFv4.1" > {output.filtered} 2>> {log}
+        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.filtered} 2>> {log}
+        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.filtered} 2>> {log}
+        grep -vh "^#" {input.filtered} >> {output.filtered} 2>> {log}
         '''
 
 """
@@ -154,6 +168,8 @@ rule check_substitutions_rates:
         trimmed_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         params=expand("results/simulated_variants/parameters/chr{chr}.txt", 
             chr=config["chromosomes"]["karyotype"])
+    log:
+        "results/logs/simulate_variants/check_substitutions_rates.log"
     conda:
          get_conda_env("simulation")
     output:
@@ -167,7 +183,7 @@ rule check_substitutions_rates:
         "--param-logfiles {input.params} " \
         "--snp-outfile {output.raw} " \
         "--trimmed-outfile {output.filtered} " \
-        "--param-outfile {output.params}"
+        "--param-outfile {output.params} 2> {log}"
 
 """
 Trims the vcf file to the desired number of variants. This is done because 
@@ -182,6 +198,8 @@ rule trim_vcf:
          vcf="results/simulated_variants/filtered_snps/all_chr.vcf",
          simulated_count="results/simulated_variants/filtered_snps/all_chr.vcf.count",
          derived_count="results/derived_variants/singletons/total.count"
+    log:
+         "results/logs/simulate_variants/trim_vcf.log"
     conda:
          get_conda_env("simulation")
     output:
@@ -191,7 +209,7 @@ rule trim_vcf:
         "-i {input.vcf} " \
         "-o {output} " \
         "-c $(cat {input.simulated_count}) " \
-        "-d $(cat {input.derived_count})"
+        "-d $(cat {input.derived_count}) 2> {log}"
 
 """
 Split VCF by chromosome using bcftools view.
@@ -202,10 +220,12 @@ rule split_by_chrom:
     input:
         vcf="results/simulated_variants/trimmed_{type}/all_chr.vcf.gz",
         index="results/simulated_variants/trimmed_{type}/all_chr.vcf.gz.tbi"
+    log:
+        "results/logs/simulate_variants/split_by_chrom/{type}_chr{chr}.log"
     output:
         "results/simulated_variants/trimmed_{type}/chr{chr}.vcf"
     conda:
          get_conda_env("common")
     shell:
-        "bcftools view {input.vcf} --regions {wildcards.chr} -o {output} -O v"
+        "bcftools view {input.vcf} --regions {wildcards.chr} -o {output} -O v 2> {log}"
 
