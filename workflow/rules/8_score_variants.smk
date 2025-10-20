@@ -15,8 +15,6 @@
  The scripts and workflow have been adopted from the work of Christian Gross.
 """
 
-from natsort import natsorted, ns
-
 wildcard_constraints:   
      part="[0-9]+",
 
@@ -30,7 +28,7 @@ The files are also directly bgzipped.
 checkpoint generate_all_variants:
     input:
          reference=config["generate_variants"]["reference_genome_wildcard"],
-         script=workflow.source_path(SCRIPTS_8 + "create_variants.py")
+         script=workflow.source_path(f"{SCRIPTS_8}create_variants.py")
     params:
          blocksize=config["parallelization"]["whole_genome_positions_per_file"]
     conda:
@@ -62,8 +60,9 @@ def gather_scores(wildcards):
     """Gather all score files from generate_all_variants checkpoint"""
     checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
     parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.vcf.gz")).part
+    parts_sorted = natsorted(parts, alg=ns.INT)  # Natural sort
     return expand("results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv",
-                  cols=wildcards.cols, chr=wildcards.chr, part=parts)
+                  cols=wildcards.cols, chr=wildcards.chr, part=parts_sorted)
 
 """
 Annotate a vcf file using Ensembl-VEP.
@@ -78,7 +77,7 @@ This rule expects SIFT scores to be available but this is not the case for many 
 rule run_genome_vep:
     input:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
-         script=workflow.source_path(SCRIPTS_5 + "vep.sh"),
+         script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
          cache=rules.vep_cache.output if
             config['annotation']["vep"]["cache"]["should_install"] == "True" else []
     params:
@@ -114,8 +113,8 @@ rule process_genome_vep:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
          vep="results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_table.tsv"), 
-         script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
+         grantham=workflow.source_path("../../resources/grantham_matrix/grantham_table.tsv"), 
+         script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
     conda:
          get_conda_env("common")
     resources:
@@ -135,11 +134,11 @@ rule process_genome_vep:
          -r {input.genome} -g {input.grantham} -o {output} --multiple
          """
 
-rule intersect_bed:
+rule intersect_genomewide:
     input:
         vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
-        script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
+        script = workflow.source_path(f"{SCRIPTS_6}merge_annotations.py"),
     conda:
         get_conda_env("annotation")
     threads: 8
@@ -167,7 +166,7 @@ rule prepare_whole_genome:
          imputation="results/dataset/imputation_dict.txt",
          processing=config["annotation_config"]["processing"],
          interactions=config["annotation_config"]["interactions"], 
-         script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
+         script=workflow.source_path(f"{SCRIPTS_6}prepare_annotated_data.py"),
     params:
          derived_variants="",  # Fixed empty params
          y=""
@@ -209,7 +208,7 @@ rule score_variants:
         data_c="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv",
         scaler="results/model/{cols}/full.scaler.pickle",
         model="results/model/{cols}/full.mod.pickle",
-        script=workflow.source_path(SCRIPTS_8 + "model_predict.py"),
+        script=workflow.source_path(f"{SCRIPTS_8}model_predict.py"),
     conda:
          get_conda_env("score")
     threads: 4
@@ -285,14 +284,14 @@ rule count_positions:
 Assigns phred scores to all variants, in addition to the raw scores.
 The phred scores are based on a genome-wide level; or as many chromosomes
 included in the analysis, rather than a chromosome wide ranking
-""""
+"""
 
 rule assign_phred_scores:
     input:
         data="results/whole_genome_scores/full_RAW_scores.csv",
         counts=expand("results/whole_genome_scores/counts/chr{chr}.txt",
                       chr=config["chromosomes"]["score"]),
-        script=workflow.source_path(SCRIPTS_8 + "assign_phred_scores.py")       
+        script=workflow.source_path(f"{SCRIPTS_8}assign_phred_scores.py")       
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],

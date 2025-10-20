@@ -51,8 +51,8 @@ rule fold_data:
                       chr=config["chromosomes"]["train"]),
         simulated_c = expand("results/dataset/simulated/chr{chr}.npz.columns.csv",
                       chr=config["chromosomes"]["train"]),
-        script=workflow.source_path(SCRIPTS_7 + "fold_data.py"),
-        lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
+        script=workflow.source_path(f"{SCRIPTS_7}fold_data.py"),
+        lib=workflow.source_path(SCRIPTS_HELPER)
     conda: 
         get_conda_env("model")
     priority: 20
@@ -94,8 +94,8 @@ rule train_model:
                                             fold=get_train_folds(wildcards.fold)),
         train_c = lambda wildcards: expand("results/dataset/fold_{fold}.npz.columns.csv",
                                             fold=get_train_folds(wildcards.fold)),
-        script = workflow.source_path(SCRIPTS_7 + "train_model.py"),
-        lib = workflow.source_path(SCRIPTS_7 + "data_helper.py")
+        script = workflow.source_path(f"{SCRIPTS_7}train_model.py"),
+        lib = workflow.source_path(SCRIPTS_HELPER)
     params:
         c = config["model"]["test_params"]["c"],
         max_iter = config["model"]["test_params"]["max_iter"],
@@ -153,8 +153,8 @@ rule final_model:
                          fold=get_folds()),
           train_c=expand("results/dataset/fold_{fold}.npz.columns.csv",
                          fold=get_folds()),
-          script=workflow.source_path(SCRIPTS_7 + "train_model.py"),
-          lib=workflow.source_path(SCRIPTS_7 + "data_helper.py")
+          script=workflow.source_path(f"{SCRIPTS_7}train_model.py"),
+          lib=workflow.source_path(SCRIPTS_HELPER)
     params:
         c=config["model"]["final_params"]["c"],
         max_iter=config["model"]["final_params"]["max_iter"],
@@ -200,7 +200,7 @@ rule evaluate_models:
                       fold=get_folds(),
                       c=config["model"]["test_params"]["c"],
                       iter=config["model"]["test_params"]["max_iter"]),
-        script = workflow.source_path(SCRIPTS_7 + "evaluate_models.py")
+        script = workflow.source_path(f"{SCRIPTS_7}evaluate_models.py")
     conda:
         get_conda_env("model")
     resources:

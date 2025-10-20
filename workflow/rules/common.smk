@@ -14,19 +14,19 @@ import sys
 import glob
 
 # Add  script variables
-SCRIPTS_1 = "scripts/step_1_extract_ancestor/"
-SCRIPTS_2 = "scripts/step_2_derive_variants/"
-SCRIPTS_3 = "scripts/step_3_simulate_variants/"
-SCRIPTS_4 = "scripts/step_4_summary_report/"
-SCRIPTS_5 = "scripts/step_5_annotate_variants"
-SCRIPTS_6 = "scripts/step_6_combine_annotations"
-SCRIPTS_7 = "scripts/step_7_train_test_model"
-SCRIPTS_8 = "scripts/step_8_score_variants"
+SCRIPTS_1 = "../scripts/step_1_extract_ancestor/"
+SCRIPTS_2 = "../scripts/step_2_derive_variants/"
+SCRIPTS_3 = "../scripts/step_3_simulate_variants/"
+SCRIPTS_4 = "../scripts/step_4_summary_report/"
+SCRIPTS_5 = "../scripts/step_5_annotate_variants/"
+SCRIPTS_6 = "../scripts/step_6_combine_annotations/"
+SCRIPTS_7 = "../scripts/step_7_train_test_model/"
+SCRIPTS_8 = "../scripts/step_8_score_variants/"
 
 SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
-SCRIPTS_FASTA2BED = "scripts/fasta2bed.py"
-SCRIPTS_EMF2MAF = "scripts/emftomaf.pl"
-SCRIPTS_HELPER = "scripts/data_helper.py"
+SCRIPTS_FASTA2BED = "../scripts/fasta2bed.py"
+SCRIPTS_EMF2MAF = "../scripts/emftomaf.pl"
+SCRIPTS_HELPER = "../scripts/data_helper.py"
 
 def get_conda_env(env_name):
     """Return path to conda environment file"""
@@ -47,6 +47,7 @@ wildcard_constraints:
     c="[0-9.]+",
     iter="[0-9]+",
     tool="(phastCons|phyloP)"
+
 """
 Bgzip_tabix combines bgzip and the tabix rule to reduce overhead.
 This prioritises the combined rule over just tabix,
@@ -57,7 +58,7 @@ it also handles moving the variants into the results folder.
 
 ruleorder: bgzip_tabix > tabix
 
-"""  
+"""
  Unzip MAF files since the tool needs a seekable file,
  it is more effective to not have to decompress multiple times.
  Marked as temp so automatically deleted when longer needed, leaving only the compressed original.
@@ -92,9 +93,7 @@ rule add_counts:
      output:
           report("{folder}/total.count", category="Logs")
      shell:
-         r'''
-         cat {input} | awk "{{s+=\$1}} END {{print s}}" > {output}
-         '''
+          "cat {input} | awk '{{s+=$1}} END {{print s}}' > {output}"
 
 """
 Compress VCF file using bgzip and index using tabix
@@ -108,7 +107,7 @@ rule bgzip_tabix:
           vcf=temp("{folder}/{file}.vcf.gz"),
           index=temp("{folder}/{file}.vcf.gz.tbi")
      shell:
-          "bgzip -c {input} > {output.vcf} && "
+          "bgzip -c {input} > {output.vcf} && " \
           "tabix -p vcf -f {output.vcf}"
 
 """
@@ -192,16 +191,16 @@ checkpoint cleanup_temp_files:
         """
 
 def get_folds():
-    """Get all fold numbers"""
+    """Get all fold numbers."""
     return list(range(1, config["model"]["n_folds"] + 1))
 
 def get_train_folds(test_fold):
-    """Get all folds except the test fold"""
+    """Get all folds except the test fold."""
     all_folds = get_folds()
     return [f for f in all_folds if f != int(test_fold)]
 
 def get_model_columns():
-    """Get all model column subsets"""
+    """Get all model column subsets."""
     return list(config["model"]["column_subsets"].keys()) + ["All"]
 
 # Add config validation

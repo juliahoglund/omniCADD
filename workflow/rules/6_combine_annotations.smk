@@ -52,7 +52,7 @@ def get_constraint_files(wildcards):
 rule combine_constraint:
     input:
         unpack(get_constraint_files),  # Use the checkpoint dependency
-        script = workflow.source_path(SCRIPTS_6 + "combine_constraint_anno.R"),
+        script = workflow.source_path(f"{SCRIPTS_6}combine_constraint_anno.R"),
     params:
         n_chunks = config['annotation']['gerp']['n_chunks'],
     conda:
@@ -94,7 +94,7 @@ rule intersect_bed:
     input:
         vep = "results/annotation/vep/{type}/chr{chr}_vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
-        script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
+        script = workflow.source_path(f"{SCRIPTS_6}merge_annotations.py"),
     conda:
         get_conda_env("annotation")
     threads: 8
@@ -116,7 +116,7 @@ rule derive_impute_means:
         tsv=expand("results/dataset/simulated/chr{chr}_annotated.tsv",
                    chr=config["chromosomes"]["karyotype"]),
         processing=config["annotation_config"]["processing"],
-        script=workflow.source_path(SCRIPTS_6 + "derive_means.py"),
+        script=workflow.source_path(f"{SCRIPTS_6}derive_means.py"),
     conda:
         get_conda_env("annotation")
     output:
@@ -135,7 +135,7 @@ rule column_analysis:
                         chr=config["chromosomes"]["karyotype"]),
         simulated=expand("results/dataset/simulated/chr{chr}_annotated.tsv",
                         chr=config["chromosomes"]["karyotype"]),
-        script=workflow.source_path(SCRIPTS_6 + "column_analysis.py")
+        script=workflow.source_path(f"{SCRIPTS_6}column_analysis.py")
     conda:
         get_conda_env("annotation")
     params:
@@ -169,7 +169,7 @@ rule prepare_data:
         imputation="results/dataset/imputation_dict.txt",
         processing=config["annotation_config"]["processing"],
         interactions=config["annotation_config"]["interactions"],
-        script=workflow.source_path(SCRIPTS_6 + "prepare_annotated_data.py"),
+        script=workflow.source_path(f"{SCRIPTS_6}prepare_annotated_data.py"),
     params:
         derived_flag=lambda wildcards: "--derived" if wildcards.type == "derived" else "",
         y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0"

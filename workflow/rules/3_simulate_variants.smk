@@ -18,19 +18,19 @@
 """
 rule create_parameters:
     input:
+        script=workflow.source_path(f"{SCRIPTS_3}create_parameters.py"),
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
-        reference=config["generate_variants"]["reference_genome_wildcard"],
-        script=workflow.source_path("../scripts/step_3_simulate_variants/create_parameters.py")
+        reference=config["generate_variants"]["reference_genome_wildcard"]
     conda:
         get_conda_env("simulation")
     output:
         "results/simulated_variants/parameters/chr{chr}.txt"
     shell:
-        "python3 {input.script} "
-        "-a {input.ancestral} "
-        "-r {input.reference} "
-        "-c {wildcards.chr} "
-        "-o {output} "
+        "python3 {input.script} " \
+        "-a {input.ancestral} " \
+        "-r {input.reference} " \
+        "-c {wildcards.chr} " \
+        "-o {output}"
 
 """
 Gathers the found mutation parameters for each chromosome into one file.
@@ -38,9 +38,9 @@ Computes the required mutation rates so they are ready to use for simulation.
 """
 rule process_parameters:
     input:
+        script=workflow.source_path(f"{SCRIPTS_3}process_parameters.py"),
         parameters=expand("results/simulated_variants/parameters/chr{chr}.txt", chr=config["chromosomes"]["karyotype"]),
-        derived_count="results/derived_variants/singletons/total.count",
-        script=workflow.source_path("../scripts/step_3_simulate_variants/process_parameters.py")
+        derived_count="results/derived_variants/singletons/total.count"
     params:
         factor=config["generate_variants"]["simulate"]["overestimation_factor"]
     conda:
@@ -49,11 +49,11 @@ rule process_parameters:
         parameters="results/simulated_variants/params.pckl",
         log=report("results/logs/process_parameters.log", category="Logs")
     shell:
-        "python3 {input.script} "
-        "-n $(cat {input.derived_count} | awk '{{s+=$1}} END {{print s * {params.factor}}}') "
-        "-p {input.parameters} "
-        "-l {output.log} "
-        "-o {output.parameters} "
+        "python3 {input.script} " \
+        "-n $(cat {input.derived_count} | awk '{{s+=$1}} END {{print s * {params.factor}}}') " \
+        "-p {input.parameters} " \
+        "-l {output.log} " \
+        "-o {output.parameters}"
 
 """
 Simulate SNPs for a specific chromosome based on preprocessed parameters.
@@ -62,20 +62,20 @@ is all we need for the current version of the workflow.
 """
 rule simulate_snps:
     input:
+        script=workflow.source_path(f"{SCRIPTS_3}simulate_variants.py"),
         reference=config["generate_variants"]["reference_genome_wildcard"],
-        params="results/simulated_variants/params.pckl",
-        script=workflow.source_path("../scripts/step_3_simulate_variants/simulate_variants.py")
+        params="results/simulated_variants/params.pckl"
     conda:
         get_conda_env("simulation")
     output:
         "results/simulated_variants/raw_snps/chr{chr}.vcf"
     shell:
-        ensure_dir("{output}") +
-        "python3 {input.script} "
-        "-i {input.reference} "
-        "-c {wildcards.chr} "
-        "-p {input.params} "
-        "--snps {output} "
+        ensure_dir("{output}") + \
+        "python3 {input.script} " \
+        "-i {input.reference} " \
+        "-c {wildcards.chr} " \
+        "-p {input.params} " \
+        "--snps {output}"
 
 """
 Simulate indels for a specific chromosome based on preprocessed parameters.
@@ -83,9 +83,9 @@ This step can be quite slow, it can take several hours.
 """
 rule simulate_indels:
     input:
+        script=workflow.source_path(f"{SCRIPTS_3}simulate_variants.py"),
         reference=config["generate_variants"]["reference_genome_wildcard"],
-        params="results/simulated_variants/params.pckl",
-        script=workflow.source_path("../scripts/step_3_simulate_variants/simulate_variants.py")
+        params="results/simulated_variants/params.pckl"
     conda:
         get_conda_env("simulation")
     output:
@@ -103,9 +103,9 @@ rule simulate_indels:
 """
 rule filter_variants:
     input:
+        script=workflow.source_path(f"{SCRIPTS_3}filter_variants.py"),
         variants="results/simulated_variants/raw_{type}/chr{chr}.vcf",
-        ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
-        script=workflow.source_path("../scripts/step_3_simulate_variants/filter_variants.py")
+        ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa"
     conda:
         get_conda_env("simulation")
     output:
@@ -149,11 +149,11 @@ These are later used for the visualisation and tables in the stats report.
 """
 rule check_substitutions_rates:
     input:
+        script=workflow.source_path(f"{SCRIPTS_3}check_substitution_rates.py"),
         snps="results/simulated_variants/raw_snps/all_chr.vcf",
         trimmed_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         params=expand("results/simulated_variants/parameters/chr{chr}.txt", 
-            chr=config["chromosomes"]["karyotype"]),
-        script=workflow.source_path("../scripts/step_3_simulate_variants/check_substitution_rates.py")
+            chr=config["chromosomes"]["karyotype"])
     conda:
          get_conda_env("simulation")
     output:
@@ -178,10 +178,10 @@ This is solved by overestimation and trimming.
 """
 rule trim_vcf:
     input:
+         script=workflow.source_path(f"{SCRIPTS_3}trim_vcf.py"),
          vcf="results/simulated_variants/filtered_snps/all_chr.vcf",
          simulated_count="results/simulated_variants/filtered_snps/all_chr.vcf.count",
-         derived_count="results/derived_variants/singletons/total.count",
-         script=workflow.source_path("../scripts/step_3_simulate_variants/trim_vcf.py")
+         derived_count="results/derived_variants/singletons/total.count"
     conda:
          get_conda_env("simulation")
     output:

@@ -15,14 +15,14 @@
 
 rule create_summary:
     input:
+        script = workflow.source_path(f"{SCRIPTS_4}generate_summary_info.R"),
         raw_snps = 'results/simulated_variants/raw_snps/all_chr.vcf',
         filtered_snps = 'results/simulated_variants/filtered_snps/all_chr.vcf',
         derived_vars = 'results/derived_variants/singletons/all_chr.vcf',
         ancestral_fa = 'results/ancestral_seq/',
         parameter_log = 'results/visualisation/parameter_summary.log',
         raw_log = 'results/visualisation/raw_summary.log',
-        filtered_log = 'results/visualisation/filtered_summary.log',
-        script = workflow.source_path("../scripts/step_4_summary_report/generate_summary_info.R")
+        filtered_log = 'results/visualisation/filtered_summary.log'
     conda:
         get_conda_env("r_stats")
     output:
@@ -73,12 +73,12 @@ if config['stats_report']['annotation'] == 'True':
 
 rule create_datafiles:
     input:
+        script = workflow.source_path(f"{SCRIPTS_4}stats_report.Rmd"),
         tree = config['stats_report']['tree'],
         ideogram = 'results/visualisation/indexfile.txt',
         annotation = 'results/visualisation/Ancestor.bed' if config['stats_report']['annotation'] == 'True' else [],
         bedfile = 'results/visualisation/CDS.regions.bed' if config['stats_report']['annotation'] == 'True' else [],
-        coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else [],
-        script = workflow.source_path("../scripts/step_4_summary_report/stats_report.Rmd")
+        coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else []
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
@@ -111,12 +111,12 @@ rule raw_singleton_stats:
 
 rule create_stats_report:
     input:
+        script = workflow.source_path(f"{SCRIPTS_4}stats_report.Rmd"),
         tree = config['stats_report']['tree'],
         ideogram = 'results/visualisation/indexfile.txt',
         annotation = 'results/visualisation/Ancestor.bed' if config['stats_report']['annotation'] == 'True' else [],
         bedfile = 'results/visualisation/CDS.regions.bed' if config['stats_report']['annotation'] == 'True' else [],
-        coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else [],
-        script = workflow.source_path("../scripts/step_4_summary_report/stats_report.Rmd")
+        coverage = 'results/visualisation/CDS.coverage.bed' if config['stats_report']['annotation'] == 'True' else []
     params:
         ingroup = config['stats_report']['ingroup'],
         outgroup = config['stats_report']['outgroup']
@@ -125,5 +125,14 @@ rule create_stats_report:
     output:
         'results/visualisation/stats_report.html'
     shell:
-        ensure_dir("{output}") +
-        "Rscript {input.script} "
+        ensure_dir("{output}") + \
+        "Rscript -e \"rmarkdown::render('{input.script}', " \
+        "params=list(" \
+        "tree='{input.tree}', " \
+        "ideogram='{input.ideogram}', " \
+        "annotation='{input.annotation}', " \
+        "bedfile='{input.bedfile}', " \
+        "coverage='{input.coverage}', " \
+        "ingroup='{params.ingroup}', " \
+        "outgroup='{params.outgroup}' " \
+        "), output_dir='results/visualisation/')\""

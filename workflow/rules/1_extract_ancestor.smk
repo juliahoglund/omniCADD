@@ -40,7 +40,7 @@ rule clean_ambiguous:
     output:
         temp("results/alignment/cleaned_maf/{part}.maf.gz")
     script:
-        "../scripts/step_1_extract_ancestor/clean_maf.py"
+        f"{SCRIPTS_1}clean_maf.py"
 
 
 """
@@ -55,7 +55,7 @@ rule clean_ambiguous:
 """
 rule mark_ancestor:
     input:
-        script = workflow.source_path("../scripts/step_1_extract_ancestor/mark_ancestor.py"),  # Fixed path
+        script = workflow.source_path(f"{SCRIPTS_1}mark_ancestor.py"),  # Fixed path
         maf = lambda wildcards: get_df_input_maf()  # Move maf to input section
     params:
         sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
@@ -177,7 +177,7 @@ def gather_part_files():
 rule sort_by_chr:
     input:
         maf=gather_part_files(),
-        script=workflow.source_path("../scripts/step_1_extract_ancestor/sort_by_chromosome.py")
+        script=workflow.source_path(f"{SCRIPTS_1}sort_by_chromosome.py")
     params:
         species_name=config["alignment"]["name_species_interest"],
         chromosomes=config["chromosomes"]["karyotype"],
@@ -249,7 +249,7 @@ rule maf_sorter:
 rule gen_ancestor_seq:
     input:
         maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
-        script=workflow.source_path("../scripts/step_1_extract_ancestor/extract_ancestor.py")
+        script=workflow.source_path(f"{SCRIPTS_1}extract_ancestor.py")
     params:
         species_name=config["alignment"]["name_species_interest"],
         ancestor=config['mark_ancestor']['name_ancestor'],

@@ -51,8 +51,8 @@ This rule expects SIFT scores to be available but this is not the case for many 
 """  # TODO make sift a config option
 rule run_vep:
     input:
+         script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
          vcf="{folder}/{file}.vcf.gz",
-         script=workflow.source_path(SCRIPTS_5 + "vep.sh"),
          cache=rules.vep_cache.output if
             config['annotation']["vep"]["cache"]["should_install"] == "True" else []
     params:
@@ -77,26 +77,25 @@ The VEP consequences are summarised and basic annotations are calculated here as
 """
 rule process_vep:
     input:
+         script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
          vcf="{folder}/chr{chr}.vcf.gz",
          index="{folder}/chr{chr}.vcf.gz.tbi",
          vep="{folder}/chr{chr}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_table.tsv"),
-         script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
+         grantham=workflow.source_path("../../resources/grantham_matrix/grantham_table.tsv")
     params:
          output_type=lambda wildcards: "derived" if "derived_variants" in wildcards.folder else "simulated"
     conda:
          get_conda_env("common")
     output:
-         vep_tsv="{folder}/chr{chr}_vep.tsv",
-         moved_vep="results/annotation/vep/{params.output_type}/chr{chr}_vep.tsv"  # Direct output
+         vep_tsv="{folder}/chr{chr}_vep.tsv"
     shell:
-         ensure_dir("{output}") +
-         "python3 {input.script} "
-         "-v {input.vep} -s {input.vcf} "
-         "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} && "
-         "mkdir -p results/annotation/vep/{params.output_type} && "
-         "cp {output.vep_tsv} {output.moved_vep}"
+         ensure_dir("{output}") + \
+         "python3 {input.script} " \
+         "-v {input.vep} -s {input.vcf} " \
+         "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} && " \
+         "mkdir -p results/annotation/vep/{params.output_type} && " \
+         "cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv"
 
 
 ################
@@ -109,7 +108,8 @@ checkpoint split_alignment:
     chunks, they are also converted to fasta format in preparation for annotations
     """
     input:
-        "results/alignment/merged/chr{chr}.maf"
+        script=workflow.source_path(f"{SCRIPTS_5}split_alignments.py"),
+        maf="results/alignment/merged/chr{chr}.maf"
     params:
         blocksize=config["parallelization"]["alignment_positions_per_file"]
     conda:
@@ -120,10 +120,10 @@ checkpoint split_alignment:
     output:
         directory("results/alignment/splitted/chr{chr}/")  
     shell:
-        ensure_dir("{output}") +
-        "python3 {workflow.source_path(SCRIPTS_5 + 'split_alignment.py')} "
-        "-i {input} "
-        "-o {output} "
+        ensure_dir("{output}") + \
+        "python3 {input.script} " \
+        "-i {input.maf} " \
+        "-o {output} " \
         "-s {params.blocksize}"
 
 
@@ -131,8 +131,8 @@ checkpoint split_alignment:
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
 rule convert_alignment:
     input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
-        script=workflow.source_path(SCRIPTS_5 + "maf2fasta.pl")    
+        script=workflow.source_path(f"{SCRIPTS_5}maf2fasta.pl"),
+        maf="results/alignment/splitted/chr{chr}/{part}.maf"
     output:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta")
     conda:
@@ -142,8 +142,8 @@ rule convert_alignment:
 
 rule format_alignment:
     input:
-        fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
-        script=workflow.source_path(SCRIPTS_5 + "format_alignments.py") 
+        script=workflow.source_path(f"{SCRIPTS_5}format_alignments.py"),
+        fasta="results/alignment/fasta/chr{chr}/{part}.fasta"
     output:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
         index=temp("results/alignment/indexfiles/chr{chr}/{part}.index")
@@ -158,8 +158,8 @@ rule format_alignment:
 # REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
 rule prune_columns:
     input:
-        fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
-        script=workflow.source_path(SCRIPTS_5 + "prune_cols.py") 
+        script=workflow.source_path(f"{SCRIPTS_5}prune_cols.py"),
+        fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta"
     output:
         pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta"
     conda:
@@ -179,8 +179,7 @@ rule compute_gerp:
     """
     input:
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        tree=config["annotation"]['gerp']["tree"],
-        script=workflow.source_path(SCRIPTS_5 + "run_gerp.py")
+        tree=config["annotation"]['gerp']["tree"]
     conda:
         get_conda_env("annotation")
     resources:
@@ -207,9 +206,9 @@ rule gerp2coords:
     This analysis is run as one job per genome chunk, but is internally run per contig.
     """
     input:
+       script=workflow.source_path(f"{SCRIPTS_5}gerp_to_position.py"),
        fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-       gerp="results/annotation/gerp/chr{chr}/{part}.rates",
-       script=workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
+       gerp="results/annotation/gerp/chr{chr}/{part}.rates"
     output:
        "results/annotation/gerp/chr{chr}/{part}.rates.parsed"
     conda:
