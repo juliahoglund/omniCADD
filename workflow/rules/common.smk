@@ -68,8 +68,12 @@ rule unzip_maf:
           "{folder}/{file}.maf.gz"
      output:
           "{folder}/{file}.maf"  # TODO Mark TEMP after testing
+     log:
+          "results/logs/common/unzip_maf/{folder}_{file}.log"
+     conda:
+          get_conda_env("common")
      shell:
-          "gzip -dc {input} > {output}"
+          "gzip -dc {input} > {output} 2> {log}"
 
 """
 Counts variants in a VCF file, by counting all lines not starting with a comment or whitespace
@@ -79,8 +83,12 @@ rule count_variants:
           "{folder}/{file}.vcf"
      output:
           "{folder}/{file}.vcf.count"
+     log:
+          "results/logs/common/count_variants/{folder}_{file}.log"
+     conda:
+          get_conda_env("common")
      shell:
-          r"grep -c '^[^#\S]' {input} > {output}"
+          r"grep -c '^[^#\S]' {input} > {output} 2> {log}"
 
 """
 Sums counts of all per-chromosome VCF files in a folder.
@@ -92,8 +100,12 @@ rule add_counts:
                chr=config["chromosomes"]["karyotype"])
      output:
           report("{folder}/total.count", category="Logs")
+     log:
+          "results/logs/common/add_counts/{folder}_total.log"
+     conda:
+          get_conda_env("common")
      shell:
-          "cat {input} | awk '{{s+=$1}} END {{print s}}' > {output}"
+          "cat {input} | awk '{{s+=$1}} END {{print s}}' > {output} 2> {log}"
 
 """
 Compress VCF file using bgzip and index using tabix
@@ -101,14 +113,16 @@ Compress VCF file using bgzip and index using tabix
 rule bgzip_tabix:
      input:
           "{folder}/{file}.vcf"
+     log:
+          "results/logs/common/bgzip_tabix/{folder}_{file}.log"
      conda:
           get_conda_env("common")
      output:
           vcf=temp("{folder}/{file}.vcf.gz"),
           index=temp("{folder}/{file}.vcf.gz.tbi")
      shell:
-          "bgzip -c {input} > {output.vcf} && " \
-          "tabix -p vcf -f {output.vcf}"
+          "bgzip -c {input} > {output.vcf} 2> {log} && " \
+          "tabix -p vcf -f {output.vcf} 2>> {log}"
 
 """
 Index VCF using tabix
@@ -116,12 +130,14 @@ Index VCF using tabix
 rule tabix:
      input:
           "{folder}/{file}.vcf.gz"
+     log:
+          "results/logs/common/tabix/{folder}_{file}.log"
      conda:
           get_conda_env("common")
      output:
           temp("{folder}/{file}.vcf.gz.tbi")
      shell:
-          "tabix -p vcf -f {input}"
+          "tabix -p vcf -f {input} 2> {log}"
 
 
 def load_tsv_configuration(file: str) -> dict:
@@ -162,9 +178,13 @@ def ensure_dirs(*paths):
 rule create_base_directories:
     output:
         touch("results/.directories_created")
+    log:
+        "results/logs/common/create_base_directories.log"
+    conda:
+        get_conda_env("common")
     shell:
         """
-        mkdir -p results/{{annotation,dataset,logs,temp,model,scores,figures}}/
+        mkdir -p results/{{annotation,dataset,logs,temp,model,scores,figures}}/ 2> {log}
         mkdir -p results/annotation/{{vep,constraint,gerp,phast}}/
         mkdir -p results/dataset/{{simulated,derived,validation,whole_genome_snps}}/
         mkdir -p results/whole_genome_{{variants,annotations,scores}}/
@@ -181,6 +201,10 @@ checkpoint cleanup_temp_files:
                chr=config["chromosomes"]["karyotype"])
     output:
         touch("results/.cleanup_annotation")
+    log:
+        "results/logs/common/cleanup_temp_files.log"
+    conda:
+        get_conda_env("common")
     shell:
         """
         # Clean up large temporary alignment files
