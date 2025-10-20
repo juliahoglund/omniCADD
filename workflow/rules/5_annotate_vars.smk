@@ -1,4 +1,4 @@
-'''
+"""
  Module that annotates all variants and 
  creates genome wide annotations of evolutionary constraint
  based on the primary input multiple sequence alignment
@@ -12,16 +12,17 @@
  :Date: 01-03-2024
 
  Params can be adjusted for any given species of interest. 
-'''
+"""
 
 import sys
 
 """
 Global wildcard constraints, ease matching of wildcards in rules.
 """
-wildcard_constraints:   
-     part="[a-zA-Z0-9-]+",
 
+
+wildcard_constraints:
+    part="[a-zA-Z0-9-]+",
 
 
 ###############
@@ -33,17 +34,19 @@ Optional rule that installs the needed VEP cache using the vep_install tool
 included with VEP. It is used with the -n no update flag and a set version for reproducibility.
 The VEP cache and program should be from the same release, hence care should be taken to update them together.
 """
+
+
 rule vep_cache:
     params:
-          version_species=config['annotation']["vep"]["cache"]["install_params"]
+        version_species=config["annotation"]["vep"]["cache"]["install_params"],
     log:
-          "results/logs/annotate_vars/vep_cache.log"
+        "results/logs/annotate_vars/vep_cache.log",
     output:
-          directory(config['annotation']["vep"]["cache"]["directory"])
+        directory(config["annotation"]["vep"]["cache"]["directory"]),
     conda:
-          get_conda_env("annotation")
+        get_conda_env("annotation")
     shell:
-         "vep_install -a cf -n {params.version_species} -c {output} --CONVERT 2> {log}"
+        "vep_install -a cf -n {params.version_species} -c {output} --CONVERT 2> {log}"
 
 
 """
@@ -53,62 +56,72 @@ otherwise a path to an existing cache should be given.
 An indexed cache is faster than the standard one, so that is what the vep_cache rule provides.
 This rule expects SIFT scores to be available but this is not the case for many species,
 """  # TODO make sift a config option
+
+
 rule run_vep:
     input:
-         script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
-         vcf="{folder}/{file}.vcf.gz",
-         cache=rules.vep_cache.output if
-            config['annotation']["vep"]["cache"]["should_install"] == "True" else []
+        script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
+        vcf="{folder}/{file}.vcf.gz",
+        cache=(
+            rules.vep_cache.output
+            if config["annotation"]["vep"]["cache"]["should_install"] == "True"
+            else []
+        ),
     params:
-          cache_dir=config['annotation']["vep"]["cache"]["directory"],
-          species_name=config["species_name"]
+        cache_dir=config["annotation"]["vep"]["cache"]["directory"],
+        species_name=config["species_name"],
     log:
-          "{folder}/{file}_vep.log"
+        "{folder}/{file}_vep.log",
     conda:
-         get_conda_env("annotation")
+        get_conda_env("annotation")
     # Parts are at most a few million variants, 2 threads is already fast.
     threads: 2
     output:
-          temp("{folder}/{file}_vep_output.tsv")
+        temp("{folder}/{file}_vep_output.tsv"),
     shell:
-         ensure_dir("{output}") +
-         "chmod +x {input.script} 2>> {log} && "
-         "{input.script} {input.vcf} {output} "
-         "{params.cache_dir} {params.species_name} {threads} 2>> {log} && "
-         "[[ -s {output} ]] 2>> {log}"
+        """
+         mkdir -p $(dirname {output})
+         chmod +x {input.script} 2>> {log} && {input.script} {input.vcf} {output} {params.cache_dir} {params.species_name} {threads} 2>> {log} && [[ -s {output} ]] 2>> {log}
+         """
+
 
 """
 Processes VEP output into the tsv format used by the later steps.
 The VEP consequences are summarised and basic annotations are calculated here as well.
 """
+
+
 rule process_vep:
     input:
-         script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
-         vcf="{folder}/chr{chr}.vcf.gz",
-         index="{folder}/chr{chr}.vcf.gz.tbi",
-         vep="{folder}/chr{chr}_vep_output.tsv",
-         genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("../../resources/grantham_matrix/grantham_table.tsv")
+        script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
+        vcf="{folder}/chr{chr}.vcf.gz",
+        index="{folder}/chr{chr}.vcf.gz.tbi",
+        vep="{folder}/chr{chr}_vep_output.tsv",
+        genome=config["generate_variants"]["reference_genome_wildcard"],
+        grantham=workflow.source_path(
+            "../../resources/grantham_matrix/grantham_table.tsv"
+        ),
     params:
-         output_type=lambda wildcards: "derived" if "derived_variants" in wildcards.folder else "simulated"
+        output_type=lambda wildcards: (
+            "derived" if "derived_variants" in wildcards.folder else "simulated"
+        ),
     log:
-         "{folder}/chr{chr}_process_vep.log"
+        "{folder}/chr{chr}_process_vep.log",
     conda:
-         get_conda_env("common")
+        get_conda_env("common")
     output:
-         vep_tsv="{folder}/chr{chr}_vep.tsv"
+        vep_tsv="{folder}/chr{chr}_vep.tsv",
     shell:
-         ensure_dir("{output}") + \
-         "python3 {input.script} " \
-         "-v {input.vep} -s {input.vcf} " \
-         "-r {input.genome} -g {input.grantham} -o {output.vep_tsv} 2>> {log} && " \
-         "mkdir -p results/annotation/vep/{params.output_type} 2>> {log} && " \
-         "cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv 2>> {log}"
+        """
+         mkdir -p $(dirname {output}) results/annotation/vep/{params.output_type}
+         python3 {input.script} -v {input.vep} -s {input.vcf} -r {input.genome} -g {input.grantham} -o {output.vep_tsv} 2>> {log} && cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv 2>> {log}
+         """
 
 
 ################
 ##### GERP #####
 ################
+
 
 checkpoint split_alignment:
     """
@@ -117,50 +130,50 @@ checkpoint split_alignment:
     """
     input:
         script=workflow.source_path(f"{SCRIPTS_5}split_alignments.py"),
-        maf="results/alignment/merged/chr{chr}.maf"
+        maf="results/alignment/merged/chr{chr}.maf",
     params:
-        blocksize=config["parallelization"]["alignment_positions_per_file"]
+        blocksize=config["parallelization"]["alignment_positions_per_file"],
     log:
-        "results/logs/annotate_vars/split_alignment/chr{chr}.log"
+        "results/logs/annotate_vars/split_alignment/chr{chr}.log",
     conda:
         get_conda_env("alignment")
     resources:
         mem_mb=4000,
-        runtime=60
+        runtime=60,
     output:
-        directory("results/alignment/splitted/chr{chr}/")  
+        directory("results/alignment/splitted/chr{chr}/"),
     shell:
-        ensure_dir("{output}") + \
-        "python3 {input.script} " \
-        "-i {input.maf} " \
-        "-o {output} " \
-        "-s {params.blocksize} 2> {log}"
+        """
+        mkdir -p {output}
+        python3 {input.script} -i {input.maf} -o {output} -s {params.blocksize} 2> {log}
+        """
 
 
-# script from mugsy [ref]; 
+# script from mugsy [ref];
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
 rule convert_alignment:
     input:
         script=workflow.source_path(f"{SCRIPTS_5}maf2fasta.pl"),
-        maf="results/alignment/splitted/chr{chr}/{part}.maf"
+        maf="results/alignment/splitted/chr{chr}/{part}.maf",
     log:
-        "results/logs/annotate_vars/convert_alignment/chr{chr}_{part}.log"
+        "results/logs/annotate_vars/convert_alignment/chr{chr}_{part}.log",
     output:
-        converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta")
+        converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta"),
     conda:
-        get_conda_env("annotation") 
+        get_conda_env("annotation")
     shell:
         "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
+
 
 rule format_alignment:
     input:
         script=workflow.source_path(f"{SCRIPTS_5}format_alignments.py"),
-        fasta="results/alignment/fasta/chr{chr}/{part}.fasta"
+        fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
     log:
-        "results/logs/annotate_vars/format_alignment/chr{chr}_{part}.log"
+        "results/logs/annotate_vars/format_alignment/chr{chr}_{part}.log",
     output:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
-        index=temp("results/alignment/indexfiles/chr{chr}/{part}.index")
+        index=temp("results/alignment/indexfiles/chr{chr}/{part}.index"),
     conda:
         get_conda_env("annotation")
     shell:
@@ -173,11 +186,11 @@ rule format_alignment:
 rule prune_columns:
     input:
         script=workflow.source_path(f"{SCRIPTS_5}prune_cols.py"),
-        fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta"
+        fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
     log:
-        "results/logs/annotate_vars/prune_columns/chr{chr}_{part}.log"
+        "results/logs/annotate_vars/prune_columns/chr{chr}_{part}.log",
     output:
-        pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta"
+        pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
     conda:
         get_conda_env("annotation")
     shell:
@@ -195,23 +208,24 @@ rule compute_gerp:
     """
     input:
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        tree=config["annotation"]['gerp']["tree"]
+        tree=config["annotation"]["gerp"]["tree"],
     conda:
         get_conda_env("annotation")
     resources:
         mem_mb=lambda wildcards, attempt: min(16000, 2000 * attempt),  # GERP can be memory intensive
-        runtime=lambda wildcards, attempt: min(360, 60 * attempt)
+        runtime=lambda wildcards, attempt: min(360, 60 * attempt),
     threads: 4
     output:
-        temp("results/annotation/gerp/chr{chr}/{part}.rates")
+        temp("results/annotation/gerp/chr{chr}/{part}.rates"),
     params:
-        reference_species = config['species_name']
+        reference_species=config["species_name"],
     log:
-       "results/logs/chr{chr}_{part}_gerpcol_log.txt"
+        "results/logs/chr{chr}_{part}_gerpcol_log.txt",
     shell:
-        '''
+        """
         gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log}
-        '''
+        """
+
 
 # adapted from generode [ref]
 # https://github.com/NBISweden/GenErode
@@ -222,112 +236,110 @@ rule gerp2coords:
     This analysis is run as one job per genome chunk, but is internally run per contig.
     """
     input:
-       script=workflow.source_path(f"{SCRIPTS_5}gerp_to_position.py"),
-       fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-       gerp="results/annotation/gerp/chr{chr}/{part}.rates"
+        script=workflow.source_path(f"{SCRIPTS_5}gerp_to_position.py"),
+        fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
+        gerp="results/annotation/gerp/chr{chr}/{part}.rates",
     output:
-       "results/annotation/gerp/chr{chr}/{part}.rates.parsed"
+        "results/annotation/gerp/chr{chr}/{part}.rates.parsed",
     conda:
         get_conda_env("annotation")
     params:
-       reference_species=config['species_name']
+        reference_species=config["species_name"],
     log:
-       "results/logs/chr{chr}_{part}_gerp_coord_log.txt"
+        "results/logs/chr{chr}_{part}_gerp_coord_log.txt",
     threads: 2
     shell:
-       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"
+        "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"
+
 
 ################################
 ##### PHYLOP and PHASTCONS #####
 ################################
 
+
 rule phylo_fit:
     input:
-        "results/alignment/splitted/chr{chr}/{part}.maf"
-    params:          
-        tree=config["annotation"]['phast']["tree"],
-        tree_species=config['annotation']['phast']['tree_species'],
-        precision=config["annotation"]['phast']["train_precision"],
-        out="results/annotation/phast/phylo_model/chr{chr}/{part}"
+        "results/alignment/splitted/chr{chr}/{part}.maf",
+    params:
+        tree=config["annotation"]["phast"]["tree"],
+        tree_species=config["annotation"]["phast"]["tree_species"],
+        precision=config["annotation"]["phast"]["train_precision"],
+        out="results/annotation/phast/phylo_model/chr{chr}/{part}",
     log:
-        "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log"
+        "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
     output:
-         "results/annotation/phast/phylo_model/chr{chr}/{part}.mod"
+        "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     shell:
-       "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa 2>> {log} && "
-       "phyloFit "
-       "--tree '{params.tree}' "
-       "-p {params.precision} "
-       "--subst-mod REV "
-       "--out-root {params.out} "
-       "tmp{wildcards.part}.fa 2>> {log} && "
-       "rm tmp{wildcards.part}.fa 2>> {log}"
+        "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa 2>> {log} && "
+        "phyloFit "
+        "--tree '{params.tree}' "
+        "-p {params.precision} "
+        "--subst-mod REV "
+        "--out-root {params.out} "
+        "tmp{wildcards.part}.fa 2>> {log} && "
+        "rm tmp{wildcards.part}.fa 2>> {log}"
 
-rule run_phastCons: 
+
+rule run_phastCons:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
-        species_interest = config['species_name'],
-        phast_params=config['annotation']["phast"]["phastCons_params"]
+        species_interest=config["species_name"],
+        phast_params=config["annotation"]["phast"]["phastCons_params"],
     log:
-        "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log"
+        "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
     resources:
         mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
-        runtime=lambda wildcards, attempt: min(240, 40 * attempt)
+        runtime=lambda wildcards, attempt: min(240, 40 * attempt),
     output:
-         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig")
+        temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
     threads: 2
     shell:
-         '''
-         ''' + ensure_dir("{output}") + '''
-         phastCons \
-         --msa-format FASTA \
-         --not-informative={params.species_interest} \
-         {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
-         '''
+        """
+         mkdir -p $(dirname {output})
+         phastCons --msa-format FASTA --not-informative={params.species_interest} {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
+         """
+
 
 rule run_phyloP:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
-        species_interest = config['species_name'],
-        phylo_params=config['annotation']["phast"]["phyloP_params"]
+        species_interest=config["species_name"],
+        phylo_params=config["annotation"]["phast"]["phyloP_params"],
     log:
-        "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log"
+        "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
     resources:
         mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
-        runtime=lambda wildcards, attempt: min(240, 40 * attempt)
+        runtime=lambda wildcards, attempt: min(240, 40 * attempt),
     threads: 2
     output:
-        temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig")
+        temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     shell:
-        '''
-        ''' + ensure_dir("{output}") + '''
-        phyloP --msa-format FASTA \
-        --chrom {wildcards.chr} --wig-scores \
-        --not-informative={params.species_interest} \
-        {params.phylo_params} {input.mod} \
-        {input.maf} > {output} 2> {log}
-        '''
+        """
+        mkdir -p $(dirname {output})
+        phyloP --msa-format FASTA --chrom {wildcards.chr} --wig-scores --not-informative={params.species_interest} {params.phylo_params} {input.mod} {input.maf} > {output} 2> {log}
+        """
+
 
 rule wig2bed:
     input:
-        "results/annotation/phast/{tool}/chr{chr}/{part}.wig"
+        "results/annotation/phast/{tool}/chr{chr}/{part}.wig",
     log:
-        "results/logs/annotate_vars/wig2bed/{tool}_chr{chr}_{part}.log"
+        "results/logs/annotate_vars/wig2bed/{tool}_chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
     output:
-        "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed"
+        "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed",
     wildcard_constraints:
-        tool="(phastCons|phyloP)"
+        tool="(phastCons|phyloP)",
     shell:
         "wig2bed < {input} > {output} 2> {log}"
