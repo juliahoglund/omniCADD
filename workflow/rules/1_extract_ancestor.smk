@@ -18,12 +18,7 @@
 import sys
 from snakemake.io import expand, glob_wildcards
 
-"""
- Parse MAF file and removes ambiguous nucleotides from the alignment.
- All 11 ambiguous symbols are converted to N.
- Only needs to be used if directly processing the .maf files in maftools results in errors.
- This is because MAF duplicate finder only supports [actgACTG-Nn].
-"""
+# Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
     input:
         "resources/alignment/{part}.maf.gz"
@@ -32,6 +27,8 @@ rule clean_ambiguous:
         name_reference=config["alignment"]["name_species_interest"],
         p_n=config["mark_ancestor"].get("p_n", 0.8),
         p_gap=config["mark_ancestor"].get("p_gap", 0.8)
+    log:
+        "results/logs/extract_ancestor/clean_ambiguous/{part}.log"
     conda:
         get_conda_env("alignment")
     resources:
@@ -43,16 +40,14 @@ rule clean_ambiguous:
         f"{SCRIPTS_1}clean_maf.py"
 
 
-"""
- Identifies the most recent common ancestor between two given species and marks it with an identifier.
- Config input:
-    "ancestor", 	what to name the ancestral node of interest (example: Mouse_Rat)
-    "sp1_ab",		name of sp1 in the tree 
-    				(how it is named in the alignment file tree section)
-    "sp2_ab", 		name of sp2 in the tree (the ancestor of sp1 and 2 will be selected)
-    "name_sp1", 	name/label of the species of interest 
-    				(how it is named in the alignment file alignment section)
-"""
+# Identifies the most recent common ancestor between two given species and marks it with an identifier.
+# Config input:
+#    "ancestor", 	what to name the ancestral node of interest (example: Mouse_Rat)
+#    "sp1_ab",		name of sp1 in the tree 
+#    				(how it is named in the alignment file tree section)
+#    "sp2_ab", 		name of sp2 in the tree (the ancestor of sp1 and 2 will be selected)
+#    "name_sp1", 	name/label of the species of interest 
+#    				(how it is named in the alignment file alignment section)
 rule mark_ancestor:
     input:
         script = workflow.source_path(f"{SCRIPTS_1}mark_ancestor.py"),  # Fixed path
@@ -96,13 +91,13 @@ def get_df_input_maf():
 
     return f"{config['alignment']['path']}{{part}}.maf.gz"
 
-"""
- Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
- Can be run in a container, as mafTools is python2.7 dependent and can cause version issues.
-"""
+# Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
+# Can be run in a container, as mafTools is python2.7 dependent and can cause version issues.
 rule maf_df:
     input:
         lambda wildcards: get_df_input_maf()
+    log:
+        "results/logs/extract_ancestor/maf_df/{part}.log"
     container:
         "docker://juliahoglund/maftools:latest"
     conda:
@@ -112,18 +107,18 @@ rule maf_df:
         temp("results/alignment/dedup/{part}.maf.lz4")
     shell:
         ensure_dir("{output}") +
-        "lz4 -dc {input} | "
-        "mafDuplicateFilter --maf /dev/stdin | lz4 -f stdin {output}"
+        "lz4 -dc {input} 2>> {log} | "
+        "mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
-"""
- Reorders species within any alignment block, so that the wanted species are in front.
- (it also removes sequences that are not from species given in the order)
-"""
+# Reorders species within any alignment block, so that the wanted species are in front.
+# (it also removes sequences that are not from species given in the order)
 rule maf_ro:
     input:
         "results/alignment/dedup/{part}.maf.lz4"
     params:
         order = config["alignment"]["filter_order"]
+    log:
+        "results/logs/extract_ancestor/maf_ro/{part}.log"
     conda:
         get_conda_env("ancestor")
     container:
@@ -132,7 +127,7 @@ rule maf_ro:
     output:
         temp("results/alignment/row_ordered/{part}.maf.lz4")
     shell:
-        "lz4 -dc {input} | mafRowOrderer --maf /dev/stdin --order {params.order} | lz4 -f stdin {output}"
+        "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 """
  Helper function to gather alignment part files so they can be merged for each chromosome.
@@ -170,10 +165,7 @@ def gather_part_files():
 
     return infiles
 
-"""
- Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
- lz4 compression is fast, 500Mb/s compression and multi-GB/s decompression for a single modern cpu core.
-"""
+# Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
 rule sort_by_chr:
     input:
         maf=gather_part_files(),
@@ -182,7 +174,9 @@ rule sort_by_chr:
         species_name=config["alignment"]["name_species_interest"],
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
-        directory="results/alignment/merged/"
+        directory=lambda wildcards, output: "results/alignment/merged/"
+    log:
+        "results/logs/extract_ancestor/sort_by_chr.log"
     conda:
         get_conda_env("alignment")
     resources:
@@ -196,20 +190,15 @@ rule sort_by_chr:
     shell:
         ensure_dirs(*[f"results/alignment/merged/chr{chr}.maf" for chr in config["chromosomes"]["karyotype"]]) +
         "python3 {input.script} "
-        "-s {params.species_name} "
-        "-i {input.maf} "
-        "-c {params.chromosomes} "
-        "-a {params.ancestor} "
-        "-o {params.directory}"
 
-"""	
- Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand. 
-"""
+# Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand.
 rule maf_str:
     input:
         "results/alignment/merged/chr{chr}.maf.gz"
     params:
         species_label = config['alignment']['name_species_interest']
+    log:
+        "results/logs/extract_ancestor/maf_str/chr{chr}.log"
     conda:
         get_conda_env("ancestor")
     container:
@@ -218,20 +207,17 @@ rule maf_str:
     output:
         temp("results/alignment/stranded/chr{chr}.maf.gz")
     shell:
-        "gzip -dc {input} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + | gzip > {output} && gzip -9 {input}"
+        "gzip -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | gzip > {output} 2>> {log} && gzip -9 {input} 2>> {log}"
 
 
-"""
- Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
- Takes input as the fast .lz4 but saves as the more compressed lz4 
- since this final alignment is not marked as temporary.
- If the file was defined to be presorted in the config we skip sorting for a speed benefit.
-"""
+# Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
 rule maf_sorter:
     input:
         "results/alignment/stranded/chr{chr}.maf.gz"
     params:
         species_label=config['alignment']['name_species_interest'],
+    log:
+        "results/logs/extract_ancestor/maf_sorter/chr{chr}.log"
     conda:
         get_conda_env("ancestor")
     container:
@@ -240,12 +226,9 @@ rule maf_sorter:
     output:
         "results/alignment/sorted/chr{chr}.maf.gz"
     shell:
-        "gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. > {output}"
+        "gzip -dc {input} 2>> {log} | mafSorter --maf /dev/stdin --seq {params.species_label}. 2>> {log} | gzip > {output} 2>> {log}"
 
-"""
- Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
- and outputs per chromosome a fasta file of the ancestral sequence. 
-"""
+# Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers.
 rule gen_ancestor_seq:
     input:
         maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
@@ -257,7 +240,7 @@ rule gen_ancestor_seq:
     conda:
         get_conda_env("ancestor")
     output:
-        "results/ancestral_seq/{params.ancestor}/chr{chr}.fa"
+        f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa"
     shell:
         '''
         faidx -v {params.reference}
@@ -267,5 +250,6 @@ rule gen_ancestor_seq:
          -o {output} \
          -a {params.ancestor} \
          -n {params.species_name} \
-         -r {params.reference}.fai \
+         -r {params.reference}.fai
         '''
+
