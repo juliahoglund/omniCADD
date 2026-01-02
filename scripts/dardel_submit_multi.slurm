@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A naiss2024-22-1246
+#SBATCH -A naiss2025-5-78
 #SBATCH -p main
 #SBATCH -t 06:00:00
 #SBATCH -n 1

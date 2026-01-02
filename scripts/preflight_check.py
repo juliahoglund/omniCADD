@@ -7,13 +7,7 @@ try:
 except Exception:
     yaml = None
 
-REQUIRED_FILES = [
-    # SNPEff DB inputs
-    ("resources/snpEff/snpEff.config", True),
-]
-
 DERIVED_TEMPLATE = "results/derived_variants/singletons/chr{chr}.vcf"
-GENOME_TEMPLATE = "resources/genome/Wild_Boar_chr{chr}.fa"
 
 
 def check_exists(path: str, critical: bool = True):
@@ -34,10 +28,20 @@ def main():
     with open(args.profile, "r") as fh:
         cfg = yaml.safe_load(fh)
 
-    # Check base required files
     ok = True
-    for path, critical in REQUIRED_FILES:
-        ok = check_exists(path, critical) and ok
+
+    # SNPEff config file from overlay/base config
+    snpeff_conf = (
+        cfg.get("annotation", {})
+           .get("snpeff", {})
+           .get("build", {})
+           .get("config_file")
+    )
+    if snpeff_conf:
+        ok = check_exists(snpeff_conf, True) and ok
+    else:
+        print("[CRIT] Missing annotation.snpeff.build.config_file in profile")
+        ok = False
 
     # Chromosomes
     chrs = cfg.get("chromosomes", {}).get("karyotype", [])
@@ -57,8 +61,17 @@ def main():
         print(f"[WARN] gene_annotation.source={gene_src} (no direct file check)")
 
     # Per-chromosome genome and derived VCFs
+    genome_wildcard = (
+        cfg.get("generate_variants", {})
+           .get("reference_genome_wildcard")
+        or "resources/genome/Wild_Boar_chr{chr}.fa"
+    )
     for chr_ in chrs:
-        genome = GENOME_TEMPLATE.format(chr=chr_)
+        try:
+            genome = genome_wildcard.format(chr=chr_)
+        except Exception:
+            print(f"[CRIT] Invalid reference_genome_wildcard: {genome_wildcard}")
+            sys.exit(3)
         derived = DERIVED_TEMPLATE.format(chr=chr_)
         ok = check_exists(genome, True) and ok
         ok = check_exists(derived, False) and ok
