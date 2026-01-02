@@ -16,7 +16,7 @@ rule augustus_predict_genes:
     Runs per chromosome for parallelization.
     """
     input:
-        genome = config["generate_variants"]["reference_genome_wildcard"]
+        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr)
     params:
         species = config["gene_annotation"]["augustus"]["species_model"],
         options = config["gene_annotation"]["augustus"]["parameters"],
