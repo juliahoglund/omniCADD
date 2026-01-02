@@ -68,10 +68,6 @@ rule snpeff_create_config:
     Create or update SNPEff config file with database entry.
     Adds line: genome_name.genome : Species Description
     """
-    input:
-        prepared = "{}/database_prepared.flag".format(
-            config["annotation"]["snpeff"]["database"]["path"]
-        )
     params:
         config_file = config["annotation"]["snpeff"]["build"]["config_file"],
         db_name = config["annotation"]["snpeff"]["database"]["name"],
@@ -86,6 +82,8 @@ rule snpeff_create_config:
 
         CONFIG={params.config_file}
         DATA_DIR={params.data_dir}
+
+        mkdir -p $(dirname "$CONFIG")
 
         if [ ! -f "$CONFIG" ]; then
             echo "# SNPEff config file" > "$CONFIG"
@@ -106,13 +104,15 @@ rule snpeff_build_database:
     Build SNPEff database from genome and annotation files.
     """
     input:
-        genome = "{}/genomes/{}.fa".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
+        genome = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            "genomes",
+            f"{config['annotation']['snpeff']['database']['name']}.fa"
         ),
-        annotation = "{}/{}/genes.gff".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
+        annotation = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "genes.gff"
         ),
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     params:
@@ -120,9 +120,10 @@ rule snpeff_build_database:
         format = config["annotation"]["snpeff"]["build"]["annotation_format"],
         snpeff_dir = lambda wildcards: os.path.dirname(config["annotation"]["snpeff"]["build"]["config_file"])
     output:
-        db_built = "{}/{}/snpEffectPredictor.bin".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
+        db_built = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "snpEffectPredictor.bin"
         )
     conda:
         "../envs/annotation.yml"
@@ -155,9 +156,10 @@ rule run_snpeff:
     input:
         vcf = "{folder}/chr{chr}.vcf.gz",
         index = "{folder}/chr{chr}.vcf.gz.tbi",
-        database = "{}/{}/snpEffectPredictor.bin".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
+        database = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "snpEffectPredictor.bin"
         ) if not config["annotation"]["snpeff"]["database"]["exists"] else [],
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     params:
@@ -190,7 +192,7 @@ rule process_snpeff:
     """
     input:
         vcf = "{folder}/chr{chr}_snpeff_output.vcf",
-        genome = config["generate_variants"]["reference_genome_wildcard"],
+        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
         grantham = config["annotation"]["grantham_matrix"],
         script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
     conda:
@@ -275,9 +277,10 @@ rule run_genome_snpeff:
     """
     input:
         vcf = "results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
-        database = "{}/{}/snpEffectPredictor.bin".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
+        database = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "snpEffectPredictor.bin"
         ) if not config["annotation"]["snpeff"]["database"]["exists"] else [],
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     params:
@@ -309,7 +312,7 @@ rule process_genome_snpeff:
     """
     input:
         vcf = "results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf",
-        genome = config["generate_variants"]["reference_genome_wildcard"],
+        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
         grantham = config["annotation"]["grantham_matrix"],
         script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
     conda:
