@@ -1,0 +1,2 @@
+##gff-version 3
+chr2	source	gene	10	50	.	+	.	ID=gene1;Name=TestGene
