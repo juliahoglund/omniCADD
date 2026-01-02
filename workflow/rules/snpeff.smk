@@ -214,10 +214,16 @@ rule process_snpeff:
             -g {input.grantham} \
             2>&1 | tee {log}
 
-            # Move processed files to annotation directory
-            outdir=results/annotation/snpeff/$(basename {wildcards.folder})
-            mkdir -p $outdir
-            mv {output.tsv} $outdir/ || true
+            # Move processed files to canonical annotation directories
+            if [[ "{wildcards.folder}" == results/derived_variants/singletons* ]]; then
+                outdir=results/annotation/snpeff/derived
+            elif [[ "{wildcards.folder}" == results/simulated_variants/trimmed_snps* ]]; then
+                outdir=results/annotation/snpeff/simulated
+            else
+                outdir=results/annotation/snpeff/$(basename {wildcards.folder})
+            fi
+            mkdir -p "$outdir"
+            mv {output.tsv} "$outdir/" || true
             """
 
 
