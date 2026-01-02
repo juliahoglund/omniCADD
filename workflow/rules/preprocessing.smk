@@ -101,9 +101,9 @@ rule index_genome:
     Create FASTA index (.fai) for reference genome.
     """
     input:
-        fasta = "{file}.fa"
+        fasta = "resources/genome/{prefix}.fa"
     output:
-        index = "{file}.fa.fai"
+        index = "resources/genome/{prefix}.fa.fai"
     conda:
         "../envs/common.yml"
     shell:
