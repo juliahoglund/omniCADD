@@ -46,7 +46,7 @@ rule gen_derived:
 		ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
 		reference=config["generate_variants"]["reference_genome_wildcard"],
 		frequency="results/processed_population_frequency/chr{chr}.frq",
-		script=workflow.source_path(SCRIPTS_2 + "derive_variants.py")
+		script="../scripts/step_2_derive_variants/derive_variants.py"
 	params:
 		no_chrs=config['chromosomes']['autosomes'],
 		output_prefix="results/derived_variants/raw/chr{chr}"
@@ -82,7 +82,7 @@ rule gen_derived:
 rule snp_filter:
 	input:
 		vcf="results/derived_variants/raw/chr{chr}.vcf",
-		script=workflow.source_path(SCRIPTS_2 + "filter_snps.py")
+		script="../scripts/step_2_derive_variants/filter_snps.py"
 	conda:
 		"../envs/simulation.yml"
 	output:
@@ -98,15 +98,15 @@ rule snp_filter:
 Variants are generated and filtered for each chromosome in parallel.
 Trimming is done for the whole variant set so they are first merged into one
 """
-rule merge_by_chr:
-    input:
-        raw=expand("results/derived_variants/singletons/chr{chr}.vcf") 
-    output:
-        raw="results/derived_variants/singletons/all_chr.vcf"
-    shell:
-        '''
-        echo "##fileformat=VCFv4.1" >> {output.raw}
-        echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
-        echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
-        grep -vh "^#" {input.raw} >> {output.raw}
-        '''
+rule merge_by_chr_derived:
+	input:
+		raw=expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]) 
+	output:
+		raw="results/derived_variants/singletons/all_chr.vcf"
+	shell:
+		'''
+		echo "##fileformat=VCFv4.1" >> {output.raw}
+		echo '##INFO=<ID=CpG,Number=0,Type=Flag,Description="Position was mutated in a CpG dinucleotide context (based on the reference sequence).">' >> {output.raw}
+		echo "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" >> {output.raw}
+		grep -vh "^#" {input.raw} >> {output.raw}
+		'''

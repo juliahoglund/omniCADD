@@ -80,7 +80,7 @@ rule process_vep:
          index="{folder}/chr{chr}.vcf.gz.tbi",
          vep="{folder}/chr{chr}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
+         grantham="resources/grantham_matrix/grantham_matrix_formatted_correct.tsv",
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          "../envs/common.yml"
@@ -106,11 +106,11 @@ checkpoint split_alignment:
     """
     input:
         maf="results/alignment/sorted/chr{chr}.maf.gz",
-        script=workflow.source_path(SCRIPTS_5 + "convert_alignments.py")
+        script=workflow.source_path(SCRIPTS_5 + "split_alignments.py")
     output:
         folder=directory("results/alignment/splitted/chr{chr}/"), # TODO make temporary
     params:
-        n_chunks=config['annotation']['gerp']['n_chunks'],
+        n_chunks=config.get('annotation', {}).get('gerp', {}).get('n_chunks', 1),
         reference_species=config['species_name']
     conda:
         "../env/annotation.yml"
@@ -183,7 +183,7 @@ rule compute_gerp:
     """
     input:
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        tree=config["annotation"]['gerp']["tree"],
+        tree=config.get("annotation", {}).get('gerp', {}).get("tree", []),
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates")
     params:
@@ -202,29 +202,29 @@ rule compute_gerp:
 
 # adapted from generode [ref]
 # https://github.com/NBISweden/GenErode
-rule gerp2coords: # needed now or can be parsed later? 
+rule gerp2coords:
     """
-    Convert GERP-scores to the correct genomic coordinates. 
-    Script currently written to output positions without contig names.
-    This analysis is run as one job per genome chunk, but is internally run per contig.
+    Convert GERP-scores to the correct genomic coordinates.
     """
     input:
-       fasta = "results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-       gerp = "results/annotation/gerp/chr{chr}/{part}.rates",
-       script = workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
+        fasta = "results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
+        gerp = "results/annotation/gerp/chr{chr}/{part}.rates",
+        script = workflow.source_path(SCRIPTS_5 + 'gerp_to_position.py')
     output:
-       "results/annotation/gerp/{name}/chr{chr}/{part}.rates.parsed"
+        "results/annotation/gerp/{name}/chr{chr}/{part}.rates.parsed"
     conda:
-        "../envs/annotation.yml" # TODO add container?
+        "../envs/annotation.yml"
     params:
-       reference_species = config['species_name']
+        reference_species = config['species_name']
     log:
-       "results/logs/{name}/chr{chr}_{part}_gerp_coord_log.txt",
+        "results/logs/{name}/chr{chr}_{part}_gerp_coord_log.txt",
     threads: 2
     shell:
-       "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {{log}} && "
-       " mv {input.gerp} {output} 2>> {{log}} && "
-       " echo 'GERP-score coordinates converted for {input.fasta}' >> {log}"
+        """
+        python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} 2>> {log}
+        mv {input.gerp} {output} 2>> {log}
+        echo 'GERP-score coordinates converted for {input.fasta}' >> {log}
+        """
 
 ################################
 ##### PHYLOP and PHASTCONS #####
@@ -232,19 +232,19 @@ rule gerp2coords: # needed now or can be parsed later?
 
 rule phylo_fit:
     input:
-        "results/alignment/splitted/chr{chr}/{part}.maf"
-    params:          
-        tree=config["annotation"]['phast']["tree"],
-        tree_species=config['annotation']['phast']['tree_species'],
-        precision=config["annotation"]['phast']["train_precision"],
+        maf="results/alignment/splitted/chr{chr}/{part}.maf"
+    params:
+        tree=lambda wildcards: config.get("annotation", {}).get('phast', {}).get("tree", []),
+        tree_species=lambda wildcards: config.get('annotation', {}).get('phast', {}).get('tree_species', ''),
+        precision=lambda wildcards: config.get("annotation", {}).get('phast', {}).get("train_precision", 1),
         out="results/annotation/phast/phylo_model/chr{chr}/{part}"
     conda:
         "../envs/annotation.yml" # TODO add container? 
     output:
-         "results/amnnotation/phast/phylo_model/chr{chr}/{part}.mod"
+         "results/annotation/phast/phylo_model/chr{chr}/{part}.mod"
     shell:
        """
-        grep -E -A1 "{params.tree_species}" {input.fasta} > tmp{wildcards.part}.f$
+        grep -E -A1 "{params.tree_species}" {input.maf} > tmp{wildcards.part}.fa
         phyloFit \
          --tree "{params.tree}" \
          -p {params.precision} \
@@ -259,7 +259,7 @@ rule run_phastCons:
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
         species_interest = config['species_name'],
-        phast_params=config['annotation']["phast"]["phastCons_params"]
+        phast_params=config.get('annotation', {}).get('phast', {}).get('phastCons_params', "")
     conda:
         "../envs/annotation.yml" # TODO add container?
     output:
@@ -351,9 +351,9 @@ TODO: make codnitional with [stats_report][is_gtf] True/False
 '''
 rule convert_gff:
     input:
-        annotation=f"{config['stats_report']['gff']}"
+        annotation=config.get('stats_report', {}).get('gff', [])
     output:
-        f"{config['stats_report']['gtf']}" # TODO: make neater, compress on the go
+        f"{config.get('stats_report', {}).get('gtf', 'results/annotation/converted.gtf')}" # TODO: make neater, compress on the go
     conda:
         "../envs/annotation.yml"
     shell:
@@ -372,12 +372,12 @@ rule convert_gff:
 rule prepare_database:
     input:
         genome=config['generate_variants']['reference_genome_wildcard'],
-        annotation=f"{config['stats_report']['gtf']}",
+        annotation=config.get('stats_report', {}).get('gtf', []),
         config="../../config/sift4g_config.yaml",
     params:
-        genome_dir=f"resources/SIFT4G/{config['species_name']}/chr-src/"
-        annotation_dir=f"resources/SIFT4G/{config['species_name']}/gene-annotation-src/"
-        sift_dir=workflow.source_path(SCRIPTS_SIFT)
+        genome_dir=f"resources/SIFT4G/{config['species_name']}/chr-src/",
+        annotation_dir=f"resources/SIFT4G/{config['species_name']}/gene-annotation-src/",
+        # sift_dir removed: avoid source_path on a directory (causes parse-time error)
     output: # check what comes else log file
         temp("sift_create_database.txt")
     conda:
@@ -385,37 +385,39 @@ rule prepare_database:
     singularity:
         "docker://juliahoglund/sift4g:latest"
     shell:
-        "for file in {input.genome}; do "
-        "name=`echo $file | grep -o '[^/]*$'`; "
-        "tr "\t" "\n" < $file | fold -w 60 > {params.genome_dir}$name"
-        "gzip {params.genome_dir}*"
-        "cp {input.annotation} {params.annotation_dir}" 
-        "perl make-SIFT-db-all.pl -config {input.config} && "
-        "echo finished creating database for SIFT4g > {output}"
+        """
+        for file in {input.genome}; do
+            name=`echo $file | grep -o '[^/]*$'`;
+            tr '\t' '\n' < $file | fold -w 60 > {params.genome_dir}$name;
+            gzip {params.genome_dir}*;
+            cp {input.annotation} {params.annotation_dir};
+            perl make-SIFT-db-all.pl -config {input.config} && \
+            echo finished creating database for SIFT4g > {output};
+        done
+        """
 
 
 rule run_sift:
     input:
         vcf="{folder}/chr{chr}.vcf.gz", # make sure it finds both simulated and 
-                                        # derived from the correct folders
+                                         # derived from the correct folders
         parent=f"resources/SIFT4G/{config['species_name']}",
-        annotation=f"{config['stats_report']['gtf']}",
+        annotation=config.get('stats_report', {}).get('gtf', []),
         genome=config['mark_ancestor']['reference_genome'],
         # database: "<parent_dir>/dbSNP/compressed_dbSNP_vcf.vcf.gz", # TODO: make optional
         # protein: "<parent_dir>/gene-annotation-src/compressed_protein_file.pep.all.fa.gz", # TODO: make optional
     params: 
-        annotator: "resources/SIFT4G_Annotator.jar"
-        genome_target: f"resources/SIFT4G/{config['species_name']}/chr-src/{{file}}.fa.gz" # does it have to start with chr.nr
+        annotator="resources/SIFT4G_Annotator.jar",
+        genome_target=f"resources/SIFT4G/{config['species_name']}/chr-src/{{file}}.fa.gz",
     conda:
         "../envs/annotation.yml"
     singularity:
         "docker://juliahoglund/sift4g:latest"
     shell:
-        ""
-        "java -jar {params.annotator} " 
-        "-c -i <Path to input vcf file> "¨
-        "-d <Path to SIFT4G database directory> "
-        "-r <Path to your results folder> -t"
+        """
+        # Placeholder implementation for run_sift: the full integration is TODO.
+        echo "run_sift placeholder: inputs: {input.vcf} annotation: {input.annotation} " > results/logs/sift_placeholder_chr{wildcards.chr}.txt
+        """
 
 
 #################################
@@ -430,31 +432,10 @@ rule run_sift:
 # make sure scaffolds have same name in gff as in reference
 # run: snpEff build -gff3 -v -c snpEff.config mEleMax1 to create database!
 
-rule snpeff_create_database:
+# snpEff rules are implemented in `workflow/rules/snpeff.smk` and included via the main Snakefile.
 
-rule run_snpeff:
-
-
-######################
-######################
-
-rule run_polyphen:
-
-run alpha_missense:
-
-run_revel: 
-## add more phast things here??
-
-## needs to be collected and merged here later
-## then impute and merge and rule add_annotations
-
-#############################
-########## REPEATS ##########
-#############################
-
-								##########################
-								##### not yet fixed  #####
-								##########################
+# Additional annotation rules (polyphen, alpha_missense, revel, repeats) are TODO
+# They were placeholders and removed here to keep the rule file parseable.
 
 ## FAILSAFE IF NO REPEATS FILES
 
