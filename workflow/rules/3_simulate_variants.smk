@@ -50,7 +50,7 @@ rule process_parameters:
         parameters="results/simulated_variants/params.pckl",
         log=report("results/logs/process_parameters.log", category="Logs")
     shell:
-        '''
+        r'''
         python3 {input.script} \
         -n $(cat {input.derived_count} | awk "{{s+=\$1}} END {{print s * {params.factor} }}") \
         -p {input.parameters} -l {output.log} -o {output.parameters}

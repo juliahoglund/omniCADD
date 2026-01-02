@@ -51,7 +51,7 @@ rule count_variants:
      output:
           "{folder}/{file}.vcf.count"
      shell:
-          "grep -c '^[^#\S]' {input} > {output}"
+          r"grep -c '^[^#\S]' {input} > {output}"
 
 """
 Sums counts of all per-chromosome VCF files in a folder.
@@ -64,7 +64,7 @@ rule add_counts:
      output:
           report("{folder}/total.count", category="Logs")
      shell:
-         '''
+         r'''
          cat {input} | awk "{{s+=\$1}} END {{print s}}" > {output}
          '''
 
