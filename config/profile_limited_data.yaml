@@ -8,9 +8,9 @@ species_name: "sus_scrofa_wild"
 genome_version: "Wild_Boar_Assembly"
 
 chromosomes:
-  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18' ]
-  train: [ '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '16', '18' ]
-  score: [ '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '16', '18' ]
+  karyotype: [ '2' ]
+  train: [ '2' ]
+  score: [ '2' ]
   naming:
     convention: "numeric"
     include_scaffolds: false
