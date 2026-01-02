@@ -2,7 +2,7 @@
 # For poorly-annotated non-model organisms (wild boar, rare species, etc.)
 # Requires gene prediction, custom database creation, and ancestral reconstruction
 
-data_tier: "limited"
+data_tier: "custom"
 
 species_name: "sus_scrofa_wild"
 genome_version: "Wild_Boar_Assembly"
@@ -29,13 +29,11 @@ preprocessing:
     needs_indexing: true
 
 gene_annotation:
-  source: "augustus"  # No existing annotation - predict genes
-  predict_genes: true
+  source: "gff"  # Use existing minimal annotation to avoid local Augustus dependency
+  predict_genes: false
+  gff: "resources/annotation/minimal_wild_boar.gff"
   augustus:
-    enabled: true
-    species_model: "human"  # Use closest available model
-    output_format: "gff3"
-    parameters: "--protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on --exonnames=on --UTR=on"
+    enabled: false
 
 ancestral_sequence:
   source: "reconstruct"  # No MAF alignment available

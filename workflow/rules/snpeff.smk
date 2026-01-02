@@ -133,6 +133,7 @@ rule snpeff_build_database:
     shell:
         """
         set -euo pipefail
+        mkdir -p $(dirname {log})
         cd {params.snpeff_dir}
 
         snpEff build \
@@ -175,6 +176,7 @@ rule run_snpeff:
         "results/logs/snpeff/{folder}_chr{chr}.log"
     shell:
         """
+        mkdir -p $(dirname {log})
         snpEff {params.options} \
             -c {input.config_file} \
             -stats {output.stats} \
