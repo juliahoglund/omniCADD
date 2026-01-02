@@ -20,48 +20,45 @@ rule snpeff_prepare_genome:
     - snpEff/data/genome_name/genes.gff (or genes.gtf)
     """
     input:
-        genome = config["generate_variants"]["reference_genome_wildcard"].replace("{chr}", "*"),
+        # all chromosome fasta files (expanded at runtime)
+        genome_files=lambda wildcards: sorted(__import__('glob').glob(config["generate_variants"]["reference_genome_wildcard"].replace("{chr}", "*"))),
         annotation = lambda wildcards: (
-            config["gene_annotation"]["gff"] if config["gene_annotation"]["source"] == "gff"
-            else config["gene_annotation"]["gtf"] if config["gene_annotation"]["source"] == "gtf"
+            config["gene_annotation"].get("gff") if config["gene_annotation"].get("source") == "gff"
+            else config["gene_annotation"].get("gtf") if config["gene_annotation"].get("source") == "gtf"
             else "results/gene_prediction/genes.gff3"
         )
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
         data_dir = config["annotation"]["snpeff"]["database"]["path"],
-        genome_dir = lambda wildcards: f"{config['annotation']['snpeff']['database']['path']}/genomes",
-        anno_dir = lambda wildcards: f"{config['annotation']['snpeff']['database']['path']}/{config['annotation']['snpeff']['database']['name']}"
+        genome_dir = lambda wildcards: os.path.join(config['annotation']['snpeff']['database']['path'], 'genomes'),
+        anno_dir = lambda wildcards: os.path.join(config['annotation']['snpeff']['database']['path'], config['annotation']['snpeff']['database']['name'])
     output:
-        genome_out = "{}/genomes/{}.fa".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
-        ),
-        anno_out = "{}/{}/genes.gff".format(
-            config["annotation"]["snpeff"]["database"]["path"],
-            config["annotation"]["snpeff"]["database"]["name"]
-        ),
-        prepared = "{}/database_prepared.flag".format(
-            config["annotation"]["snpeff"]["database"]["path"]
-        )
+        genome_out = os.path.join(config["annotation"]["snpeff"]["database"]["path"], "genomes", f"{config['annotation']['snpeff']['database']['name']}.fa"),
+        anno_out = os.path.join(config["annotation"]["snpeff"]["database"]["path"], config["annotation"]["snpeff"]["database"]["name"], "genes.gff"),
+        prepared = os.path.join(config["annotation"]["snpeff"]["database"]["path"], "database_prepared.flag")
     conda:
         "../envs/annotation.yml"
     shell:
         """
+        set -euo pipefail
+
         # Create directory structure
         mkdir -p {params.genome_dir}
         mkdir -p {params.anno_dir}
-        
-        # Concatenate all chromosomes for genome
-        cat {input.genome} > {output.genome_out}
-        
-        # Copy and prepare annotation
-        if [[ {input.annotation} == *.gz ]]; then
+
+        # Concatenate all genome fasta parts (if multiple) into one fasta for snpEff
+        echo "Creating combined genome fasta: {output.genome_out}" >&2
+        cat {input.genome_files} > {output.genome_out}
+
+        # Copy and prepare annotation (handle gzipped inputs)
+        if [[ "{input.annotation}" == *.gz ]]; then
             gunzip -c {input.annotation} > {output.anno_out}
         else
             cp {input.annotation} {output.anno_out}
         fi
-        
-        # Create flag file
+
+        # Set permissions and mark prepared
+        chmod 0644 {output.genome_out} {output.anno_out} || true
         touch {output.prepared}
         """
 
@@ -79,22 +76,27 @@ rule snpeff_create_config:
         config_file = config["annotation"]["snpeff"]["build"]["config_file"],
         db_name = config["annotation"]["snpeff"]["database"]["name"],
         species_name = config["species_name"],
+        data_dir = config["annotation"]["snpeff"]["database"]["path"],
         genome_version = config["genome_version"]
     output:
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     shell:
         """
-        # Check if config exists, create if not
-        if [ ! -f {params.config_file} ]; then
-            echo "# SNPEff config file" > {params.config_file}
-            echo "data.dir = {config[annotation][snpeff][database][path]}" >> {params.config_file}
-            echo "" >> {params.config_file}
-            echo "# Databases" >> {params.config_file}
+        set -euo pipefail
+
+        CONFIG={params.config_file}
+        DATA_DIR={params.data_dir}
+
+        if [ ! -f "$CONFIG" ]; then
+            echo "# SNPEff config file" > "$CONFIG"
+            echo "data.dir = $DATA_DIR" >> "$CONFIG"
+            echo "" >> "$CONFIG"
+            echo "# Databases" >> "$CONFIG"
         fi
-        
+
         # Add database entry if not already present
-        if ! grep -q "^{params.db_name}.genome" {params.config_file}; then
-            echo "{params.db_name}.genome : {params.species_name} {params.genome_version}" >> {params.config_file}
+        if ! grep -q "^{params.db_name}.genome" "$CONFIG"; then
+            echo "{params.db_name}.genome : {params.species_name} {params.genome_version}" >> "$CONFIG"
         fi
         """
 
@@ -129,15 +131,16 @@ rule snpeff_build_database:
         "results/logs/snpeff_build_database.log"
     shell:
         """
+        set -euo pipefail
         cd {params.snpeff_dir}
-        
+
         snpEff build \
             -{params.format} \
             -v \
             -c {input.config_file} \
             {params.db_name} \
-            2>&1 | tee {log}
-        """
+                2>&1 | tee {log}
+            """
 
 
 ####################################
@@ -198,16 +201,20 @@ rule process_snpeff:
         "results/logs/snpeff_process/{folder}_chr{chr}.log"
     shell:
         """
+        set -euo pipefail
+        mkdir -p $(dirname {log})
         python3 {input.script} \
             -i {input.vcf} \
             -r {input.genome} \
             -o {output.tsv} \
             -g {input.grantham} \
             2>&1 | tee {log}
-        
-        # Move processed files to annotation directory
-        mkdir -p results/annotation/snpeff/$(basename {wildcards.folder})
-        """
+
+            # Move processed files to annotation directory
+            outdir=results/annotation/snpeff/$(basename {wildcards.folder})
+            mkdir -p $outdir
+            mv {output.tsv} $outdir/ || true
+            """
 
 
 ####################################
@@ -243,7 +250,7 @@ rule merge_vep_snpeff:
     input:
         vep = "{folder}/chr{chr}_vep.tsv",
         snpeff = "{folder}/chr{chr}_snpeff.tsv",
-        script = workflow.source_path(SCRIPTS_5 + "merge_annotations.py")
+        script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py")
     conda:
         "../envs/annotation.yml"
     output:

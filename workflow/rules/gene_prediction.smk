@@ -207,9 +207,12 @@ rule augustus_train_species:
     conda:
         "../envs/annotation.yml"
     output:
-        model = "results/augustus_training/{species}_trained"
+        # Use a concrete path derived from config['species_name'] so outputs/logs
+        # do not contain different wildcards. Evaluate at parse time to avoid
+        # using functions for outputs/logs (some Snakemake versions restrict this).
+        model = "results/augustus_training/{}_trained".format(config['species_name'])
     log:
-        "results/logs/augustus_training.log"
+        "results/logs/augustus_training_{}.log".format(config['species_name'])
     shell:
         """
         # This is a placeholder for Augustus training
