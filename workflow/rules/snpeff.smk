@@ -7,6 +7,17 @@ Provides complete implementation of SNPEff as alternative to VEP
 """
 
 import os
+def _snpeff_output_path(wildcards):
+    folder = wildcards.folder
+    chr_ = wildcards.chr
+    if folder.startswith("results/derived_variants/singletons"):
+        return f"results/annotation/snpeff/derived/chr{chr_}_snpeff.tsv"
+    elif folder.startswith("results/simulated_variants/trimmed_snps"):
+        return f"results/annotation/snpeff/simulated/chr{chr_}_snpeff.tsv"
+    else:
+        # default: keep alongside folder
+        base = os.path.basename(folder.rstrip("/"))
+        return f"results/annotation/snpeff/{base}/chr{chr_}_snpeff.tsv"
 
 ####################################
 ### SNPEff Database Creation #######
@@ -187,43 +198,60 @@ rule run_snpeff:
         """
 
 
-rule process_snpeff:
+rule process_snpeff_derived:
     """
-    Process SNPEff output to standardized TSV format.
-    Adds Grantham scores and other custom annotations.
+    Process SNPEff output for derived variants to standardized TSV.
     """
     input:
-        vcf = "{folder}/chr{chr}_snpeff_output.vcf",
+        vcf = "results/derived_variants/singletons/chr{chr}_snpeff_output.vcf",
         genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
         grantham = config["annotation"]["grantham_matrix"],
         script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
     conda:
         "../envs/annotation.yml"
     output:
-        tsv = "{folder}/chr{chr}_snpeff.tsv"
+        tsv = "results/annotation/snpeff/derived/chr{chr}_snpeff.tsv"
     log:
-        "results/logs/snpeff_process/{folder}_chr{chr}.log"
+        "results/logs/snpeff_process/derived_chr{chr}.log"
     shell:
         """
         set -euo pipefail
         mkdir -p $(dirname {log})
+        mkdir -p $(dirname {output.tsv})
         python3 {input.script} \
             -i {input.vcf} \
             -r {input.genome} \
             -o {output.tsv} \
             -g {input.grantham} \
             2>&1 | tee {log}
+            """
 
-            # Move processed files to canonical annotation directories
-            if [[ "{wildcards.folder}" == results/derived_variants/singletons* ]]; then
-                outdir=results/annotation/snpeff/derived
-            elif [[ "{wildcards.folder}" == results/simulated_variants/trimmed_snps* ]]; then
-                outdir=results/annotation/snpeff/simulated
-            else
-                outdir=results/annotation/snpeff/$(basename {wildcards.folder})
-            fi
-            mkdir -p "$outdir"
-            mv {output.tsv} "$outdir/" || true
+rule process_snpeff_simulated:
+    """
+    Process SNPEff output for simulated variants to standardized TSV.
+    """
+    input:
+        vcf = "results/simulated_variants/trimmed_snps/chr{chr}_snpeff_output.vcf",
+        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
+        grantham = config["annotation"]["grantham_matrix"],
+        script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
+    conda:
+        "../envs/annotation.yml"
+    output:
+        tsv = "results/annotation/snpeff/simulated/chr{chr}_snpeff.tsv"
+    log:
+        "results/logs/snpeff_process/simulated_chr{chr}.log"
+    shell:
+        """
+        set -euo pipefail
+        mkdir -p $(dirname {log})
+        mkdir -p $(dirname {output.tsv})
+        python3 {input.script} \
+            -i {input.vcf} \
+            -r {input.genome} \
+            -o {output.tsv} \
+            -g {input.grantham} \
+            2>&1 | tee {log}
             """
 
 

@@ -27,7 +27,7 @@ gene_annotation:
 ancestral_sequence:
   source: "reconstruct"
   reconstruct:
-    enabled: false
+    enabled: true
 
 mark_ancestor:
   reference_genome: 'resources/genome/Wild_Boar_Assembly.fasta'
