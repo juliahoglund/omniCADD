@@ -28,7 +28,7 @@ rule combine_constraint:
         index = "results/alignment/indexfiles/",
         script = workflow.source_path(SCRIPTS_6 + "combine_constraint_anno.R"),
     params:
-        n_chunks = config['annotation']['gerp']['n_chunks'],
+        n_chunks = config.get('annotation', {}).get('gerp', {}).get('n_chunks', 1),
     conda:
         "../envs/annotation.yml" # change to common? 
     threads: 2

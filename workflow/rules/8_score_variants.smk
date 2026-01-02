@@ -15,7 +15,15 @@
  The scripts and workflow have been adopted from the work of Christian Gross.
 """
 
-from natsort import natsorted, ns
+try:
+    from natsort import natsorted, ns
+except ImportError:
+    # Fallback: use built-in sorted if natsort is unavailable at parse-time
+    def natsorted(iterable, key=None):
+        return sorted(iterable, key=key)
+    class ns:
+        # minimal placeholder to avoid attribute errors if referenced
+        INT = None
 
 wildcard_constraints:   
      part="[0-9]+",
@@ -111,7 +119,7 @@ rule process_genome_vep:
          vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
          vep="results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv",
          genome=config["generate_variants"]["reference_genome_wildcard"],
-         grantham=workflow.source_path("resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"),
+         grantham="resources/grantham_matrix/grantham_matrix_formatted_correct.tsv",
          script=workflow.source_path(SCRIPTS_5 + "VEP_process.py"),
     conda:
          "../envs/common.yml"
@@ -127,9 +135,9 @@ rule process_genome_vep:
 Merges the annotations from VEP with the genome-wide generated annotation files for 
 phastCons, phyloP and GERP
 """  
-rule intersect_bed:
+rule intersect_whole_genome_bed:
     input:
-        vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv"
+        vep = "results/whole_genome_annotations/chr{chr}/{part}.vep.tsv",
         bed = "results/annotation/constraint/constraint_chr{chr}.bed",
         script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py"),
     conda:
@@ -166,11 +174,13 @@ rule prepare_whole_genome:
     log:
         "results/logs/data_preparation/whole_genome/chr{chr}/{part}.log"
     shell:
-     "python3 {input.script} -i {input.data} --npz {output.npz} "
-     "--processing-config {input.processing} "
-     "--interaction-config {input.interactions} "
-     "--imputation-dict {input.imputaton} "
-     "{params.derived_variants} {params.y} > {log}"
+        """
+        python3 {input.script} -i {input.data} --npz {output.npz} \
+        --processing-config {input.processing} \
+        --interaction-config {input.interactions} \
+        --imputation-dict {input.imputaton} \
+        {params.derived_variants} {params.y} > {log}
+        """
 
 """
 Scores the predicted probability for all possible variants to be of class 1,
