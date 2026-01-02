@@ -27,16 +27,17 @@ import sys
 """
 rule clean_ambiguous:
 	input:
-		maf = lambda wildcards:
-		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
-		script = workflow.source_path(SCRIPTS_1 + 'clean_maf.py')
+		# Return the original input path pattern with a literal {part} wildcard.
+		maf = lambda wildcards: config['alignments'][wildcards.alignment]['path'] + "{part}.maf.gz",
+	params:
+		script_path = "../scripts/step_1_extract_ancestor/clean_maf.py"
 	conda:
 		"../envs/ancestor.yml"
 	output:
 		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
 		# create temporary files and dirs
 	shell:
-		"python3 {input.script} -i {input.maf} -o {output}"
+		"python3 {params.script_path} -i {input.maf} -o {output}"
 
 """
  Identifies the most recent common ancestor between two given species and marks it with an identifier.
@@ -55,11 +56,14 @@ rule mark_ancestor:
 		if config["alignments"][wildcards.alignment]["clean_maf"] == "True" else
 		f"{config['alignments'][wildcards.alignment]['path']}{{part}}.maf.gz",
 
-		script = lambda wildcards: workflow.source_path(SCRIPTS_1 + 'mark_ancestor.py')
-		if config["alignments"][wildcards.alignment]["ancestor"] == "True" else
-		f"{workflow.source_path(SCRIPTS_1 + 'mark_outgroup.py')}"
-
+	# Select script via params (params can be functions using wildcards) so the parser
+	# does not get confused by multiline lambda expressions inside `input:`.
 	params:
+		script_path = lambda wildcards: (
+			"../scripts/step_1_extract_ancestor/mark_ancestor.py"
+			if config["alignments"][wildcards.alignment]["ancestor"] == "True"
+			else "../scripts/step_1_extract_ancestor/mark_outgroup.py"
+		),
 		ancestor = config['mark_ancestor']['name_ancestor'],
 		sp1_ab = config['mark_ancestor']['sp1_tree_ab'],
 		sp2_ab = config['mark_ancestor']['sp2_tree_ab'],
@@ -71,7 +75,7 @@ rule mark_ancestor:
 	output:
 		temp("results/alignment/marked_ancestor/{alignment}/{part}.maf.gz")
 	shell:
-		"python3 {input.script}"
+		"python3 {params.script_path}"
 		" -i {input.maf}"
 		" -o {output}"
 		" -a {params.ancestor}"
@@ -171,7 +175,6 @@ def gather_part_files(alignment):
 rule sort_by_chr: # sort by chromosome
 	input:
 		maf = lambda wildcards: gather_part_files(wildcards.alignment),
-		script = workflow.source_path(SCRIPTS_1 + 'sort_by_chromosome.py')
 	params:
 		species_name=lambda wildcards: config["alignments"][wildcards.alignment]["name_species_interest"],
 		directory = "results/alignment/merged/{alignment}/",
@@ -186,11 +189,11 @@ rule sort_by_chr: # sort by chromosome
 			chr=config["chromosomes"]["karyotype"])
 	shell:
 		'''
-		python3 {input.script} \
-		 -s {params.species_name} \
-		 -i {input.maf} \
-		 -c {params.chromosomes} \
-		 -a {params.ancestor} &&
+	python3 ../scripts/step_1_extract_ancestor/sort_by_chromosome.py \
+	 -s {params.species_name} \
+	 -i {input.maf} \
+	 -c {params.chromosomes} \
+	 -a {params.ancestor} &&
 		
 		gzip -9 chr*.maf && mv chr*.maf.gz {params.directory}
 		'''
@@ -242,12 +245,18 @@ rule maf_sorter:
 
 rule gen_ancestor_seq:
 	input:
-		maf=f"results/alignment/sorted/{config['mark_ancestor']['ancestral_alignment']}/chr{{chr}}.maf.gz",
-		script=workflow.source_path(SCRIPTS_1 + 'extract_ancestor.py'),
+		# Delay evaluation and guard missing keys to avoid parse-time KeyError
+		maf=lambda wildcards: (
+			f"results/alignment/sorted/{config.get('mark_ancestor',{{}}).get('ancestral_alignment','')}/chr{wildcards.chr}.maf.gz"
+		),
 	params:
-		species_name=config["alignments"][config['mark_ancestor']['ancestral_alignment']]["name_species_interest"],
-		ancestor=config['mark_ancestor']['name_ancestor'],
-		reference=config['mark_ancestor']['reference_genome']
+		species_name=lambda wildcards: (
+			config.get('alignments',{}).get(
+				config.get('mark_ancestor',{}).get('ancestral_alignment',''),{}
+			).get('name_species_interest','')
+		),
+		ancestor=config.get('mark_ancestor',{}).get('name_ancestor',''),
+		reference=config.get('mark_ancestor',{}).get('reference_genome','')
 	conda:
 		"../envs/ancestor.yml"
 	output:
@@ -256,7 +265,7 @@ rule gen_ancestor_seq:
 		'''
 		faidx -v {params.reference}
 		
-		python3 {input.script} \
+		python3 ../scripts/step_1_extract_ancestor/extract_ancestor.py \
 		 -i {input.maf} \
 		 -o {output} \
 		 -a {params.ancestor} \
