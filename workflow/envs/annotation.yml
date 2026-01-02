@@ -104,6 +104,8 @@ dependencies:
   - ruamel.yaml=0.18.5
   - ruamel.yaml.clib=0.2.7
   - samtools=1.19.2
+  - snpeff
+  - augustus
   - seqtk=1.4
   - setuptools=69.0.3
   - sift4g=2.0.0
