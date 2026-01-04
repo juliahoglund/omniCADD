@@ -18,11 +18,10 @@ rule augustus_predict_genes:
     input:
         genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr)
     params:
-        species = config["gene_annotation"]["augustus"]["species_model"],
-        options = config["gene_annotation"]["augustus"]["parameters"],
-        output_format = config["gene_annotation"]["augustus"]["output_format"]
+        species = config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
+        options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on")
     conda:
-        "../envs/annotation.yml"
+        "../envs/gene_prediction.yml"
     threads: 2
     output:
         gff = "results/gene_prediction/chr{chr}.gff3"
@@ -33,7 +32,6 @@ rule augustus_predict_genes:
         augustus \
             --species={params.species} \
             {params.options} \
-            --gff3={params.output_format} \
             {input.genome} \
             > {output.gff} \
             2> {log}
@@ -80,7 +78,7 @@ rule augustus_validate:
         validated = "results/gene_prediction/genes_validated.gff3",
         report = "results/gene_prediction/validation_report.txt"
     conda:
-        "../envs/annotation.yml"
+        "../envs/gene_prediction.yml"
     shell:
         """
         # Basic validation
@@ -129,7 +127,7 @@ rule convert_gff_to_gtf:
     input:
         gff = lambda wildcards: get_gene_annotation_file()
     conda:
-        "../envs/annotation.yml"
+        "../envs/gene_prediction.yml"
     output:
         gtf = "results/gene_annotation/genes.gtf.gz"
     shell:
@@ -165,7 +163,7 @@ rule prepare_annotation_for_snpeff:
     output:
         prepared = "results/gene_annotation/genes_for_snpeff.gff3"
     conda:
-        "../envs/annotation.yml"
+        "../envs/gene_prediction.yml"
     shell:
         """
         # Decompress if needed
