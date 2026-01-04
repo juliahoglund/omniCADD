@@ -1,0 +1,37 @@
+# Test overlay with Augustus gene prediction + SNPEff on Dardel
+
+data_tier: "custom"
+
+chromosomes:
+  karyotype: [ '2', '18' ]
+  train: [ '2' ]
+  score: [ '18' ]
+
+# Use repository test genomes
+generate_variants:
+  reference_genome_wildcard: ".tests/genome/Wild_Boar_chr{chr}.fa"
+
+gene_annotation:
+  source: "augustus"
+  predict_genes: true
+  augustus:
+    species: "generic"  # override to "human" or "sus_scrofa" if available
+    hints: null
+    options: "--strand=both --UTR=on --gff3=on"
+
+annotation:
+  variant_annotator: "snpeff"
+  snpeff:
+    enabled: true
+    database:
+      name: "wild_boar_custom"
+      path: ".tests/snpEff/data/"
+    build:
+      config_file: ".tests/snpEff/snpEff.config"
+      annotation_format: "gff3"
+    run:
+      options: "-v -noStats"
+  grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
+
+stats_report:
+  enabled: false
