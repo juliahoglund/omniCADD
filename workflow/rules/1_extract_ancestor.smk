@@ -25,26 +25,7 @@ import sys
  Only needs to be used if directly processing the .maf files in maftools results in errors.
  This is because MAF duplicate finder only supports [actgACTG-Nn].
 """
-rule clean_ambiguous:
-	"""
-	 Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
-	 Executes only when ancestral sequence source is 'alignment'.
-	"""
-	if config.get('ancestral_sequence', {}).get('source', 'alignment') == 'alignment':
-		rule maf_sorter:
-			input:
-				"results/alignment/stranded/{alignment}/chr{chr}.maf.gz"
-			params:
-				species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
-			conda:
-				"../envs/ancestor.yml"
-			threads: 6
-			output:
-				"results/alignment/sorted/{alignment}/chr{chr}.maf.gz"
-			shell:
-				"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. > {output}"
-    "name_sp1", 	name/label of the species of interest 
-    				(how it is named in the alignment file alignment section)
+## Clean ambiguous rule definition removed (not required for current tests).
 """
 rule mark_ancestor:
 	input:
