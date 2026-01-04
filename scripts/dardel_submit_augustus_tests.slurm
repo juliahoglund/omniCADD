@@ -13,6 +13,7 @@ set -euo pipefail
 
 module load python3 || true
 module load snakemake/7.25.0 || true
+conda config --set channel_priority strict
 
 # Fallback: use user Miniforge if conda module is unavailable
 if [ -d "$HOME/miniforge3" ]; then
@@ -32,6 +33,7 @@ snakemake -s run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
   --profile config/slurm/profile \
   --use-conda \
+  --conda-frontend mamba \
   --jobs 100 \
   --printshellcmds \
   target_multi
