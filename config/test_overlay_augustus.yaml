@@ -35,3 +35,6 @@ annotation:
 
 stats_report:
   enabled: false
+
+ancestral_sequence:
+  source: "none"

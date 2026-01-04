@@ -26,26 +26,23 @@ import sys
  This is because MAF duplicate finder only supports [actgACTG-Nn].
 """
 rule clean_ambiguous:
-	input:
-		# Return the original input path pattern with a literal {part} wildcard.
-		maf = lambda wildcards: config['alignments'][wildcards.alignment]['path'] + "{part}.maf.gz",
-	params:
-		script_path = "../scripts/step_1_extract_ancestor/clean_maf.py"
-	conda:
-		"../envs/ancestor.yml"
-	output:
-		temp("results/alignment/cleaned_maf/{alignment}/{part}.maf.gz")
-		# create temporary files and dirs
-	shell:
-		"python3 {params.script_path} -i {input.maf} -o {output}"
-
-"""
- Identifies the most recent common ancestor between two given species and marks it with an identifier.
- Config input:
-    "ancestor", 	what to name the ancestral node of interest (example: Mouse_Rat)
-    "sp1_ab",		name of sp1 in the tree 
-    				(how it is named in the alignment file tree section)
-    "sp2_ab", 		name of sp2 in the tree (the ancestor of sp1 and 2 will be selected)
+	"""
+	 Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
+	 Executes only when ancestral sequence source is 'alignment'.
+	"""
+	if config.get('ancestral_sequence', {}).get('source', 'alignment') == 'alignment':
+		rule maf_sorter:
+			input:
+				"results/alignment/stranded/{alignment}/chr{chr}.maf.gz"
+			params:
+				species_label=lambda wildcards: config['alignments'][wildcards.alignment]['name_species_interest'],
+			conda:
+				"../envs/ancestor.yml"
+			threads: 6
+			output:
+				"results/alignment/sorted/{alignment}/chr{chr}.maf.gz"
+			shell:
+				"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. > {output}"
     "name_sp1", 	name/label of the species of interest 
     				(how it is named in the alignment file alignment section)
 """
@@ -239,38 +236,37 @@ rule maf_sorter:
 		"gzip -dc {input} | mafSorter --maf /dev/stdin --seq {params.species_label}. > {output}"
 
 """
- Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers 
- and outputs per chromosome a fasta file of the ancestral sequence. 
+ Reconstructs the marked ancestor sequences in the preprocessed maf files when source is 'alignment'.
 """
-
-rule gen_ancestor_seq:
-	input:
-		# Delay evaluation and guard missing keys to avoid parse-time KeyError
-		maf=lambda wildcards: (
-			f"results/alignment/sorted/{config.get('mark_ancestor',{{}}).get('ancestral_alignment','')}/chr{wildcards.chr}.maf.gz"
-		),
-	params:
-		species_name=lambda wildcards: (
-			config.get('alignments',{}).get(
-				config.get('mark_ancestor',{}).get('ancestral_alignment',''),{}
-			).get('name_species_interest','')
-		),
-		ancestor=config.get('mark_ancestor',{}).get('name_ancestor',''),
-		reference=config.get('mark_ancestor',{}).get('reference_genome','')
-	conda:
-		"../envs/ancestor.yml"
-	output:
-		"results/ancestral_seq/{ancestor}/chr{chr}.fa"
-	shell:
-		'''
-		faidx -v {params.reference}
-		
-		python3 ../scripts/step_1_extract_ancestor/extract_ancestor.py \
-		 -i {input.maf} \
-		 -o {output} \
-		 -a {params.ancestor} \
-		 -n {params.species_name} \
-		 -r {params.reference}.fai \
-		'''
+if config.get('ancestral_sequence', {}).get('source', 'alignment') == 'alignment':
+	rule gen_ancestor_seq:
+		input:
+			# Delay evaluation and guard missing keys to avoid parse-time KeyError
+			maf=lambda wildcards: (
+				f"results/alignment/sorted/{config.get('mark_ancestor',{{}}).get('ancestral_alignment','')}/chr{wildcards.chr}.maf.gz"
+			),
+		params:
+			species_name=lambda wildcards: (
+				config.get('alignments',{}).get(
+					config.get('mark_ancestor',{}).get('ancestral_alignment',''),{}
+				).get('name_species_interest','')
+			),
+			ancestor=config.get('mark_ancestor',{}).get('name_ancestor',''),
+			reference=config.get('mark_ancestor',{}).get('reference_genome','')
+		conda:
+			"../envs/ancestor.yml"
+		output:
+			"results/ancestral_seq/{ancestor}/chr{chr}.fa"
+		shell:
+			'''
+			faidx -v {params.reference}
+            
+			python3 ../scripts/step_1_extract_ancestor/extract_ancestor.py \
+			 -i {input.maf} \
+			 -o {output} \
+			 -a {params.ancestor} \
+			 -n {params.species_name} \
+			 -r {params.reference}.fai \
+			'''
 
 #################
