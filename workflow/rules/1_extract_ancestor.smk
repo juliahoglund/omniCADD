@@ -26,7 +26,6 @@ import sys
  This is because MAF duplicate finder only supports [actgACTG-Nn].
 """
 ## Clean ambiguous rule definition removed (not required for current tests).
-"""
 rule mark_ancestor:
 	input:
 		maf = lambda wildcards: 
