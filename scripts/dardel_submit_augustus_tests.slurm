@@ -12,7 +12,6 @@
 set -euo pipefail
 
 module load python3 || true
-module load conda || true
 
 # Optional: conda envs path in project space
 # export CONDA_ENVS_PATH=/proj/naiss2025-5-78/condaenvs
