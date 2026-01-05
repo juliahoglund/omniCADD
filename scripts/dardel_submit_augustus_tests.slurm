@@ -13,6 +13,7 @@ set -euo pipefail
 
 # Reset modules to avoid pulling old Rackham paths
 module purge || true
+ml snakemake || true
 
 # Prefer user Miniforge/conda; configure strict channel priority
 if [ -d "$HOME/miniforge3" ]; then
@@ -24,12 +25,11 @@ conda config --set channel_priority strict || true
 
 # Disable conda plugins to avoid environment issues
 export CONDA_NO_PLUGINS=true
+# Force classic solver to avoid libmamba plugin requirement
+export CONDA_SOLVER=classic
 
-# Detect conda frontend (prefer mamba if available)
-FRONTEND="mamba"
-if ! command -v mamba >/dev/null 2>&1; then
-  FRONTEND="conda"
-fi
+# Use classic conda frontend for reliability on Dardel
+FRONTEND="conda"
 
 # Optional: conda envs path in project space
 # export CONDA_ENVS_PATH=/proj/naiss2025-5-78/condaenvs
