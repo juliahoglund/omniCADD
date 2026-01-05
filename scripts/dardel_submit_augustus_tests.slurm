@@ -11,15 +11,24 @@
 
 set -euo pipefail
 
-module load python3 || true
-module load snakemake/7.25.0 || true
-conda config --set channel_priority strict
+# Reset modules to avoid pulling old Rackham paths
+module purge || true
 
-# Fallback: use user Miniforge if conda module is unavailable
+# Prefer user Miniforge/conda; configure strict channel priority
 if [ -d "$HOME/miniforge3" ]; then
   export PATH="$HOME/miniforge3/bin:$PATH"
   # shellcheck disable=SC1091
   source "$HOME/miniforge3/etc/profile.d/conda.sh" 2>/dev/null || true
+fi
+conda config --set channel_priority strict || true
+
+# Disable conda plugins to avoid environment issues
+export CONDA_NO_PLUGINS=true
+
+# Detect conda frontend (prefer mamba if available)
+FRONTEND="mamba"
+if ! command -v mamba >/dev/null 2>&1; then
+  FRONTEND="conda"
 fi
 
 # Optional: conda envs path in project space
@@ -33,7 +42,7 @@ snakemake -s run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
   --profile config/slurm/profile \
   --use-conda \
-  --conda-frontend mamba \
+  --conda-frontend "$FRONTEND" \
   --jobs 100 \
   --printshellcmds \
   target_multi

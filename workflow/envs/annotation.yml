@@ -131,6 +131,7 @@ dependencies:
     - python-dateutil=2.9.0
     - pytz=2024.1
     - configargparse
+    - pip
     - pip:
       - bioutils==0.5.8.post1
       - cialign==1.1.0
