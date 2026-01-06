@@ -32,21 +32,26 @@ rule augustus_predict_genes:
         mkdir -p results/logs/augustus
         echo "CONDA_PREFIX=$CONDA_PREFIX" >> {log}
         echo "PATH=$PATH" >> {log}
-        if [ -x "$CONDA_PREFIX/bin/augustus" ]; then
-            echo "Found augustus at $CONDA_PREFIX/bin/augustus" >> {log}
-        elif command -v augustus >/dev/null 2>&1; then
-            which augustus >> {log} 2>&1
-        else
+        AUGUSTUS_BIN="$(command -v augustus || true)"
+        if [ -z "$AUGUSTUS_BIN" ] && [ -n "$CONDA_PREFIX" ] && [ -x "$CONDA_PREFIX/bin/augustus" ]; then
+            AUGUSTUS_BIN="$CONDA_PREFIX/bin/augustus"
+        fi
+        if [ -z "$AUGUSTUS_BIN" ]; then
             echo "augustus not found in PATH and not in $CONDA_PREFIX/bin" >> {log}
             exit 127
         fi
+        echo "Using AUGUSTUS_BIN=$AUGUSTUS_BIN" >> {log}
+        "$AUGUSTUS_BIN" --version >> {log} 2>&1 || true
         # Ensure AUGUSTUS_CONFIG_PATH is set (bioconda usually sets it via activation)
         env | grep -q '^AUGUSTUS_CONFIG_PATH=' || export AUGUSTUS_CONFIG_PATH="$CONDA_PREFIX/config"
         if [ ! -d "$AUGUSTUS_CONFIG_PATH" ]; then
             export AUGUSTUS_CONFIG_PATH="$CONDA_PREFIX/share/augustus/config"
         fi
+        if [ ! -d "$AUGUSTUS_CONFIG_PATH" ] && [ -n "$AUGUSTUS_BIN" ]; then
+            export AUGUSTUS_CONFIG_PATH="$(dirname "$AUGUSTUS_BIN")/../config"
+        fi
         echo "AUGUSTUS_CONFIG_PATH=$AUGUSTUS_CONFIG_PATH" >> {log}
-        "$CONDA_PREFIX/bin/augustus" \
+        "$AUGUSTUS_BIN" \
             --species={params.species} \
             {params.options} \
             {input.genome} \
