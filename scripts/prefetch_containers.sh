@@ -116,10 +116,18 @@ else
       ln -sfn "$(basename "$CAND_SIF")" resources/containers/augustus.sif
       SIF_PATH="$CAND_SIF"
     else
-      echo "ERROR: No tagged Augustus SIF found to restore from." >&2
-      echo "Hint: set containers.augustus to a docker:// URI in $CONFIG_FILE and rerun prefetch, or place the SIF at the expected path." >&2
-      echo "Example: containers.augustus: \"docker://juliahoglund/augustus:bioconda-3x\"" >&2
-      exit 1
+      echo "INFO: No tagged Augustus SIF found to restore from. Falling back to Docker Hub tag." >&2
+      AUG_IMG_DEFAULT="docker://juliahoglund/augustus:bioconda-3x"
+      TAG=$(echo "$AUG_IMG_DEFAULT" | sed -E 's#.*/augustus:##')
+      SAFE_TAG=$(echo "$TAG" | tr '/:' '__')
+      SIF_PATH="resources/containers/augustus_${SAFE_TAG}.sif"
+      echo "Pulling $AUG_IMG_DEFAULT -> $SIF_PATH" >&2
+      if ! $RUNTIME pull "$SIF_PATH" "$AUG_IMG_DEFAULT"; then
+        echo "ERROR: Failed to pull default Docker Hub tag: $AUG_IMG_DEFAULT" >&2
+        echo "Hint: ensure network access or try later, or set containers.augustus to a reachable docker:// URI and rerun." >&2
+        exit 1
+      fi
+      ln -sfn "$(basename "$SIF_PATH")" resources/containers/augustus.sif
     fi
   fi
 fi
