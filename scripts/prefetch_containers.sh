@@ -15,15 +15,29 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 
-# Detect container runtime (expect modules already loaded in the shell)
+# Detect container runtime (best-effort auto-load PDC + apptainer)
 if command -v apptainer >/dev/null 2>&1; then
   RUNTIME=apptainer
 elif command -v singularity >/dev/null 2>&1; then
   RUNTIME=singularity
 else
-  echo "ERROR: apptainer/singularity not found in PATH." >&2
-  echo "Please load one in this shell, e.g.: 'module load apptainer' and rerun." >&2
-  exit 1
+  # Try to load via PDC modules non-interactively
+  if command -v ml >/dev/null 2>&1; then
+    ml PDC >/dev/null 2>&1 || true
+    ml apptainer >/dev/null 2>&1 || true
+  elif command -v module >/dev/null 2>&1; then
+    module load PDC >/dev/null 2>&1 || true
+    module load apptainer >/dev/null 2>&1 || true
+  fi
+  if command -v apptainer >/dev/null 2>&1; then
+    RUNTIME=apptainer
+  elif command -v singularity >/dev/null 2>&1; then
+    RUNTIME=singularity
+  else
+    echo "ERROR: apptainer/singularity not found in PATH." >&2
+    echo "Please load modules, e.g.: 'ml PDC; ml apptainer' then rerun." >&2
+    exit 1
+  fi
 fi
 
 extract_img() {

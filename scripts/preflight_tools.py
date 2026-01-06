@@ -16,8 +16,27 @@ def run(cmd: list[str]) -> tuple[int, str]:
     except subprocess.CalledProcessError as e:
         return e.returncode, e.output
 
+def _detect_runtime() -> str:
+    # Prefer explicit env override
+    pref = os.environ.get("PREFLIGHT_RUNTIME", "").strip()
+    if pref and shutil.which(pref):
+        return pref
+    # Direct PATH detection
+    for r in ("apptainer", "singularity"):
+        if shutil.which(r):
+            return r
+    # Best-effort: try to load modules via a login shell
+    probe = "ml PDC >/dev/null 2>&1 || true; ml apptainer >/dev/null 2>&1 || true; command -v apptainer || command -v singularity || true"
+    code, out = run(["bash", "-lc", probe])
+    cand = (out or "").strip().splitlines()[-1] if out else ""
+    if cand:
+        return os.path.basename(cand)
+    return ""
+
 def exec_in(img: str, args: list[str]) -> tuple[int, str]:
-    r = os.environ.get("PREFLIGHT_RUNTIME") or ("apptainer" if shutil.which("apptainer") else "singularity")
+    r = _detect_runtime()
+    if not r:
+        return 127, "Container runtime not found. Load modules: 'ml PDC; ml apptainer' and retry."
     return run([r, "exec", img] + args)
 
 def check_augustus(img: str) -> bool:
@@ -86,6 +105,9 @@ def main():
         exists = os.path.exists(snpeff_conf)
         print(f"[SNP] config exists: {exists} -> {snpeff_conf}")
         ok = exists and ok
+    if not ok:
+        print("Preflight status: FAIL", file=sys.stderr)
+        print("Hint: load modules first with 'ml PDC; ml apptainer' if missing.", file=sys.stderr)
     sys.exit(0 if ok else 1)
 
 if __name__ == "__main__":
