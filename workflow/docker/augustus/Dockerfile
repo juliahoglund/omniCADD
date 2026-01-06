@@ -6,6 +6,8 @@ FROM docker.io/condaforge/miniforge3:23.11.0-0
 # - Clean caches to keep image small
 RUN conda create -y -n augustus -c conda-forge -c bioconda \
             augustus=3.* \
+            snpeff=5.* \
+            openjdk=17 \
             gffread \
             bedtools \
             samtools \
@@ -34,6 +36,7 @@ ENV TZ=UTC
 ENTRYPOINT ["/bin/bash"]
 
 RUN which augustus && echo "Configs at: $AUGUSTUS_CONFIG_PATH" && ls -d "$AUGUSTUS_CONFIG_PATH" || (echo "ERROR: augustus not found or configs missing" && exit 1)
+RUN which snpEff && snpEff -version || (echo "ERROR: snpEff not found" && exit 1)
 
 # Note: Config location may vary across builds; AUGUSTUS_CONFIG_PATH is set and
 # runtime scripts detect/override if needed.

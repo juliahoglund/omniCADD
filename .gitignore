@@ -117,3 +117,4 @@ WildBoar_Chr2.vcf.gz
 WildBoar_Chr12.vcf.gz
 results/derived_variants/singletons/chr12.vcf.gz.tbi
 workflow/docker/augustus/README.md
+README.md

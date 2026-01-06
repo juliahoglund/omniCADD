@@ -109,6 +109,17 @@ rule snpeff_create_config:
             echo "data.dir = $DATA_ABS" >> "$CONFIG_ABS"
             echo "" >> "$CONFIG_ABS"
             echo "# Databases" >> "$CONFIG_ABS"
+        else
+            # Ensure data.dir points to absolute path (avoid duplicated prefixes like .tests/snpEff/.tests/snpEff)
+            if grep -q "^data\.dir[[:space:]]*=" "$CONFIG_ABS"; then
+                sed -i'' -E "s|^data\.dir[[:space:]]*=.*$|data.dir = $DATA_ABS|" "$CONFIG_ABS"
+            else
+                # Prepend data.dir at the top
+                tmpfile=$(mktemp)
+                echo "data.dir = $DATA_ABS" > "$tmpfile"
+                cat "$CONFIG_ABS" >> "$tmpfile"
+                mv "$tmpfile" "$CONFIG_ABS"
+            fi
         fi
 
         # Add database entry if not already present
