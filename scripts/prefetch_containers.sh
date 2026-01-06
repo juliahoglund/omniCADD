@@ -42,7 +42,10 @@ fi
 
 extract_img() {
   local name="$1"
-  awk '/^containers:/{f=1} f && ('"[[:space:]]+$name:"') {print; exit}' "$CONFIG_FILE" | sed -E 's/.*"(.*)".*/\1/'
+  awk -v n="$name" '
+    /^containers:/ {f=1; next}
+    f && $0 ~ "^[[:space:]]*" n ":" {print; exit}
+  ' "$CONFIG_FILE" | sed -E 's/.*"(.*)".*/\1/'
 }
 
 AUG_IMG=$(extract_img augustus)

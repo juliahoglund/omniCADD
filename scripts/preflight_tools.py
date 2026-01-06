@@ -4,6 +4,7 @@ import subprocess
 import sys
 import os
 import shutil
+import shlex
 try:
     import yaml
 except Exception:
@@ -16,28 +17,19 @@ def run(cmd: list[str]) -> tuple[int, str]:
     except subprocess.CalledProcessError as e:
         return e.returncode, e.output
 
-def _detect_runtime() -> str:
-    # Prefer explicit env override
-    pref = os.environ.get("PREFLIGHT_RUNTIME", "").strip()
-    if pref and shutil.which(pref):
-        return pref
-    # Direct PATH detection
-    for r in ("apptainer", "singularity"):
-        if shutil.which(r):
-            return r
-    # Best-effort: try to load modules via a login shell
-    probe = "ml PDC >/dev/null 2>&1 || true; ml apptainer >/dev/null 2>&1 || true; command -v apptainer || command -v singularity || true"
-    code, out = run(["bash", "-lc", probe])
-    cand = (out or "").strip().splitlines()[-1] if out else ""
-    if cand:
-        return os.path.basename(cand)
-    return ""
-
 def exec_in(img: str, args: list[str]) -> tuple[int, str]:
-    r = _detect_runtime()
-    if not r:
-        return 127, "Container runtime not found. Load modules: 'ml PDC; ml apptainer' and retry."
-    return run([r, "exec", img] + args)
+    # Always execute in a login bash, try to load modules, then run via apptainer or singularity.
+    # This avoids relying on the parent Python env PATH.
+    cmd = (
+        "ml PDC >/dev/null 2>&1 || true; "
+        "ml apptainer >/dev/null 2>&1 || true; "
+        "if command -v apptainer >/dev/null 2>&1; then "
+        f"apptainer exec {shlex.quote(img)} " + " ".join(shlex.quote(a) for a in args) + "; "
+        "elif command -v singularity >/dev/null 2>&1; then "
+        f"singularity exec {shlex.quote(img)} " + " ".join(shlex.quote(a) for a in args) + "; "
+        "else echo 'Container runtime not found. Load modules: ml PDC; ml apptainer' >&2; exit 127; fi"
+    )
+    return run(["bash", "-lc", cmd])
 
 def check_augustus(img: str) -> bool:
     ok = True
