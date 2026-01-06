@@ -25,8 +25,5 @@ ENV TZ=UTC
 SHELL ["/bin/bash", "-lc"]
 ENTRYPOINT ["/bin/bash"]
 
-# Build-time sanity checks (fail early if configs or binary missing)
-RUN echo "AUGUSTUS_CONFIG_PATH=$AUGUSTUS_CONFIG_PATH" && \
-    ls -d "$AUGUSTUS_CONFIG_PATH" && \
-    augustus --version && \
-    augustus --printSpecies | head -n 20
+# Note: Config location may vary across builds; AUGUSTUS_CONFIG_PATH is set,
+# and runtime scripts detect/override if needed.

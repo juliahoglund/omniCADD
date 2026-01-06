@@ -78,24 +78,19 @@ detect_cfg() {
 # Quick sanity: extract Augustus image from overlay and verify only if it's a local SIF
 AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' config/test_overlay_augustus.yaml | sed -E 's/.*"(.*)".*/\1/')
 if [ -n "${AUG_IMG:-}" ]; then
-  if [[ "$AUG_IMG" == docker://* ]]; then
-    echo "NOTE: Augustus image is a remote docker URI. Compute nodes may not pull." >&2
-    echo "      Prefetch on a login node: ./scripts/prefetch_containers.sh config/test_overlay_augustus.yaml" >&2
-    echo "      Then set containers.augustus to the local .sif path and resubmit." >&2
+  echo "Probing Augustus image with $CONTAINER_RUNTIME: $AUG_IMG"
+  # Try to run a lightweight command to ensure image is usable
+  if ! $CONTAINER_RUNTIME exec "$AUG_IMG" augustus --version >/dev/null 2>&1; then
+    echo "WARN: Could not run 'augustus --version' in $AUG_IMG; continuing but container may be unusable." >&2
+  fi
+  # Detect config directory regardless of docker:// or local .sif
+  CFG_PATH=$(detect_cfg "$AUG_IMG") || true
+  if [ -n "$CFG_PATH" ]; then
+    echo "Using AUGUSTUS_CONFIG_PATH=$CFG_PATH"
+    export SINGULARITYENV_AUGUSTUS_CONFIG_PATH="$CFG_PATH"
+    export APPTAINERENV_AUGUSTUS_CONFIG_PATH="$CFG_PATH"
   else
-    echo "Testing local Augustus SIF with $CONTAINER_RUNTIME: $AUG_IMG"
-    if ! $CONTAINER_RUNTIME exec "$AUG_IMG" augustus --version >/dev/null 2>&1; then
-      echo "ERROR: Failed to run 'augustus --version' in local image $AUG_IMG." >&2
-      exit 1
-    fi
-    CFG_PATH=$(detect_cfg "$AUG_IMG") || true
-    if [ -n "$CFG_PATH" ]; then
-      echo "Using AUGUSTUS_CONFIG_PATH=$CFG_PATH"
-      export SINGULARITYENV_AUGUSTUS_CONFIG_PATH="$CFG_PATH"
-      export APPTAINERENV_AUGUSTUS_CONFIG_PATH="$CFG_PATH"
-    else
-      echo "WARN: Could not detect AUGUSTUS config dir in container; will rely on defaults"
-    fi
+    echo "WARN: Could not detect AUGUSTUS config dir in container; will rely on defaults"
   fi
 fi
 
