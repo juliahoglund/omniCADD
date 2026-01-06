@@ -61,8 +61,11 @@ if [[ "$AUG_IMG" == docker://* ]]; then
   TAG=$(echo "$AUG_IMG" | sed -E 's#.*/augustus:##')
   SAFE_TAG=$(echo "$TAG" | tr '/:' '__')
   SIF_PATH="resources/containers/augustus_${SAFE_TAG}.sif"
-  echo "Pulling $AUG_IMG -> $SIF_PATH"
-  if ! $RUNTIME pull "$SIF_PATH" "$AUG_IMG"; then
+  if [ -f "$SIF_PATH" ]; then
+    echo "Found existing SIF: $SIF_PATH (reusing)"
+  else
+    echo "Pulling $AUG_IMG -> $SIF_PATH"
+    if ! $RUNTIME pull "$SIF_PATH" "$AUG_IMG"; then
     echo "WARN: Failed to pull configured tag: $AUG_IMG" >&2
     echo "Attempting to auto-discover a valid Quay tag..." >&2
     # Query Quay for tags and try a handful of likely candidates.
@@ -98,6 +101,7 @@ PY
     if [ -z "$FOUND" ]; then
       echo "ERROR: Failed to pull any tested Augustus tags from Quay." >&2
       exit 1
+    fi
     fi
   fi
 else
