@@ -19,6 +19,19 @@ def run(cmd: list[str]) -> tuple[int, str]:
 
 BASE_DIR = os.getcwd()
 
+def _find_repo_root(start_dir: str) -> str:
+    d = os.path.abspath(start_dir)
+    while True:
+        # Heuristics for this repo: top-level snakefile, or .git, or workflow dir
+        if os.path.isfile(os.path.join(d, "snakefile")) or \
+           os.path.isdir(os.path.join(d, ".git")) or \
+           os.path.isdir(os.path.join(d, "workflow")):
+            return d
+        parent = os.path.dirname(d)
+        if parent == d:
+            return start_dir
+        d = parent
+
 def exec_in(img: str, args: list[str]) -> tuple[int, str]:
     # Resolve image path relative to the profile directory so relative paths work
     if not img.startswith("docker://") and not os.path.isabs(img):
@@ -82,7 +95,8 @@ def main():
         sys.exit(2)
     profile_path = os.path.abspath(args.profile)
     global BASE_DIR
-    BASE_DIR = os.path.dirname(profile_path)
+    # Prefer repo root (with snakefile/.git/workflow) as base; fallback to parent of profile
+    BASE_DIR = _find_repo_root(os.path.dirname(profile_path))
     with open(profile_path, "r") as fh:
         cfg = yaml.safe_load(fh)
     cont = cfg.get("containers", {})
@@ -103,7 +117,8 @@ def main():
            .get("config_file")
     )
     if snpeff_conf:
-        exists = os.path.exists(snpeff_conf)
+        conf_abs = snpeff_conf if os.path.isabs(snpeff_conf) else os.path.join(BASE_DIR, snpeff_conf)
+        exists = os.path.exists(conf_abs)
         print(f"[SNP] config exists: {exists} -> {snpeff_conf}")
         ok = exists and ok
     if not ok:
