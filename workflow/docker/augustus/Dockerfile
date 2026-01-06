@@ -1,7 +1,7 @@
 # Minimal Augustus container built from Bioconda using micromamba
 # Build locally, then push to your registry (Quay/GHCR), or convert to SIF.
 
-FROM condaforge/miniforge:latest
+FROM ghcr.io/conda-incubator/miniforge:latest
 
 # Install augustus and common helpers
 # - Use conda-forge + bioconda, pin versions as needed
