@@ -17,16 +17,22 @@ def run(cmd: list[str]) -> tuple[int, str]:
     except subprocess.CalledProcessError as e:
         return e.returncode, e.output
 
+BASE_DIR = os.getcwd()
+
 def exec_in(img: str, args: list[str]) -> tuple[int, str]:
-    # Always execute in a login bash, try to load modules, then run via apptainer or singularity.
-    # This avoids relying on the parent Python env PATH.
+    # Resolve image path relative to the profile directory so relative paths work
+    if not img.startswith("docker://") and not os.path.isabs(img):
+        img = os.path.abspath(os.path.join(BASE_DIR, img))
+    # Always execute in a login bash, cd into base dir, load modules, then run via apptainer or singularity.
+    quoted_args = " ".join(shlex.quote(a) for a in args)
     cmd = (
+        f"cd {shlex.quote(BASE_DIR)}; "
         "ml PDC >/dev/null 2>&1 || true; "
         "ml apptainer >/dev/null 2>&1 || true; "
         "if command -v apptainer >/dev/null 2>&1; then "
-        f"apptainer exec {shlex.quote(img)} " + " ".join(shlex.quote(a) for a in args) + "; "
+        f"apptainer exec {shlex.quote(img)} {quoted_args}; "
         "elif command -v singularity >/dev/null 2>&1; then "
-        f"singularity exec {shlex.quote(img)} " + " ".join(shlex.quote(a) for a in args) + "; "
+        f"singularity exec {shlex.quote(img)} {quoted_args}; "
         "else echo 'Container runtime not found. Load modules: ml PDC; ml apptainer' >&2; exit 127; fi"
     )
     return run(["bash", "-lc", cmd])
@@ -74,7 +80,10 @@ def main():
     if yaml is None:
         print("ERROR: pyyaml not installed", file=sys.stderr)
         sys.exit(2)
-    with open(args.profile, "r") as fh:
+    profile_path = os.path.abspath(args.profile)
+    global BASE_DIR
+    BASE_DIR = os.path.dirname(profile_path)
+    with open(profile_path, "r") as fh:
         cfg = yaml.safe_load(fh)
     cont = cfg.get("containers", {})
     aug = cont.get("augustus")
