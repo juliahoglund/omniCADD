@@ -65,10 +65,10 @@ rule augustus_predict_genes:
                 done
                 if [ -n "$CFG_PATH" ]; then
                     export AUGUSTUS_CONFIG_PATH="$CFG_PATH"
-                    echo "AUGUSTUS_CONFIG_PATH=${AUGUSTUS_CONFIG_PATH}" >> {log}
+                    echo "AUGUSTUS_CONFIG_PATH=${{AUGUSTUS_CONFIG_PATH}}" >> {log}
                 else
                     echo "WARN: Could not detect AUGUSTUS config dir; augustus may fail." >> {log}
-                    echo "AUGUSTUS_CONFIG_PATH=${AUGUSTUS_CONFIG_PATH:-unset}" >> {log}
+                    echo "AUGUSTUS_CONFIG_PATH=${{AUGUSTUS_CONFIG_PATH:-unset}}" >> {log}
                 fi
                 # Species detection and fallback
                 SPEC="{params.species}"
