@@ -108,10 +108,19 @@ else
   # Already a local path
   SIF_PATH="$AUG_IMG"
   if [ ! -f "$SIF_PATH" ]; then
-    echo "ERROR: Local SIF not found: $SIF_PATH" >&2
-    echo "Hint: set containers.augustus to a docker:// URI in $CONFIG_FILE and rerun prefetch, or place the SIF at the expected path." >&2
-    echo "Example: containers.augustus: \"docker://juliahoglund/augustus:bioconda-3x\"" >&2
-    exit 1
+    echo "WARN: Local SIF not found: $SIF_PATH" >&2
+    # Try to restore from any existing tagged SIF in resources/containers
+    CAND_SIF=$(ls resources/containers/augustus_*.sif 2>/dev/null | head -n 1 || true)
+    if [ -n "$CAND_SIF" ] && [ -f "$CAND_SIF" ]; then
+      echo "Restoring stable symlink from: $CAND_SIF" >&2
+      ln -sfn "$(basename "$CAND_SIF")" resources/containers/augustus.sif
+      SIF_PATH="$CAND_SIF"
+    else
+      echo "ERROR: No tagged Augustus SIF found to restore from." >&2
+      echo "Hint: set containers.augustus to a docker:// URI in $CONFIG_FILE and rerun prefetch, or place the SIF at the expected path." >&2
+      echo "Example: containers.augustus: \"docker://juliahoglund/augustus:bioconda-3x\"" >&2
+      exit 1
+    fi
   fi
 fi
 
