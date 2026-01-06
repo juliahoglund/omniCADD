@@ -15,18 +15,15 @@ if [ ! -f "$CONFIG_FILE" ]; then
   exit 1
 fi
 
-# Load container runtime
-module purge >/dev/null 2>&1 || true
-module load apptainer >/dev/null 2>&1 || module load singularity >/dev/null 2>&1 || true
-if ! command -v apptainer >/dev/null 2>&1 && ! command -v singularity >/dev/null 2>&1; then
-  echo "ERROR: apptainer/singularity not available. Load the appropriate module (e.g., 'module load apptainer')." >&2
-  exit 1
-fi
-
+# Detect container runtime (expect modules already loaded in the shell)
 if command -v apptainer >/dev/null 2>&1; then
   RUNTIME=apptainer
-else
+elif command -v singularity >/dev/null 2>&1; then
   RUNTIME=singularity
+else
+  echo "ERROR: apptainer/singularity not found in PATH." >&2
+  echo "Please load one in this shell, e.g.: 'module load apptainer' and rerun." >&2
+  exit 1
 fi
 
 AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' "$CONFIG_FILE" | sed -E 's/.*"(.*)".*/\1/')
@@ -49,7 +46,7 @@ else
   SIF_PATH="$AUG_IMG"
 fi
 
-# Verify the binary works inside the SIF
+# Verify the binary works inside the SIF (may require network for first pull)
 echo "Verifying Augustus in $SIF_PATH"
 $RUNTIME exec "$SIF_PATH" augustus --version
 
