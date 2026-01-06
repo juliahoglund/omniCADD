@@ -15,8 +15,6 @@ RUN micromamba install -y -n base -c conda-forge -c bioconda \
 
 # Augustus expects AUGUSTUS_CONFIG_PATH; in Bioconda this lives under $CONDA_PREFIX/share/augustus/config
 ENV AUGUSTUS_CONFIG_PATH=/opt/conda/share/augustus/config
-RUN mkdir -p /usr/share/augustus && \
-    if [ -d "/opt/conda/share/augustus/config" ]; then ln -s /opt/conda/share/augustus/config /usr/share/augustus/config; fi
 ENV PATH=/opt/conda/bin:$PATH
 
 # Default to bash
