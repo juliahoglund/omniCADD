@@ -20,9 +20,7 @@ rule augustus_predict_genes:
     params:
         species = config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
         options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on")
-    conda:
-        "../envs/gene_prediction.yml"
-    singularity:
+    container:
         "docker://biocontainers/augustus:v3.4.0_cv1"
     threads: 2
     output:
@@ -32,34 +30,8 @@ rule augustus_predict_genes:
     shell:
         """
         mkdir -p results/logs/augustus
-        CP="$(printenv CONDA_PREFIX || true)"
-        echo "CONDA_PREFIX=$CP" >> {log}
         echo "PATH=$(printenv PATH)" >> {log}
-        if [ -n "$CP" ] && [ -x "$CP/bin/augustus" ]; then
-            AUGUSTUS_BIN="$CP/bin/augustus"
-        else
-            AUGUSTUS_BIN="$(command -v augustus || true)"
-        fi
-        if [ -z "$AUGUSTUS_BIN" ]; then
-            echo "augustus not found in PATH and not in $CP/bin" >> {log}
-            exit 127
-        fi
-        echo "Using AUGUSTUS_BIN=$AUGUSTUS_BIN" >> {log}
-        "$AUGUSTUS_BIN" --version >> {log} 2>&1 || true
-        # Ensure AUGUSTUS_CONFIG_PATH is set (bioconda usually sets it via activation)
-        ACP="$(printenv AUGUSTUS_CONFIG_PATH || true)"
-        if [ -z "$ACP" ]; then
-            if [ -n "$CP" ] && [ -d "$CP/config" ]; then
-                ACP="$CP/config"
-            elif [ -n "$CP" ] && [ -d "$CP/share/augustus/config" ]; then
-                ACP="$CP/share/augustus/config"
-            else
-                ACP="$(dirname "$AUGUSTUS_BIN")/../config"
-            fi
-            export AUGUSTUS_CONFIG_PATH="$ACP"
-        fi
-        echo "AUGUSTUS_CONFIG_PATH=$(printenv AUGUSTUS_CONFIG_PATH || echo "$ACP")" >> {log}
-        "$AUGUSTUS_BIN" \
+        augustus \
             --species={params.species} \
             {params.options} \
             {input.genome} \
