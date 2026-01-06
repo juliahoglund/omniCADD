@@ -107,6 +107,12 @@ PY
 else
   # Already a local path
   SIF_PATH="$AUG_IMG"
+  if [ ! -f "$SIF_PATH" ]; then
+    echo "ERROR: Local SIF not found: $SIF_PATH" >&2
+    echo "Hint: set containers.augustus to a docker:// URI in $CONFIG_FILE and rerun prefetch, or place the SIF at the expected path." >&2
+    echo "Example: containers.augustus: \"docker://juliahoglund/augustus:bioconda-3x\"" >&2
+    exit 1
+  fi
 fi
 
 # Verify the binary works inside the SIF (may require network for first pull)
