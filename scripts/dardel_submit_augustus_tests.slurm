@@ -16,21 +16,18 @@ module purge || true
 ml PDC || true
 ml snakemake || true
 
-# Load container runtime (prefer apptainer, fallback to singularity)
-ml apptainer || ml singularity || true
+# Load container runtime (force apptainer; unload singularity to avoid Snakemake picking it)
+ml apptainer || true
+module unload singularity >/dev/null 2>&1 || true
 
 # Verify container runtime availability
-if ! command -v apptainer >/dev/null 2>&1 && ! command -v singularity >/dev/null 2>&1; then
+if ! command -v apptainer >/dev/null 2>&1; then
   echo "ERROR: apptainer/singularity not available on this node. Load the appropriate module (e.g., 'module load apptainer')." >&2
   exit 1
 fi
 
-# Select runtime binary
-if command -v apptainer >/dev/null 2>&1; then
-  CONTAINER_RUNTIME="apptainer"
-else
-  CONTAINER_RUNTIME="singularity"
-fi
+# Select runtime binary (apptainer only)
+CONTAINER_RUNTIME="apptainer"
 
 # Use dedicated cache in HOME (or project scratch if preferred)
 export APPTAINER_CACHEDIR=${APPTAINER_CACHEDIR:-"$HOME/.apptainer/cache"}

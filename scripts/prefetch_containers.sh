@@ -53,14 +53,23 @@ fi
 echo "Verifying Augustus in $SIF_PATH"
 $RUNTIME exec "$SIF_PATH" augustus --version
 
+# Create/refresh a stable symlink for easier config
+ln -sfn "$(basename "$SIF_PATH")" resources/containers/augustus.sif
+STABLE_SIF="resources/containers/augustus.sif"
+
+# Rewrite config to point containers.augustus at the stable SIF path
+awk -v path="$STABLE_SIF" '
+  BEGIN{f=0}
+  /^containers:/{f=1}
+  f && /^[[:space:]]+augustus:/{ sub(/:.*/, ": \"" path "\""); f=0 }
+  {print}
+' "$CONFIG_FILE" > "$CONFIG_FILE.tmp"
+mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+
 cat <<MSG
 SUCCESS: Augustus container is ready: $SIF_PATH
 
 Next steps:
-- Update containers.augustus in $CONFIG_FILE to the local SIF path:
-
-  containers:
-    augustus: "$SIF_PATH"
-
-- Then submit your Slurm job (no network required on compute nodes).
+- The overlay has been updated to use: $STABLE_SIF
+- Submit your Slurm job (no network required on compute nodes).
 MSG
