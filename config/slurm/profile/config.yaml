@@ -3,4 +3,4 @@
 # Default command line arguments:
 cores: 8
 use-conda: True
-use-singularity: False
+use-singularity: True

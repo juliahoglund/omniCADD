@@ -22,6 +22,8 @@ rule augustus_predict_genes:
         options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on")
     conda:
         "../envs/gene_prediction.yml"
+    singularity:
+        "docker://biocontainers/augustus:v3.4.0_cv1"
     threads: 2
     output:
         gff = "results/gene_prediction/chr{chr}.gff3"
