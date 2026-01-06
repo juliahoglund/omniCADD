@@ -59,10 +59,21 @@ python3 scripts/preflight_check.py --profile config/test_overlay_augustus.yaml |
 
 rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
 
-# Ensure Augustus finds its config inside container (for our bioconda-based image)
-# Augustus config path inside Bioconda-based images (common location)
-export SINGULARITYENV_AUGUSTUS_CONFIG_PATH="/opt/conda/share/augustus/config"
-export APPTAINERENV_AUGUSTUS_CONFIG_PATH="/opt/conda/share/augustus/config"
+# Helper: detect Augustus config dir inside container
+detect_cfg() {
+  local img="$1"
+  for p in \
+    "/opt/conda/share/augustus/config" \
+    "/opt/conda/config/augustus" \
+    "/usr/share/augustus/config" \
+    "/usr/local/share/augustus/config"; do
+    if $CONTAINER_RUNTIME exec "$img" bash -lc "[ -d '$p' ]"; then
+      echo "$p"
+      return 0
+    fi
+  done
+  return 1
+}
 
 # Quick sanity: extract Augustus image from overlay and verify only if it's a local SIF
 AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' config/test_overlay_augustus.yaml | sed -E 's/.*"(.*)".*/\1/')
@@ -76,6 +87,14 @@ if [ -n "${AUG_IMG:-}" ]; then
     if ! $CONTAINER_RUNTIME exec "$AUG_IMG" augustus --version >/dev/null 2>&1; then
       echo "ERROR: Failed to run 'augustus --version' in local image $AUG_IMG." >&2
       exit 1
+    fi
+    CFG_PATH=$(detect_cfg "$AUG_IMG") || true
+    if [ -n "$CFG_PATH" ]; then
+      echo "Using AUGUSTUS_CONFIG_PATH=$CFG_PATH"
+      export SINGULARITYENV_AUGUSTUS_CONFIG_PATH="$CFG_PATH"
+      export APPTAINERENV_AUGUSTUS_CONFIG_PATH="$CFG_PATH"
+    else
+      echo "WARN: Could not detect AUGUSTUS config dir in container; will rely on defaults"
     fi
   fi
 fi
