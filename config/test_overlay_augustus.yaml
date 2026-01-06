@@ -25,7 +25,7 @@ gene_annotation:
 # Verify:    apptainer exec docker://quay.io/biocontainers/augustus:<tag> augustus --version
 containers:
   # Use your Docker Hub image built by CI
-  augustus: "docker://docker.io/juliahoglund/augustus:bioconda-3x"
+  augustus: "docker://juliahoglund/augustus:bioconda-3x"
 
 annotation:
   variant_annotator: "snpeff"
