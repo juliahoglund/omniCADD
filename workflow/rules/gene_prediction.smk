@@ -34,8 +34,11 @@ rule augustus_predict_genes:
         echo "PATH=$PATH" >> {log}
         if [ -x "$CONDA_PREFIX/bin/augustus" ]; then
             echo "Found augustus at $CONDA_PREFIX/bin/augustus" >> {log}
+        elif command -v augustus >/dev/null 2>&1; then
+            which augustus >> {log} 2>&1
         else
-            which augustus >> {log} 2>&1 || { echo "augustus not found in PATH and not in $CONDA_PREFIX/bin" >> {log}; exit 127; }
+            echo "augustus not found in PATH and not in $CONDA_PREFIX/bin" >> {log}
+            exit 127
         fi
         # Ensure AUGUSTUS_CONFIG_PATH is set (bioconda usually sets it via activation)
         env | grep -q '^AUGUSTUS_CONFIG_PATH=' || export AUGUSTUS_CONFIG_PATH="$CONDA_PREFIX/config"
