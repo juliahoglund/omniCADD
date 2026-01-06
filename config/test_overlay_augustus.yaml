@@ -24,10 +24,8 @@ gene_annotation:
 # Find tags: conda search -c bioconda augustus (map version/build to tag)
 # Verify:    apptainer exec docker://quay.io/biocontainers/augustus:<tag> augustus --version
 containers:
-  # Example known-good pattern (update to a valid available tag on your system):
-  # augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
-  # Set an explicit tag you have validated to avoid pull failures.
-  augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+  # Use your Docker Hub image built by CI
+  augustus: "docker://docker.io/juliahoglund/augustus:bioconda-3x"
 
 annotation:
   variant_annotator: "snpeff"
