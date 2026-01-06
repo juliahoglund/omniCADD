@@ -15,7 +15,27 @@ set -euo pipefail
 module purge || true
 ml PDC || true
 ml snakemake || true
-ml singularity || true
+
+# Load container runtime (prefer apptainer, fallback to singularity)
+ml apptainer || ml singularity || true
+
+# Verify container runtime availability
+if ! command -v apptainer >/dev/null 2>&1 && ! command -v singularity >/dev/null 2>&1; then
+  echo "ERROR: apptainer/singularity not available on this node. Load the appropriate module (e.g., 'module load apptainer')." >&2
+  exit 1
+fi
+
+# Select runtime binary
+if command -v apptainer >/dev/null 2>&1; then
+  CONTAINER_RUNTIME="apptainer"
+else
+  CONTAINER_RUNTIME="singularity"
+fi
+
+# Use dedicated cache in HOME (or project scratch if preferred)
+export APPTAINER_CACHEDIR=${APPTAINER_CACHEDIR:-"$HOME/.apptainer/cache"}
+export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$APPTAINER_CACHEDIR"}
+mkdir -p "$APPTAINER_CACHEDIR" || true
 
 
 # Prefer user Miniforge/conda; configure strict channel priority
@@ -42,12 +62,24 @@ python3 scripts/preflight_check.py --profile config/test_overlay_augustus.yaml |
 
 rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
 
+# Quick sanity: extract Augustus image from overlay and verify we can exec it
+AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' config/test_overlay_augustus.yaml | sed -E 's/.*"(.*)".*/\1/')
+if [ -n "${AUG_IMG:-}" ]; then
+  echo "Testing container runtime with $AUG_IMG"
+  if ! $CONTAINER_RUNTIME exec "$AUG_IMG" augustus --version >/dev/null 2>&1; then
+    echo "ERROR: Failed to run 'augustus --version' in $AUG_IMG via $CONTAINER_RUNTIME." >&2
+    echo "       Check network access to Quay.io and that the tag exists." >&2
+    exit 1
+  fi
+fi
+
 # Run multi-chromosome test wrapper (chr2 + chr18)
 snakemake -s run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
   --profile config/slurm/profile \
   --use-conda \
   --use-singularity \
+  --singularity-args "-B $PWD" \
   --conda-frontend "$FRONTEND" \
   --jobs 100 \
   --printshellcmds \
