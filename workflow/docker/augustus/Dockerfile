@@ -7,7 +7,7 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 # Install augustus and common helpers
 # - Use conda-forge + bioconda, pin versions as needed
 # - Clean caches to keep image small
-RUN micromamba install -y -n base -c conda-forge -c bioconda \
+RUN micromamba install -y -n base -c bioconda -c conda-forge \
     augustus=3.* \
     gffread \
     bedtools \
@@ -25,5 +25,12 @@ ENV TZ=UTC
 SHELL ["/bin/bash", "-lc"]
 ENTRYPOINT ["/bin/bash"]
 
-# Note: Config location may vary across builds; AUGUSTUS_CONFIG_PATH is set,
-# and runtime scripts detect/override if needed.
+RUN if ! command -v augustus >/dev/null 2>&1; then \
+            echo "ERROR: augustus not found in PATH"; \
+            echo "Searching under /opt/conda for the binary..."; \
+            find /opt/conda -maxdepth 4 -type f -name augustus -print; \
+            exit 1; \
+        fi
+
+# Note: Config location may vary across builds; AUGUSTUS_CONFIG_PATH is set and
+# runtime scripts detect/override if needed.
