@@ -26,6 +26,8 @@ gene_annotation:
 containers:
   # Use your Docker Hub image built by CI
   augustus: "docker://juliahoglund/augustus:bioconda-3x"
+  # SNPEff container (Biocontainers). Adjust tag if needed.
+  snpeff: "docker://quay.io/biocontainers/snpeff:5.2--hdfd78af_0"
 
 annotation:
   variant_annotator: "snpeff"

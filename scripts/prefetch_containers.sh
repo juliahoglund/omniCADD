@@ -6,8 +6,8 @@ set -euo pipefail
 #   ./scripts/prefetch_containers.sh [CONFIG_YAML]
 # Default CONFIG_YAML: config/test_overlay_augustus.yaml
 #
-# This script pulls the Augustus container to a local SIF so compute nodes
-# without outbound network can run with --use-singularity.
+# This script pulls the Augustus (and optionally SNPEff) containers to local SIFs
+# so compute nodes without outbound network can run with --use-singularity.
 
 CONFIG_FILE=${1:-config/test_overlay_augustus.yaml}
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -26,7 +26,12 @@ else
   exit 1
 fi
 
-AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' "$CONFIG_FILE" | sed -E 's/.*"(.*)".*/\1/')
+extract_img() {
+  local name="$1"
+  awk '/^containers:/{f=1} f && ('"[[:space:]]+$name:"') {print; exit}' "$CONFIG_FILE" | sed -E 's/.*"(.*)".*/\1/'
+}
+
+AUG_IMG=$(extract_img augustus)
 if [ -z "${AUG_IMG:-}" ]; then
   echo "No containers.augustus found in $CONFIG_FILE" >&2
   exit 1
@@ -107,3 +112,27 @@ Next steps:
 - The overlay has been updated to use: $STABLE_SIF
 - Submit your Slurm job (no network required on compute nodes).
 MSG
+
+# Optionally prefetch SNPEff if present
+SNPEFF_IMG=$(extract_img snpeff || true)
+if [ -n "${SNPEFF_IMG:-}" ]; then
+  echo "\nDetected SNPEff container: $SNPEFF_IMG"
+  SIF_SNP="resources/containers/snpeff.sif"
+  if [[ "$SNPEFF_IMG" == docker://* ]]; then
+    echo "Pulling $SNPEFF_IMG -> $SIF_SNP"
+    $RUNTIME pull --force "$SIF_SNP" "$SNPEFF_IMG" || echo "WARN: Failed to pull SNPEff image; will rely on login-node cache at runtime" >&2
+  else
+    SIF_SNP="$SNPEFF_IMG"
+  fi
+  if [ -f "$SIF_SNP" ]; then
+    echo "SNPEff SIF ready: $SIF_SNP"
+    # Rewrite overlay to use stable SIF path
+    awk -v path="resources/containers/snpeff.sif" '
+      BEGIN{f=0}
+      /^containers:/{f=1}
+      f && /^[[:space:]]+snpeff:/{ sub(/:.*/, ": \"" path "\""); f=0 }
+      {print}
+    ' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+    ln -sfn "$(basename "$SIF_SNP")" resources/containers/snpeff.sif
+  fi
+fi

@@ -7,6 +7,11 @@ Provides complete implementation of SNPEff as alternative to VEP
 """
 
 import os
+
+# Optional container image for SNPEff (recommended on HPC)
+SNPEFF_CONTAINER = (
+    config.get("containers", {}).get("snpeff")
+)
 def _snpeff_output_path(wildcards):
     folder = wildcards.folder
     chr_ = wildcards.chr
@@ -141,6 +146,8 @@ rule snpeff_build_database:
         )
     conda:
         "../envs/annotation.yml"
+    container:
+        SNPEFF_CONTAINER
     threads: 4
     log:
         "results/logs/snpeff_build_database.log"
@@ -183,6 +190,8 @@ rule run_snpeff:
         options = config["annotation"]["snpeff"]["run"]["options"]
     conda:
         "../envs/annotation.yml"
+    container:
+        SNPEFF_CONTAINER
     threads: 2
     output:
         vcf = temp("{folder}/chr{chr}_snpeff_output.vcf"),
