@@ -51,12 +51,29 @@ rule augustus_predict_genes:
     shell:
         """
         mkdir -p results/logs/augustus
-        echo "PATH=$(printenv PATH)" >> {log}
-        echo "AUGUSTUS_CONFIG_PATH=${{AUGUSTUS_CONFIG_PATH:-unset}}" >> {log}
-        echo "Augutus version:" >> {log}
-        augustus --version >> {log} 2>&1 || true
-        echo "Available species (first 20):" >> {log}
-        augustus --printSpecies | head -n 20 >> {log} 2>&1 || true
+                echo "PATH=$(printenv PATH)" >> {log}
+                echo "Detecting AUGUSTUS_CONFIG_PATH..." >> {log}
+                CFG_PATH=""
+                for d in \
+                        "/opt/conda/envs/augustus/share/augustus/config" \
+                        "/opt/conda/share/augustus/config" \
+                        "/usr/share/augustus/config" \
+                        "/usr/local/share/augustus/config" \
+                        "/usr/lib/augustus/config" \
+                        "/usr/lib64/augustus/config"; do
+                    if [ -d "$d" ]; then CFG_PATH="$d"; break; fi
+                done
+                if [ -n "$CFG_PATH" ]; then
+                    export AUGUSTUS_CONFIG_PATH="$CFG_PATH"
+                    echo "AUGUSTUS_CONFIG_PATH=${AUGUSTUS_CONFIG_PATH}" >> {log}
+                else
+                    echo "WARN: Could not detect AUGUSTUS config dir; augustus may fail." >> {log}
+                    echo "AUGUSTUS_CONFIG_PATH=${AUGUSTUS_CONFIG_PATH:-unset}" >> {log}
+                fi
+                echo "Augustus version:" >> {log}
+                augustus --version >> {log} 2>&1 || true
+                echo "Available species (first 20):" >> {log}
+                augustus --printSpecies | head -n 20 >> {log} 2>&1 || true
         augustus \
             --species={params.species} \
             {params.options} \
