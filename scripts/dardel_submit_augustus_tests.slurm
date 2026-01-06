@@ -13,8 +13,10 @@ set -euo pipefail
 
 # Reset modules to avoid pulling old Rackham paths
 module purge || true
+ml PDC || true
 ml snakemake || true
-ml apptainer || ml singularity || true
+ml singularity || true
+
 
 # Prefer user Miniforge/conda; configure strict channel priority
 if [ -d "$HOME/miniforge3" ]; then
