@@ -38,8 +38,11 @@ rule augustus_predict_genes:
     params:
         species = config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
         options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on")
+    # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
         AUGUSTUS_CONTAINER
+    conda:
+        "../envs/gene_prediction.yml"
     threads: 2
     output:
         gff = "results/gene_prediction/chr{chr}.gff3"
