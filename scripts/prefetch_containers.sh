@@ -40,7 +40,44 @@ if [[ "$AUG_IMG" == docker://* ]]; then
   SAFE_TAG=$(echo "$TAG" | tr '/:' '__')
   SIF_PATH="resources/containers/augustus_${SAFE_TAG}.sif"
   echo "Pulling $AUG_IMG -> $SIF_PATH"
-  $RUNTIME pull "$SIF_PATH" "$AUG_IMG"
+  if ! $RUNTIME pull "$SIF_PATH" "$AUG_IMG"; then
+    echo "WARN: Failed to pull configured tag: $AUG_IMG" >&2
+    echo "Attempting to auto-discover a valid Quay tag..." >&2
+    # Query Quay for tags and try a handful of likely candidates.
+    CANDIDATES=$(curl -fsSL 'https://quay.io/api/v1/repository/biocontainers/augustus/tag/?limit=200' \
+      | python3 - <<'PY'
+import sys, json
+data=json.load(sys.stdin)
+tags=[t['name'] for t in data.get('tags', [])]
+# Prefer 3.x, then any
+pref=[t for t in tags if t.startswith('3.')]
+pref+= [t for t in tags if not t.startswith('3.')]
+# Print top 20 candidates
+print('\n'.join(pref[:20]))
+PY
+    ) || true
+    if [ -z "$CANDIDATES" ]; then
+      echo "ERROR: Could not retrieve tags from Quay. Check network or try later." >&2
+      exit 1
+    fi
+    FOUND=""
+    for t in $CANDIDATES; do
+      CAND_URI="docker://quay.io/biocontainers/augustus:$t"
+      SAFE=$(echo "$t" | tr '/:' '__')
+      CAND_SIF="resources/containers/augustus_${SAFE}.sif"
+      echo "Trying $CAND_URI"
+      if $RUNTIME pull "$CAND_SIF" "$CAND_URI"; then
+        echo "SUCCESS: Pulled $CAND_URI"
+        SIF_PATH="$CAND_SIF"
+        FOUND="$CAND_URI"
+        break
+      fi
+    done
+    if [ -z "$FOUND" ]; then
+      echo "ERROR: Failed to pull any tested Augustus tags from Quay." >&2
+      exit 1
+    fi
+  fi
 else
   # Already a local path
   SIF_PATH="$AUG_IMG"
