@@ -63,6 +63,7 @@ rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
 detect_cfg() {
   local img="$1"
   for p in \
+    "/opt/conda/envs/augustus/share/augustus/config" \
     "/opt/conda/share/augustus/config" \
     "/opt/conda/config/augustus" \
     "/usr/share/augustus/config" \
@@ -72,6 +73,13 @@ detect_cfg() {
       return 0
     fi
   done
+  # Try environment variable inside container
+  local envp
+  envp=$($CONTAINER_RUNTIME exec "$img" bash -lc 'echo ${AUGUSTUS_CONFIG_PATH:-}' 2>/dev/null || true)
+  if [ -n "$envp" ] && $CONTAINER_RUNTIME exec "$img" bash -lc "[ -d '$envp' ]"; then
+    echo "$envp"
+    return 0
+  fi
   return 1
 }
 
