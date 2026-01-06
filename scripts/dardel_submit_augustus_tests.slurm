@@ -39,15 +39,6 @@ python3 scripts/preflight_check.py --profile config/test_overlay_augustus.yaml |
 
 rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
 
-snakemake -s run_multi_test.smk \
-  --configfile config/test_overlay_augustus.yaml \
-  --profile config/slurm/profile \
-  --use-conda \
-  --conda-frontend conda \
-  -R augustus_predict_genes \
-  --printshellcmds
-
-
 # Run multi-chromosome test wrapper (chr2 + chr18)
 snakemake -s run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
