@@ -19,6 +19,16 @@ gene_annotation:
     hints: null
     options: "--strand=both --UTR=on --gff3=on"
 
+# Container images used by specific rules
+# IMPORTANT: Use Quay.io Biocontainers tags (Docker Hub often misses tags)
+# Find tags: conda search -c bioconda augustus (map version/build to tag)
+# Verify:    apptainer exec docker://quay.io/biocontainers/augustus:<tag> augustus --version
+containers:
+  # Example known-good pattern (update to a valid available tag on your system):
+  # augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+  # Set an explicit tag you have validated to avoid pull failures.
+  augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+
 annotation:
   variant_annotator: "snpeff"
   snpeff:

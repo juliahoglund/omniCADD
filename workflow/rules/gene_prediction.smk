@@ -6,6 +6,24 @@ Used when gene annotation is not available for species
 :Date: 21-10-2025
 """
 
+try:
+    from snakemake.exceptions import WorkflowError
+except Exception:  # Fallback if import path changes across versions
+    WorkflowError = ValueError
+
+# Container image for Augustus must be provided via config to avoid broken tags.
+# Example (recommended):
+# containers:
+#   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+AUGUSTUS_CONTAINER = (
+    config.get("containers", {}).get("augustus")
+)
+if not AUGUSTUS_CONTAINER:
+    raise WorkflowError(
+        "Missing containers.augustus. Set a valid Quay.io Biocontainers tag, e.g. "
+        "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+    )
+
 ####################################
 ### Augustus Gene Prediction #######
 ####################################
@@ -21,7 +39,7 @@ rule augustus_predict_genes:
         species = config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
         options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on")
     container:
-        "docker://biocontainers/augustus:v3.4.0_cv1"
+        AUGUSTUS_CONTAINER
     threads: 2
     output:
         gff = "results/gene_prediction/chr{chr}.gff3"
