@@ -117,22 +117,34 @@ MSG
 SNPEFF_IMG=$(extract_img snpeff || true)
 if [ -n "${SNPEFF_IMG:-}" ]; then
   echo "\nDetected SNPEff container: $SNPEFF_IMG"
-  SIF_SNP="resources/containers/snpeff.sif"
-  if [[ "$SNPEFF_IMG" == docker://* ]]; then
-    echo "Pulling $SNPEFF_IMG -> $SIF_SNP"
-    $RUNTIME pull --force "$SIF_SNP" "$SNPEFF_IMG" || echo "WARN: Failed to pull SNPEff image; will rely on login-node cache at runtime" >&2
-  else
-    SIF_SNP="$SNPEFF_IMG"
-  fi
-  if [ -f "$SIF_SNP" ]; then
-    echo "SNPEff SIF ready: $SIF_SNP"
-    # Rewrite overlay to use stable SIF path
-    awk -v path="resources/containers/snpeff.sif" '
+  # If SNPEff image equals Augustus image, reuse the same SIF and symlink
+  if [ "$SNPEFF_IMG" = "$AUG_IMG" ] || [ "$SNPEFF_IMG" = "$STABLE_SIF" ]; then
+    echo "SNPEff shares Augustus image; reusing $STABLE_SIF"
+    ln -sfn "$(basename "$SIF_PATH")" resources/containers/snpeff.sif
+    awk -v path="resources/containers/augustus.sif" '
       BEGIN{f=0}
       /^containers:/{f=1}
       f && /^[[:space:]]+snpeff:/{ sub(/:.*/, ": \"" path "\""); f=0 }
       {print}
     ' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-    ln -sfn "$(basename "$SIF_SNP")" resources/containers/snpeff.sif
+  else
+    SIF_SNP="resources/containers/snpeff.sif"
+    if [[ "$SNPEFF_IMG" == docker://* ]]; then
+      echo "Pulling $SNPEFF_IMG -> $SIF_SNP"
+      $RUNTIME pull --force "$SIF_SNP" "$SNPEFF_IMG" || echo "WARN: Failed to pull SNPEff image; will rely on login-node cache at runtime" >&2
+    else
+      SIF_SNP="$SNPEFF_IMG"
+    fi
+    if [ -f "$SIF_SNP" ]; then
+      echo "SNPEff SIF ready: $SIF_SNP"
+      # Rewrite overlay to use stable SIF path
+      awk -v path="resources/containers/snpeff.sif" '
+        BEGIN{f=0}
+        /^containers:/{f=1}
+        f && /^[[:space:]]+snpeff:/{ sub(/:.*/, ": \"" path "\""); f=0 }
+        {print}
+      ' "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+      ln -sfn "$(basename "$SIF_SNP")" resources/containers/snpeff.sif
+    fi
   fi
 fi

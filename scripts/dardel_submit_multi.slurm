@@ -24,6 +24,8 @@ snakemake -s run_multi_test.smk \
   --configfile config/profile_chr2_chr18.yaml \
   --profile config/slurm/profile \
   --use-conda \
+  --use-apptainer \
+  --apptainer-args "-B $PWD" \
   --jobs 100 \
   --printshellcmds \
   target_multi

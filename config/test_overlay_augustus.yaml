@@ -24,10 +24,10 @@ gene_annotation:
 # Find tags: conda search -c bioconda augustus (map version/build to tag)
 # Verify:    apptainer exec docker://quay.io/biocontainers/augustus:<tag> augustus --version
 containers:
-  # Use your Docker Hub image built by CI
+  # Use your Docker Hub image built by CI (bundles augustus + snpEff + java)
   augustus: "docker://juliahoglund/augustus:bioconda-3x"
-  # SNPEff container (Biocontainers). Adjust tag if needed.
-  snpeff: "docker://quay.io/biocontainers/snpeff:5.2--hdfd78af_0"
+  # Use the same image for SNPEff to keep single-image tooling
+  snpeff: "docker://juliahoglund/augustus:bioconda-3x"
 
 annotation:
   variant_annotator: "snpeff"

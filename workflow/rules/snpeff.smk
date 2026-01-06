@@ -9,8 +9,10 @@ Provides complete implementation of SNPEff as alternative to VEP
 import os
 
 # Optional container image for SNPEff (recommended on HPC)
+# Fallback: if no dedicated SNPEff image, use the Augustus image that bundles SNPEff.
 SNPEFF_CONTAINER = (
     config.get("containers", {}).get("snpeff")
+    or config.get("containers", {}).get("augustus")
 )
 def _snpeff_output_path(wildcards):
     folder = wildcards.folder

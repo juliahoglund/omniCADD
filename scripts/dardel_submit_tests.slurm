@@ -23,6 +23,8 @@ snakemake -s run_multi_test.smk \
   --configfile config/test_overlay.yaml \
   --profile config/slurm/profile \
   --use-conda \
+  --use-apptainer \
+  --apptainer-args "-B $PWD" \
   --jobs 50 \
   --printshellcmds \
   target_multi
