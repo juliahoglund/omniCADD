@@ -70,12 +70,19 @@ rule augustus_predict_genes:
                     echo "WARN: Could not detect AUGUSTUS config dir; augustus may fail." >> {log}
                     echo "AUGUSTUS_CONFIG_PATH=${AUGUSTUS_CONFIG_PATH:-unset}" >> {log}
                 fi
+                # Species detection and fallback
+                SPEC="{params.species}"
+                echo "Requested species: $SPEC" >> {log}
+                if ! augustus --printSpecies 2>> {log} | tr -d '\r' | grep -x "$SPEC" >/dev/null 2>&1; then
+                    echo "WARN: Species '$SPEC' not found in container; falling back to 'human' (recommended default for mammals)" >> {log}
+                    SPEC="human"
+                fi
                 echo "Augustus version:" >> {log}
                 augustus --version >> {log} 2>&1 || true
                 echo "Available species (first 20):" >> {log}
                 augustus --printSpecies | head -n 20 >> {log} 2>&1 || true
-        augustus \
-            --species={params.species} \
+                augustus \
+                        --species="$SPEC" \
             {params.options} \
             {input.genome} \
             > {output.gff} \
@@ -96,11 +103,11 @@ rule augustus_merge_chromosomes:
     shell:
         """
         # Extract header from first file
-        grep "^#" {input[0]} > {output.merged}
+        grep "^#" {input[0]} > {output.merged} || true
         
         # Concatenate all predictions (skip headers)
         for file in {input}; do
-            grep -v "^#" $file >> {output.merged}
+            grep -v "^#" $file >> {output.merged} || true
         done
         
         # Generate statistics

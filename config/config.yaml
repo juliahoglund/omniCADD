@@ -108,3 +108,12 @@ parallelization:
 
 dataset_memory_mb: 60000
 
+
+########################
+### GENE ANNOTATION ####
+########################
+# Default Augustus species model; overlays may switch source to 'augustus'
+gene_annotation:
+  augustus:
+    species: "human"
+

@@ -70,6 +70,7 @@ gene_annotation:
   augustus:
     enabled: false
     species_model: "human"  # Augustus training set (human, mouse, fly, etc.)
+    species: "human"        # Normalized key used by rules
     output_format: "gff3"
     parameters: "--protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on"
     
