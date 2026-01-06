@@ -15,7 +15,7 @@ gene_annotation:
   source: "augustus"
   predict_genes: true
   augustus:
-    species: "generic"  # override to "human" or "sus_scrofa" if available
+    species: "human"  # use a known built-in species; change if you have a trained model
     hints: null
     options: "--strand=both --UTR=on --gff3=on"
 

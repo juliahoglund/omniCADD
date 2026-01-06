@@ -59,6 +59,10 @@ python3 scripts/preflight_check.py --profile config/test_overlay_augustus.yaml |
 
 rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
 
+# Ensure Augustus finds its config inside container (for our bioconda-based image)
+export SINGULARITYENV_AUGUSTUS_CONFIG_PATH="/opt/conda/config/augustus"
+export APPTAINERENV_AUGUSTUS_CONFIG_PATH="/opt/conda/config/augustus"
+
 # Quick sanity: extract Augustus image from overlay and verify only if it's a local SIF
 AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' config/test_overlay_augustus.yaml | sed -E 's/.*"(.*)".*/\1/')
 if [ -n "${AUG_IMG:-}" ]; then

@@ -49,6 +49,11 @@ rule augustus_predict_genes:
         """
         mkdir -p results/logs/augustus
         echo "PATH=$(printenv PATH)" >> {log}
+        echo "AUGUSTUS_CONFIG_PATH=${{AUGUSTUS_CONFIG_PATH:-unset}}" >> {log}
+        echo "Augutus version:" >> {log}
+        augustus --version >> {log} 2>&1 || true
+        echo "Available species (first 20):" >> {log}
+        augustus --printSpecies | head -n 20 >> {log} 2>&1 || true
         augustus \
             --species={params.species} \
             {params.options} \
