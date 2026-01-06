@@ -93,19 +93,22 @@ rule snpeff_create_config:
 
         CONFIG={params.config_file}
         DATA_DIR={params.data_dir}
+        # Resolve to absolute paths for robustness
+        CONFIG_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$CONFIG")
+        DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$DATA_DIR")
 
-        mkdir -p $(dirname "$CONFIG")
+        mkdir -p $(dirname "$CONFIG_ABS")
 
-        if [ ! -f "$CONFIG" ]; then
-            echo "# SNPEff config file" > "$CONFIG"
-            echo "data.dir = $DATA_DIR" >> "$CONFIG"
-            echo "" >> "$CONFIG"
-            echo "# Databases" >> "$CONFIG"
+        if [ ! -f "$CONFIG_ABS" ]; then
+            echo "# SNPEff config file" > "$CONFIG_ABS"
+            echo "data.dir = $DATA_ABS" >> "$CONFIG_ABS"
+            echo "" >> "$CONFIG_ABS"
+            echo "# Databases" >> "$CONFIG_ABS"
         fi
 
         # Add database entry if not already present
-        if ! grep -q "^{params.db_name}.genome" "$CONFIG"; then
-            echo "{params.db_name}.genome : {params.species_name} {params.genome_version}" >> "$CONFIG"
+        if ! grep -q "^{params.db_name}.genome" "$CONFIG_ABS"; then
+            echo "{params.db_name}.genome : {params.species_name} {params.genome_version}" >> "$CONFIG_ABS"
         fi
         """
 
@@ -145,14 +148,15 @@ rule snpeff_build_database:
         """
         set -euo pipefail
         mkdir -p $(dirname {log})
-        cd {params.snpeff_dir}
-
+        CONF="{input.config_file}"
+        # Resolve to absolute path to avoid relative path duplication
+        CONF_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$CONF")
         snpEff build \
             -{params.format} \
             -v \
-            -c {input.config_file} \
+            -c "$CONF_ABS" \
             {params.db_name} \
-                2>&1 | tee {log}
+            2>&1 | tee {log}
             """
 
 

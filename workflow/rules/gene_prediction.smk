@@ -73,6 +73,10 @@ rule augustus_predict_genes:
                 # Species detection and fallback
                 SPEC="{params.species}"
                 echo "Requested species: $SPEC" >> {log}
+                if [ -z "$SPEC" ]; then
+                    echo "WARN: Empty species from config; defaulting to 'human'" >> {log}
+                    SPEC="human"
+                fi
                 if ! augustus --printSpecies 2>> {log} | tr -d '\r' | grep -x "$SPEC" >/dev/null 2>&1; then
                     echo "WARN: Species '$SPEC' not found in container; falling back to 'human' (recommended default for mammals)" >> {log}
                     SPEC="human"
