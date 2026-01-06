@@ -14,7 +14,8 @@ set -euo pipefail
 # Reset modules to avoid pulling old Rackham paths
 module purge || true
 ml PDC || true
-ml snakemake || true
+ml bioinfo-tools || true
+ml snakemake/7.25.0 || true
 
 # Load container runtime (force apptainer; unload singularity to avoid Snakemake picking it)
 ml apptainer || true
