@@ -16,6 +16,9 @@ module load conda || true
 # Optional: point conda envs to project space
 # export CONDA_ENVS_PATH=/cfs/klemming/projects/snic/snic2022-22-894/condaenvs
 
+# Quick container/config preflight (safe even without containers)
+python3 scripts/preflight_check.py --profile config/profile_limited_data.yaml || { echo "Preflight failed"; exit 1; }
+
 # Run Snakemake orchestrator inside this Slurm job and submit worker jobs via the Slurm profile
 snakemake -s run_chr2_test.smk \
   --configfile config/profile_limited_data.yaml \
