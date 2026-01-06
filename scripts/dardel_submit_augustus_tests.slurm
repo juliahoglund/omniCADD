@@ -62,14 +62,19 @@ python3 scripts/preflight_check.py --profile config/test_overlay_augustus.yaml |
 
 rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
 
-# Quick sanity: extract Augustus image from overlay and verify we can exec it
+# Quick sanity: extract Augustus image from overlay and verify only if it's a local SIF
 AUG_IMG=$(awk '/^containers:/{f=1} f && /augustus:/ {print; exit}' config/test_overlay_augustus.yaml | sed -E 's/.*"(.*)".*/\1/')
 if [ -n "${AUG_IMG:-}" ]; then
-  echo "Testing container runtime with $AUG_IMG"
-  if ! $CONTAINER_RUNTIME exec "$AUG_IMG" augustus --version >/dev/null 2>&1; then
-    echo "ERROR: Failed to run 'augustus --version' in $AUG_IMG via $CONTAINER_RUNTIME." >&2
-    echo "       Check network access to Quay.io and that the tag exists." >&2
-    exit 1
+  if [[ "$AUG_IMG" == docker://* ]]; then
+    echo "NOTE: Augustus image is a remote docker URI. Compute nodes may not pull." >&2
+    echo "      Prefetch on a login node: ./scripts/prefetch_containers.sh config/test_overlay_augustus.yaml" >&2
+    echo "      Then set containers.augustus to the local .sif path and resubmit." >&2
+  else
+    echo "Testing local Augustus SIF with $CONTAINER_RUNTIME: $AUG_IMG"
+    if ! $CONTAINER_RUNTIME exec "$AUG_IMG" augustus --version >/dev/null 2>&1; then
+      echo "ERROR: Failed to run 'augustus --version' in local image $AUG_IMG." >&2
+      exit 1
+    fi
   fi
 fi
 
