@@ -113,6 +113,26 @@ fi
 echo "Verifying Augustus in $SIF_PATH"
 $RUNTIME exec "$SIF_PATH" augustus --version
 
+# Verify Java and SNPEff inside the same SIF; if missing, attempt a forced repull
+if ! $RUNTIME exec "$SIF_PATH" bash -lc 'which java >/dev/null 2>&1 && java -version && which snpEff >/dev/null 2>&1 && snpEff -version'; then
+  echo "WARN: Java/SNPEff not healthy in SIF: $SIF_PATH" >&2
+  if [[ "$AUG_IMG" == docker://* ]]; then
+    echo "Attempting to refresh SIF by repulling $AUG_IMG" >&2
+    # Use --force to overwrite existing SIF if supported
+    if $RUNTIME pull --force "$SIF_PATH" "$AUG_IMG"; then
+      echo "Re-verify Java/SNPEff after repull"
+      if ! $RUNTIME exec "$SIF_PATH" bash -lc 'which java >/dev/null 2>&1 && java -version && which snpEff >/dev/null 2>&1 && snpEff -version'; then
+        echo "ERROR: Java/SNPEff still not healthy after repull. Consider clearing SIF and cache, or using Quay tag." >&2
+        echo "Hint: rm -f $SIF_PATH and rerun; or set containers.augustus to a Quay biocontainers tag." >&2
+      fi
+    else
+      echo "ERROR: Failed to repull $AUG_IMG. Check network or registry access." >&2
+    fi
+  else
+    echo "NOTE: Non-docker image path provided; cannot repull. Ensure your SIF contains Java and SNPEff." >&2
+  fi
+fi
+
 # Create/refresh a stable symlink for easier config
 ln -sfn "$(basename "$SIF_PATH")" resources/containers/augustus.sif
 STABLE_SIF="resources/containers/augustus.sif"
