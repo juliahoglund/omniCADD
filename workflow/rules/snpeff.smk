@@ -155,8 +155,6 @@ rule snpeff_build_database:
             config["annotation"]["snpeff"]["database"]["name"],
             "snpEffectPredictor.bin"
         )
-    conda:
-        "../envs/annotation.yml"
     container:
         SNPEFF_CONTAINER
     threads: 4
@@ -199,8 +197,6 @@ rule run_snpeff:
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
         options = config["annotation"]["snpeff"]["run"]["options"]
-    conda:
-        "../envs/annotation.yml"
     container:
         SNPEFF_CONTAINER
     threads: 2

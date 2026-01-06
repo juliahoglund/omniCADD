@@ -108,8 +108,8 @@ snakemake -s run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
   --profile config/slurm/profile \
   --use-conda \
-  --use-singularity \
-  --singularity-args "-B $PWD" \
+  --use-apptainer \
+  --apptainer-args "-B $PWD" \
   --conda-frontend "$FRONTEND" \
   --jobs 100 \
   --printshellcmds \
