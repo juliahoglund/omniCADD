@@ -13,7 +13,12 @@ except Exception:
 
 def run(cmd: List[str]) -> Tuple[int, str]:
     try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
+        # Use universal_newlines for Python 3.6 compatibility (no 'text' kwarg)
+        out = subprocess.check_output(
+            cmd,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True
+        )
         return 0, out
     except subprocess.CalledProcessError as e:
         return e.returncode, e.output
