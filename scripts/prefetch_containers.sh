@@ -40,6 +40,11 @@ else
   fi
 fi
 
+# Ensure container cache lives in workspace (avoid HOME quota)
+export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$PWD/.singularity/cache"}
+export APPTAINER_CACHEDIR=${APPTAINER_CACHEDIR:-"$PWD/.singularity/cache"}
+mkdir -p "$PWD/.singularity/cache" || true
+
 extract_img() {
   local name="$1"
   awk -v n="$name" '

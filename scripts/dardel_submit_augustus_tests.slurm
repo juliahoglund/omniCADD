@@ -29,9 +29,13 @@ fi
 # Select runtime binary (singularity CLI for Snakemake 7.x)
 CONTAINER_RUNTIME="singularity"
 
-# Use dedicated cache in HOME (or project scratch if preferred)
-export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$HOME/.singularity/cache"}
+# Use dedicated cache in project workspace to avoid HOME quota
+export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$PWD/.singularity/cache"}
 mkdir -p "$SINGULARITY_CACHEDIR" || true
+
+# Keep conda package cache out of HOME to reduce quota pressure
+export CONDA_PKGS_DIRS=${CONDA_PKGS_DIRS:-"$PWD/.conda/pkgs"}
+mkdir -p "$CONDA_PKGS_DIRS" || true
 
 
 # Prefer user Miniforge/conda; configure strict channel priority
@@ -56,7 +60,7 @@ FRONTEND="conda"
 # Preflight against Augustus overlay
 python3 scripts/preflight_check.py --profile config/test_overlay_augustus.yaml || { echo "Preflight failed"; exit 1; }
 
-rm -rf .snakemake/conda/287305f04c23dece5b5947f7c78de31d_
+## Avoid brittle hard-coded env cleanup; prefer targeted cache dirs above
 
 # Helper: detect Augustus config dir inside container
 detect_cfg() {
@@ -108,6 +112,7 @@ snakemake -s run_multi_test.smk \
   --use-conda \
   --use-singularity \
   --singularity-args "-B $PWD" \
+  --latency-wait 60 \
   --conda-frontend "$FRONTEND" \
   --jobs 100 \
   --printshellcmds \

@@ -344,8 +344,8 @@ rule run_genome_snpeff:
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
         options = config["annotation"]["snpeff"]["run"]["options"]
-    conda:
-        "../envs/score.yml"
+    container:
+        SNPEFF_CONTAINER
     threads: 2
     priority: 1
     output:

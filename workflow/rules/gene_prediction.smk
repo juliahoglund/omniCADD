@@ -41,8 +41,6 @@ rule augustus_predict_genes:
     # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
         AUGUSTUS_CONTAINER
-    conda:
-        "../envs/gene_prediction.yml"
     threads: 2
     output:
         gff = "results/gene_prediction/chr{chr}.gff3"
