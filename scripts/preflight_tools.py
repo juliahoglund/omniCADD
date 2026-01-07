@@ -5,12 +5,13 @@ import sys
 import os
 import shutil
 import shlex
+from typing import List, Tuple
 try:
     import yaml
 except Exception:
     yaml = None
 
-def run(cmd: list[str]) -> tuple[int, str]:
+def run(cmd: List[str]) -> Tuple[int, str]:
     try:
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True)
         return 0, out
@@ -32,7 +33,7 @@ def _find_repo_root(start_dir: str) -> str:
             return start_dir
         d = parent
 
-def exec_in(img: str, args: list[str]) -> tuple[int, str]:
+def exec_in(img: str, args: List[str]) -> Tuple[int, str]:
     # Resolve image path relative to the profile directory so relative paths work
     if not img.startswith("docker://") and not os.path.isabs(img):
         img = os.path.abspath(os.path.join(BASE_DIR, img))
