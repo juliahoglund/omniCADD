@@ -11,6 +11,7 @@ set -euo pipefail
 
 module load python3 || true
 module load conda || true
+module load singularity || true
 
 # Optional: conda envs path
 # export CONDA_ENVS_PATH=/cfs/klemming/projects/snic/snic2022-22-894/condaenvs
@@ -23,8 +24,8 @@ snakemake -s run_multi_test.smk \
   --configfile config/test_overlay.yaml \
   --profile config/slurm/profile \
   --use-conda \
-  --use-apptainer \
-  --apptainer-args "-B $PWD" \
+  --use-singularity \
+  --singularity-args "-B $PWD" \
   --jobs 50 \
   --printshellcmds \
   target_multi

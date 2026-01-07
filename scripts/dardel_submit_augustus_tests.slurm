@@ -17,23 +17,21 @@ ml PDC || true
 ml bioinfo-tools || true
 ml snakemake/7.25.0 || true
 
-# Load container runtime (force apptainer; unload singularity to avoid Snakemake picking it)
-ml apptainer || true
-module unload singularity >/dev/null 2>&1 || true
+# Load container runtime (Snakemake 7.x expects 'singularity' CLI)
+ml singularity || true
 
 # Verify container runtime availability
-if ! command -v apptainer >/dev/null 2>&1; then
-  echo "ERROR: apptainer/singularity not available on this node. Load the appropriate module (e.g., 'module load apptainer')." >&2
+if ! command -v singularity >/dev/null 2>&1; then
+  echo "ERROR: singularity not available on this node. Load the appropriate module (e.g., 'module load singularity')." >&2
   exit 1
 fi
 
-# Select runtime binary (apptainer only)
-CONTAINER_RUNTIME="apptainer"
+# Select runtime binary (singularity CLI for Snakemake 7.x)
+CONTAINER_RUNTIME="singularity"
 
 # Use dedicated cache in HOME (or project scratch if preferred)
-export APPTAINER_CACHEDIR=${APPTAINER_CACHEDIR:-"$HOME/.apptainer/cache"}
-export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$APPTAINER_CACHEDIR"}
-mkdir -p "$APPTAINER_CACHEDIR" || true
+export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$HOME/.singularity/cache"}
+mkdir -p "$SINGULARITY_CACHEDIR" || true
 
 
 # Prefer user Miniforge/conda; configure strict channel priority
@@ -108,8 +106,8 @@ snakemake -s run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
   --profile config/slurm/profile \
   --use-conda \
-  --use-apptainer \
-  --apptainer-args "-B $PWD" \
+  --use-singularity \
+  --singularity-args "-B $PWD" \
   --conda-frontend "$FRONTEND" \
   --jobs 100 \
   --printshellcmds \
