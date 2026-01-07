@@ -150,7 +150,8 @@ rule snpeff_build_database:
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
         format = config["annotation"]["snpeff"]["build"]["annotation_format"],
-        snpeff_dir = lambda wildcards: os.path.dirname(config["annotation"]["snpeff"]["build"]["config_file"])
+        snpeff_dir = lambda wildcards: os.path.dirname(config["annotation"]["snpeff"]["build"]["config_file"]),
+        data_dir = config["annotation"]["snpeff"]["database"]["path"]
     output:
         db_built = os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -169,10 +170,13 @@ rule snpeff_build_database:
         CONF="{input.config_file}"
         # Resolve to absolute path to avoid relative path duplication
         CONF_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$CONF")
+        # Resolve data directory to absolute path and pass explicitly
+        DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "{params.data_dir}")
         snpEff build \
             -{params.format} \
             -v \
             -c "$CONF_ABS" \
+            -dataDir "$DATA_ABS" \
             {params.db_name} \
             2>&1 | tee {log}
             """
@@ -198,7 +202,8 @@ rule run_snpeff:
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
-        options = config["annotation"]["snpeff"]["run"]["options"]
+        options = config["annotation"]["snpeff"]["run"]["options"],
+        data_dir = config["annotation"]["snpeff"]["database"]["path"]
     container:
         SNPEFF_CONTAINER
     threads: 2
@@ -210,8 +215,10 @@ rule run_snpeff:
     shell:
         """
         mkdir -p $(dirname {log})
+        DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "{params.data_dir}")
         snpEff {params.options} \
             -c {input.config_file} \
+            -dataDir "$DATA_ABS" \
             -stats {output.stats} \
             {params.db_name} \
             {input.vcf} \
@@ -343,7 +350,8 @@ rule run_genome_snpeff:
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
-        options = config["annotation"]["snpeff"]["run"]["options"]
+        options = config["annotation"]["snpeff"]["run"]["options"],
+        data_dir = config["annotation"]["snpeff"]["database"]["path"]
     container:
         SNPEFF_CONTAINER
     threads: 2
@@ -354,8 +362,10 @@ rule run_genome_snpeff:
         "results/logs/snpeff/whole_genome_chr{chr}_{part}.log"
     shell:
         """
+        DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "{params.data_dir}")
         snpEff {params.options} \
             -c {input.config_file} \
+            -dataDir "$DATA_ABS" \
             -noStats \
             {params.db_name} \
             {input.vcf} \
