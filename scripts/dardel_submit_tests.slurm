@@ -15,7 +15,8 @@ module load singularity || true
 
 # Use dedicated cache in project workspace to avoid HOME quota
 export SINGULARITY_CACHEDIR=${SINGULARITY_CACHEDIR:-"$PWD/.singularity/cache"}
-mkdir -p "$SINGULARITY_CACHEDIR" || true
+export SINGULARITY_TMPDIR=${SINGULARITY_TMPDIR:-"$PWD/.singularity/tmp"}
+mkdir -p "$SINGULARITY_CACHEDIR" "$SINGULARITY_TMPDIR" || true
 
 # Keep conda package cache out of HOME to reduce quota pressure
 export CONDA_PKGS_DIRS=${CONDA_PKGS_DIRS:-"$PWD/.conda/pkgs"}
@@ -35,6 +36,9 @@ snakemake -s run_multi_test.smk \
   --use-singularity \
   --singularity-args "-B $PWD" \
   --latency-wait 60 \
+  --conda-prefix "$PWD/.snakemake/conda" \
+  --rerun-incomplete \
+  --keep-going \
   --jobs 50 \
   --printshellcmds \
   target_multi

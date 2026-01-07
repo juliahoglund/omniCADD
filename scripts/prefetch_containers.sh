@@ -162,8 +162,12 @@ if ! $RUNTIME exec "$SIF_PATH" bash -lc 'which java >/dev/null 2>&1 && java -ver
 fi
 
 # Create/refresh a stable symlink for easier config
-ln -sfn "$(basename "$SIF_PATH")" resources/containers/augustus.sif
+# Avoid self-referential loops: always resolve real target basename
 STABLE_SIF="resources/containers/augustus.sif"
+REAL_TARGET_BASENAME=$(python3 -c 'import os,sys; print(os.path.basename(os.path.realpath(sys.argv[1])))' "$SIF_PATH")
+if [ "$REAL_TARGET_BASENAME" != "$(basename "$STABLE_SIF")" ]; then
+  ln -sfn "$REAL_TARGET_BASENAME" "$STABLE_SIF"
+fi
 
 # Rewrite config to point containers.augustus at the stable SIF path
 awk -v path="$STABLE_SIF" '
@@ -189,7 +193,7 @@ if [ -n "${SNPEFF_IMG:-}" ]; then
   # If SNPEff image equals Augustus image, reuse the same SIF and symlink
   if [ "$SNPEFF_IMG" = "$AUG_IMG" ] || [ "$SNPEFF_IMG" = "$STABLE_SIF" ]; then
     echo "SNPEff shares Augustus image; reusing $STABLE_SIF"
-    ln -sfn "$(basename "$SIF_PATH")" resources/containers/snpeff.sif
+    ln -sfn "$REAL_TARGET_BASENAME" resources/containers/snpeff.sif
     awk -v path="resources/containers/augustus.sif" '
       BEGIN{f=0}
       /^containers:/{f=1}
