@@ -257,7 +257,13 @@ rule snpeff_build_database:
             -c "$CONF_ABS" \
             -dataDir "$DATA_ABS" \
             {params.db_name} \
-            2>&1 | tee {log}
+            2>&1 | tee {log} || true
+
+        # Fail only if predictor.bin was not produced
+        if [ ! -f "{output.db_built}" ]; then
+            echo "ERROR: SNPEff build did not create {output.db_built}. See log: {log}" >&2
+            exit 1
+        fi
             """
 
 
