@@ -231,6 +231,8 @@ rule snpeff_build_database:
         format = config["annotation"]["snpeff"]["build"]["annotation_format"],
         snpeff_dir = lambda wildcards: os.path.dirname(config["annotation"]["snpeff"]["build"]["config_file"]),
         data_dir = config["annotation"]["snpeff"]["database"]["path"]
+        ,
+        build_opts = config["annotation"]["snpeff"]["build"].get("options", "")
     output:
         db_built = os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -256,6 +258,7 @@ rule snpeff_build_database:
             -v \
             -c "$CONF_ABS" \
             -dataDir "$DATA_ABS" \
+            {params.build_opts} \
             {params.db_name} \
             2>&1 | tee {log} || true
 

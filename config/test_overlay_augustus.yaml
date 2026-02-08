@@ -40,6 +40,7 @@ annotation:
     build:
       config_file: ".tests/snpEff/snpEff.config"
       annotation_format: "gff3"
+      options: "-noCheckCds -noCheckProtein"
     run:
       options: "-v -noStats"
   grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
