@@ -80,18 +80,18 @@ rule snpeff_prepare_genome:
         ANN_HAS_CHR=0
         FIRST_GEN=$(grep '^>' {output.genome_out} | sed 's/>//' | awk '{print $1}' | head -n1 || true)
         if [[ "$FIRST_GEN" == chr* ]]; then GEN_HAS_CHR=1; fi
-        FIRST_ANN=$(grep -v '^#' {output.anno_out} | awk -F'\t' 'NF>0{print $1; exit}' || true)
+        FIRST_ANN=$(grep -v '^#' {output.anno_out} | awk -F'\t' 'NF>0{{print $1; exit}}' || true)
         if [[ "$FIRST_ANN" == chr* ]]; then ANN_HAS_CHR=1; fi
 
         if [[ "$GEN_HAS_CHR" -eq 1 && "$ANN_HAS_CHR" -eq 0 ]]; then
-            awk 'BEGIN{OFS="\t"} /^#/ {print; next} { if (substr($1,1,3)!="chr") $1="chr" $1; print }' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ if (substr($1,1,3)!="chr") $1="chr" $1; print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
         elif [[ "$GEN_HAS_CHR" -eq 0 && "$ANN_HAS_CHR" -eq 1 ]]; then
-            awk 'BEGIN{OFS="\t"} /^#/ {print; next} { sub(/^chr/, "", $1); print }' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr/, "", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
         fi
 
         # Filter annotation to chromosomes present in genome
         grep '^>' {output.genome_out} | sed 's/>//' | awk '{print $1}' > chr_list.txt
-        awk 'BEGIN{FS=OFS="\t"} FNR==NR {keep[$1]=1; next} /^#/ {print; next} ($1 in keep) {print}' chr_list.txt {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+        awk 'BEGIN{{FS=OFS="\t"}} FNR==NR {{keep[$1]=1; next}} /^#/ {{print; next}} ($1 in keep) {{print}}' chr_list.txt {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
         rm -f chr_list.txt || true
 
         # Set permissions and mark prepared
@@ -128,17 +128,17 @@ rule snpeff_validate_prep:
         """
         set -euo pipefail
         # Count feature lines (exclude comments, require at least 9 columns as GFF3)
-        FEAT_COUNT=$(awk 'BEGIN{FS="\t"} !/^#/ && NF>=9 {c++} END{print c+0}' {input.anno})
+        FEAT_COUNT=$(awk 'BEGIN{{FS="\t"}} !/^#/ && NF>=9 {{c++}} END{{print c+0}}' {input.anno})
         if [ "$FEAT_COUNT" -eq 0 ]; then
             echo "ERROR: Prepared genes.gff has zero feature lines: {input.anno}" >&2
             exit 1
         fi
 
         # Extract contig names from genome and annotation
-        grep '^>' {input.genome} | sed 's/>//' | awk '{print $1}' | sort -u > genome.contigs
-        awk 'BEGIN{FS="\t"} !/^#/ {print $1}' {input.anno} | sort -u > anno.contigs
+        grep '^>' {input.genome} | sed 's/>//' | awk '{{print $1}}' | sort -u > genome.contigs
+        awk 'BEGIN{{FS="\t"}} !/^#/ {{print $1}}' {input.anno} | sort -u > anno.contigs
         # Compute intersection size
-        INTERSECT=$(comm -12 genome.contigs anno.contigs | wc -l | awk '{print $1}')
+        INTERSECT=$(comm -12 genome.contigs anno.contigs | wc -l | awk '{{print $1}}')
         if [ "$INTERSECT" -eq 0 ]; then
             echo "ERROR: No overlapping contig names between genome ({input.genome}) and annotation ({input.anno})." >&2
             echo "Hint: chr-prefix normalization may have failed; inspect genome.contigs and anno.contigs." >&2
