@@ -43,7 +43,7 @@ rule snpeff_prepare_genome:
         annotation = lambda wildcards: (
             config["gene_annotation"].get("gff") if config["gene_annotation"].get("source") == "gff"
             else config["gene_annotation"].get("gtf") if config["gene_annotation"].get("source") == "gtf"
-            else "results/gene_prediction/genes.gff3"
+            else "results/gene_prediction/genes_validated.gff3"
         )
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
@@ -97,6 +97,55 @@ rule snpeff_prepare_genome:
         # Set permissions and mark prepared
         chmod 0644 {output.genome_out} {output.anno_out} || true
         touch {output.prepared}
+        """
+
+
+rule snpeff_validate_prep:
+    """
+    Validate prepared SNPEff inputs:
+    - Ensure GFF has feature lines (non-comment with 9 columns)
+    - Ensure chromosome names overlap between genome and annotation
+    Fails fast with clear messages if issues are found.
+    """
+    input:
+        genome = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            "genomes",
+            f"{config['annotation']['snpeff']['database']['name']}.fa"
+        ),
+        anno = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "genes.gff"
+        )
+    output:
+        flag = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "prep_validated.flag"
+        )
+    shell:
+        """
+        set -euo pipefail
+        # Count feature lines (exclude comments, require at least 9 columns as GFF3)
+        FEAT_COUNT=$(awk 'BEGIN{FS="\t"} !/^#/ && NF>=9 {c++} END{print c+0}' {input.anno})
+        if [ "$FEAT_COUNT" -eq 0 ]; then
+            echo "ERROR: Prepared genes.gff has zero feature lines: {input.anno}" >&2
+            exit 1
+        fi
+
+        # Extract contig names from genome and annotation
+        grep '^>' {input.genome} | sed 's/>//' | awk '{print $1}' | sort -u > genome.contigs
+        awk 'BEGIN{FS="\t"} !/^#/ {print $1}' {input.anno} | sort -u > anno.contigs
+        # Compute intersection size
+        INTERSECT=$(comm -12 genome.contigs anno.contigs | wc -l | awk '{print $1}')
+        if [ "$INTERSECT" -eq 0 ]; then
+            echo "ERROR: No overlapping contig names between genome ({input.genome}) and annotation ({input.anno})." >&2
+            echo "Hint: chr-prefix normalization may have failed; inspect genome.contigs and anno.contigs." >&2
+            exit 2
+        fi
+        rm -f genome.contigs anno.contigs || true
+        touch {output.flag}
         """
 
 
@@ -164,6 +213,11 @@ rule snpeff_build_database:
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
             config["annotation"]["snpeff"]["database"]["name"],
             "genes.gff"
+        ),
+        prep_ok = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "prep_validated.flag"
         ),
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     params:
