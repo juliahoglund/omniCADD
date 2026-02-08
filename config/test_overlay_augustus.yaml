@@ -12,10 +12,11 @@ generate_variants:
   reference_genome_wildcard: ".tests/genome/Wild_Boar_chr{chr}.fa"
 
 gene_annotation:
-  source: "augustus"
-  predict_genes: true
+  source: "gff"
+  gff: "resources/testdata/sample_genes_chr2_chr18.gff3"
+  predict_genes: false
   augustus:
-    species: "human"  # use a known built-in species; change if you have a trained model
+    species: "human"
     hints: null
     options: "--strand=both --UTR=on --gff3=on"
 

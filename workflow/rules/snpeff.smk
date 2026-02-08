@@ -131,6 +131,12 @@ rule snpeff_validate_prep:
         FEAT_COUNT=$(awk 'BEGIN{{FS="\t"}} !/^#/ && NF>=9 {{c++}} END{{print c+0}}' {input.anno})
         if [ "$FEAT_COUNT" -eq 0 ]; then
             echo "ERROR: Prepared genes.gff has zero feature lines: {input.anno}" >&2
+            echo "Genome contigs (first 10):" >&2
+            grep '^>' {input.genome} | sed 's/>//' | awk '{{print $1}}' | head -n 10 >&2 || true
+            echo "Annotation contigs (first 10):" >&2
+            awk 'BEGIN{{FS="\t"}} !/^#/ {{print $1}}' {input.anno} | head -n 10 >&2 || true
+            echo "Hint: Augustus may have produced no predictions for the test genome." >&2
+            echo "      Consider switching gene_annotation.source to 'gff' with a pseudo/real GFF for testing." >&2
             exit 1
         fi
 
