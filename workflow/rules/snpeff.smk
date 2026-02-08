@@ -78,19 +78,19 @@ rule snpeff_prepare_genome:
         # Normalize chromosome names between genome and annotation (handle chr prefix mismatches)
         GEN_HAS_CHR=0
         ANN_HAS_CHR=0
-        FIRST_GEN=$(grep '^>' {output.genome_out} | sed 's/>//' | awk '{print $1}' | head -n1 || true)
+        FIRST_GEN=$(grep '^>' {output.genome_out} | sed 's/>//' | awk '{{print $1}}' | head -n1 || true)
         if [[ "$FIRST_GEN" == chr* ]]; then GEN_HAS_CHR=1; fi
         FIRST_ANN=$(grep -v '^#' {output.anno_out} | awk -F'\t' 'NF>0{{print $1; exit}}' || true)
         if [[ "$FIRST_ANN" == chr* ]]; then ANN_HAS_CHR=1; fi
 
         if [[ "$GEN_HAS_CHR" -eq 1 && "$ANN_HAS_CHR" -eq 0 ]]; then
-            awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ if (substr($1,1,3)!="chr") $1="chr" $1; print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ if (substr($1,1,3)!="chr") $1="chr"$1; print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
         elif [[ "$GEN_HAS_CHR" -eq 0 && "$ANN_HAS_CHR" -eq 1 ]]; then
             awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr/, "", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
         fi
 
         # Filter annotation to chromosomes present in genome
-        grep '^>' {output.genome_out} | sed 's/>//' | awk '{print $1}' > chr_list.txt
+        grep '^>' {output.genome_out} | sed 's/>//' | awk '{{print $1}}' > chr_list.txt
         awk 'BEGIN{{FS=OFS="\t"}} FNR==NR {{keep[$1]=1; next}} /^#/ {{print; next}} ($1 in keep) {{print}}' chr_list.txt {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
         rm -f chr_list.txt || true
 
