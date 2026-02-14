@@ -113,6 +113,38 @@ rule snpeff_prepare_genome:
         """
 
 
+rule snpeff_extract_normalized_chr:
+    """
+    Extract individual chromosomes from SNPEff normalized genome.
+    Provides per-chr FASTAs with consistent naming for downstream processing.
+    """
+    input:
+        genome = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            "genomes",
+            f"{config['annotation']['snpeff']['database']['name']}.fa"
+        )
+    output:
+        chr_fa = "results/snpeff/data/normalized_genome/chr{chr}.fa"
+    shell:
+        """
+        set -euo pipefail
+        mkdir -p $(dirname {output.chr_fa})
+        # Extract this chromosome from combined genome
+        awk -v chr="{wildcards.chr}" '
+            /^>/ {{
+                if ($1 == ">" chr || $1 == ">chr" chr || $1 == ">chr_" chr) {{
+                    print; keep=1
+                }} else {{
+                    keep=0
+                }}
+                next
+            }}
+            keep {{print}}
+        ' {input.genome} > {output.chr_fa}
+        """
+
+
 rule snpeff_generate_sequences:
     """
     Generate CDS nucleotide sequences and protein translations from the prepared
@@ -405,10 +437,11 @@ rule run_snpeff:
 rule process_snpeff_derived:
     """
     Process SNPEff output for derived variants to standardized TSV.
+    Uses normalized genome from SNPEff to match VCF chromosome names.
     """
     input:
         vcf = "results/derived_variants/singletons/chr{chr}_snpeff_output.vcf",
-        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
+        genome = "results/snpeff/data/normalized_genome/chr{chr}.fa",
         grantham = config["annotation"]["grantham_matrix"],
         script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
     conda:
@@ -433,10 +466,11 @@ rule process_snpeff_derived:
 rule process_snpeff_simulated:
     """
     Process SNPEff output for simulated variants to standardized TSV.
+    Uses normalized genome from SNPEff to match VCF chromosome names.
     """
     input:
         vcf = "results/simulated_variants/trimmed_snps/chr{chr}_snpeff_output.vcf",
-        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
+        genome = "results/snpeff/data/normalized_genome/chr{chr}.fa",
         grantham = config["annotation"]["grantham_matrix"],
         script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
     conda:
