@@ -126,8 +126,7 @@ rule augustus_validate:
     Validate Augustus predictions and check for common issues.
     """
     input:
-        gff = "results/gene_prediction/genes.gff3",
-        genome = config["mark_ancestor"]["reference_genome"]
+        gff = "results/gene_prediction/genes.gff3"
     output:
         validated = "results/gene_prediction/genes_validated.gff3",
         report = "results/gene_prediction/validation_report.txt"
@@ -206,6 +205,58 @@ rule convert_gff_to_gtf:
         """
 
 
+####################################
+### Reference Genome Merge #########
+####################################
+
+rule merge_reference_genome:
+    """
+    Merge per-chromosome FASTA specified by reference_genome_wildcard into a single FASTA
+    containing the configured karyotype chromosomes. Used by SNPEff prep.
+    """
+    input:
+        expand(config["generate_variants"]["reference_genome_wildcard"], chr=config["chromosomes"]["karyotype"])
+    output:
+        merged = "results/genome/merged_genome.fa"
+    shell:
+        """
+        mkdir -p results/genome
+        cat {input} > {output.merged}
+        """
+
+
+rule compress_merged_reference_genome:
+    """
+    Optional: Create a gzipped FASTA alongside the merged genome.
+    Keeps the plain .fa for rules that read headers directly.
+    """
+    input:
+        fa = "results/genome/merged_genome.fa"
+    output:
+        gz = "results/genome/merged_genome.fa.gz"
+    shell:
+        """
+        gzip -c {input.fa} > {output.gz}
+        """
+
+
+rule index_merged_reference_genome:
+    """
+    Optional: Index merged FASTA with samtools to produce a .fai.
+    Only runs if a downstream rule requires the index.
+    """
+    input:
+        fa = "results/genome/merged_genome.fa"
+    output:
+        fai = "results/genome/merged_genome.fa.fai"
+    conda:
+        "../envs/common.yml"
+    shell:
+        """
+        samtools faidx {input.fa}
+        """
+
+
 rule prepare_annotation_for_snpeff:
     """
     Prepare gene annotation specifically for SNPEff database creation.
@@ -227,8 +278,12 @@ rule prepare_annotation_for_snpeff:
             cp {input.annotation} temp_anno.gff
         fi
         
-        # Get chromosome names from genome
-        grep "^>" {input.genome} | sed 's/>//' | cut -d' ' -f1 > chr_list.txt
+        # Get chromosome names from genome (supports .fa or .fa.gz)
+        if [[ {input.genome} == *.gz ]]; then
+            zgrep "^>" {input.genome} | sed 's/>//' | cut -d' ' -f1 > chr_list.txt
+        else
+            grep "^>" {input.genome} | sed 's/>//' | cut -d' ' -f1 > chr_list.txt
+        fi
         
         # Filter annotation to only include chromosomes in genome
         grep "^#" temp_anno.gff > {output.prepared}
