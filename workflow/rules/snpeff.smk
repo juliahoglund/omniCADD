@@ -338,14 +338,14 @@ rule snpeff_build_database:
             echo "WARN: {input.protein} missing or empty; adding -noCheckProtein" >&2
             PROT_FLAG="-noCheckProtein"
         fi
-        BUILD_OPTS="{params.build_opts} ${CDS_FLAG} ${PROT_FLAG}"
+        BUILD_OPTS="{params.build_opts} ${{CDS_FLAG}} ${{PROT_FLAG}}"
 
         snpEff build \
             {params.anno_fmt} \
             -v \
             -c "$CONF_ABS" \
             -dataDir "$DATA_ABS" \
-            ${BUILD_OPTS} \
+            ${{BUILD_OPTS}} \
             {params.db_name} \
             2>&1 | tee {log} || true
 
