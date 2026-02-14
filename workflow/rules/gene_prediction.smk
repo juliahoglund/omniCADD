@@ -75,14 +75,14 @@ rule augustus_predict_genes:
                     echo "WARN: Empty species from config; defaulting to 'human'" >> {log}
                     SPEC="human"
                 fi
-                if ! augustus --printSpecies 2>> {log} | tr -d '\r' | grep -x "$SPEC" >/dev/null 2>&1; then
-                    echo "WARN: Species '$SPEC' not found in container; falling back to 'human' (recommended default for mammals)" >> {log}
+                if ! augustus --species=help 2>> {log} | tr -d '\r' | grep -x "$SPEC" >/dev/null 2>&1; then
+                    echo "WARN: Species '$SPEC' not listed by 'augustus --species=help'; falling back to 'human' (recommended default for mammals)" >> {log}
                     SPEC="human"
                 fi
                 echo "Augustus version:" >> {log}
                 augustus --version >> {log} 2>&1 || true
-                echo "Available species (first 20):" >> {log}
-                augustus --printSpecies | head -n 20 >> {log} 2>&1 || true
+                echo "Available species (first 20 from --species=help):" >> {log}
+                augustus --species=help | head -n 20 >> {log} 2>&1 || true
                 augustus \
                         --species="$SPEC" \
             {params.options} \

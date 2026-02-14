@@ -17,7 +17,7 @@ gene_annotation:
   augustus:
     species: "human"
     hints: null
-    options: "--strand=both --UTR=on --gff3=on"
+    options: "--strand=both --UTR=on --softmasking=on --gff3=on"
 
 # Container images used by specific rules
 # IMPORTANT: Use Quay.io Biocontainers tags (Docker Hub often misses tags)
