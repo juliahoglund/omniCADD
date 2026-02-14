@@ -49,3 +49,7 @@ stats_report:
 
 ancestral_sequence:
   source: "none"
+
+# Use merged karyotype FASTA for steps that require a single genome file
+mark_ancestor:
+  reference_genome: "results/genome/merged_genome.fa"
