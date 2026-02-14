@@ -130,12 +130,14 @@ rule snpeff_extract_normalized_chr:
         """
         set -euo pipefail
         mkdir -p $(dirname {output.chr_fa})
-        # Extract this chromosome and rename header to match VCF (chr prefix, no underscore)
+        # Extract this chromosome and normalize header to chr<N> format (no underscore)
         awk -v chr="{wildcards.chr}" '
             /^>/ {{
-                # Match plain number, chr prefix, or chr_ prefix
-                if ($1 == ">" chr || $1 == ">chr" chr || $1 == ">chr_" chr) {{
-                    print ">chr" chr; keep=1
+                header = substr($0, 2)  # Remove >
+                # Match plain number, chr, or chr_ prefix
+                if (header == chr || header == "chr" chr || header == "chr_" chr) {{
+                    print ">chr" chr
+                    keep=1
                 }} else {{
                     keep=0
                 }}
@@ -143,6 +145,14 @@ rule snpeff_extract_normalized_chr:
             }}
             keep {{print}}
         ' {input.genome} > {output.chr_fa}
+        
+        # Verify output has content
+        if [ ! -s {output.chr_fa} ]; then
+            echo "ERROR: Failed to extract chromosome {wildcards.chr}" >&2
+            echo "Available chromosomes in genome:" >&2
+            grep '^>' {input.genome} | head -5 >&2
+            exit 1
+        fi
         """
 
 
