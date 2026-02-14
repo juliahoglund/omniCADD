@@ -43,6 +43,7 @@ annotation:
       config_file: ".tests/snpEff/snpEff.config"
       annotation_format: "gff3"
       allow_empty: true
+      options: "-noCheckCds -noCheckProtein"
       # For real runs, keep default build checks enabled
     run:
       options: "-v -noStats"

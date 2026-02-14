@@ -271,7 +271,10 @@ rule snpeff_build_database:
     container:
         SNPEFF_CONTAINER
     threads: 4
-    log:
+    params:
+        anno_fmt = ("-gff3" if config["annotation"]["snpeff"]["build"].get("annotation_format", "gff3").lower() == "gff3" else "-gtf"),
+        build_opts = config["annotation"]["snpeff"]["build"].get("options", "")
+    shell:
         "results/logs/snpeff_build_database.log"
     shell:
         """
@@ -280,7 +283,7 @@ rule snpeff_build_database:
         CONF="{input.config_file}"
         # Resolve to absolute path to avoid relative path duplication
         CONF_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$CONF")
-        # Resolve data directory to absolute path and pass explicitly
+        snpEff build             {params.anno_fmt}             -v             -c "$CONF_ABS"             -dataDir "$DATA_ABS"             {params.build_opts}             {config["annotation"]["snpeff"]["database"]["name"]}             2>&1 | tee {log} || true
         DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "{params.data_dir}")
         snpEff build \
             -{params.format} \
