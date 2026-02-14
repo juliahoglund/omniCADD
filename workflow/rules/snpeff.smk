@@ -153,6 +153,10 @@ rule snpeff_extract_normalized_chr:
             grep '^>' {input.genome} | head -5 >&2
             exit 1
         fi
+        
+        # Remove old index and create fresh one with correct chromosome names
+        rm -f {output.chr_fa}.fai
+        samtools faidx {output.chr_fa}
         """
 
 
