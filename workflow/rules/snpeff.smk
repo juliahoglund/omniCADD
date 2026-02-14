@@ -126,6 +126,8 @@ rule snpeff_extract_normalized_chr:
         )
     output:
         chr_fa = "results/snpeff/data/normalized_genome/chr{chr}.fa"
+    conda:
+        "../envs/annotation.yml"
     shell:
         """
         set -euo pipefail
@@ -154,7 +156,7 @@ rule snpeff_extract_normalized_chr:
             exit 1
         fi
         
-        # Remove old index and create fresh one with correct chromosome names
+        # Remove old .fai index and create fresh one with correct chromosome names
         rm -f {output.chr_fa}.fai
         samtools faidx {output.chr_fa}
         """
