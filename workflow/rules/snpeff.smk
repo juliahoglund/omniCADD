@@ -7,8 +7,6 @@ Provides complete implementation of SNPEff as alternative to VEP
 """
 
 import os
-
-# Optional container image for SNPEff (recommended on HPC)
 # Fallback: if no dedicated SNPEff image, use the Augustus image that bundles SNPEff.
 SNPEFF_CONTAINER = (
     config.get("containers", {}).get("snpeff")
@@ -112,6 +110,45 @@ rule snpeff_prepare_genome:
         # Set permissions and mark prepared
         chmod 0644 {output.genome_out} {output.anno_out} || true
         touch {output.prepared}
+        """
+
+
+rule snpeff_generate_sequences:
+    """
+    Generate CDS nucleotide sequences and protein translations from the prepared
+    genome and annotation using gffread. SNPEff uses these for build checks.
+    """
+    input:
+        genome = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            "genomes",
+            f"{config['annotation']['snpeff']['database']['name']}.fa"
+        ),
+        anno = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "genes.gff"
+        )
+    output:
+        cds = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "cds.fa"
+        ),
+        protein = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "protein.fa"
+        )
+    conda:
+        "../envs/annotation.yml"
+    shell:
+        """
+        set -euo pipefail
+        # Extract CDS nucleotide sequences
+        gffread {input.anno} -g {input.genome} -x {output.cds}
+        # Extract protein translations (best effort)
+        gffread {input.anno} -g {input.genome} -y {output.protein} || true
         """
 
 
@@ -254,43 +291,61 @@ rule snpeff_build_database:
             config["annotation"]["snpeff"]["database"]["name"],
             "prep_validated.flag"
         ),
-        config_file = config["annotation"]["snpeff"]["build"]["config_file"]
+        config_file = config["annotation"]["snpeff"]["build"]["config_file"],
+        cds = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "cds.fa"
+        ),
+        protein = os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
+            config["annotation"]["snpeff"]["database"]["name"],
+            "protein.fa"
+        )
     params:
         db_name = config["annotation"]["snpeff"]["database"]["name"],
-        format = config["annotation"]["snpeff"]["build"]["annotation_format"],
-        snpeff_dir = lambda wildcards: os.path.dirname(config["annotation"]["snpeff"]["build"]["config_file"]),
+        anno_fmt = ("-gff3" if config["annotation"]["snpeff"]["build"].get("annotation_format", "gff3").lower() == "gff3" else "-gtf"),
+        build_opts = config["annotation"]["snpeff"]["build"].get("options", ""),
         data_dir = config["annotation"]["snpeff"]["database"]["path"]
-        ,
-        build_opts = config["annotation"]["snpeff"]["build"].get("options", "")
     output:
         db_built = os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
             config["annotation"]["snpeff"]["database"]["name"],
             "snpEffectPredictor.bin"
         )
+    log:
+        "results/logs/snpeff_build_database.log"
     container:
         SNPEFF_CONTAINER
     threads: 4
-    params:
-        anno_fmt = ("-gff3" if config["annotation"]["snpeff"]["build"].get("annotation_format", "gff3").lower() == "gff3" else "-gtf"),
-        build_opts = config["annotation"]["snpeff"]["build"].get("options", "")
-    shell:
-        "results/logs/snpeff_build_database.log"
     shell:
         """
         set -euo pipefail
         mkdir -p $(dirname {log})
         CONF="{input.config_file}"
-        # Resolve to absolute path to avoid relative path duplication
+        # Resolve to absolute paths
         CONF_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$CONF")
-        snpEff build             {params.anno_fmt}             -v             -c "$CONF_ABS"             -dataDir "$DATA_ABS"             {params.build_opts}             {config["annotation"]["snpeff"]["database"]["name"]}             2>&1 | tee {log} || true
         DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "{params.data_dir}")
+
+        # Auto-relax checks if sequence files are missing or empty
+        CDS_FLAG=""
+        PROT_FLAG=""
+        if [ ! -s "{input.cds}" ]; then
+            echo "WARN: {input.cds} missing or empty; adding -noCheckCds" >&2
+            CDS_FLAG="-noCheckCds"
+        fi
+        if [ ! -s "{input.protein}" ]; then
+            echo "WARN: {input.protein} missing or empty; adding -noCheckProtein" >&2
+            PROT_FLAG="-noCheckProtein"
+        fi
+        BUILD_OPTS="{params.build_opts} ${CDS_FLAG} ${PROT_FLAG}"
+
         snpEff build \
-            -{params.format} \
+            {params.anno_fmt} \
             -v \
             -c "$CONF_ABS" \
             -dataDir "$DATA_ABS" \
-            {params.build_opts} \
+            ${BUILD_OPTS} \
             {params.db_name} \
             2>&1 | tee {log} || true
 
@@ -299,7 +354,7 @@ rule snpeff_build_database:
             echo "ERROR: SNPEff build did not create {output.db_built}. See log: {log}" >&2
             exit 1
         fi
-            """
+        """
 
 
 ####################################
