@@ -9,12 +9,11 @@ chromosomes:
 
 # Use repository test genomes
 generate_variants:
-  reference_genome_wildcard: ".tests/genome/Wild_Boar_chr{chr}.fa"
+  reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/hoglu001/omniCADD/genomeBoar/Wild_Boar_chr{chr}.fa"
 
 gene_annotation:
-  source: "gff"
-  gff: "resources/testdata/sample_genes_chr2_chr18.gff3"
-  predict_genes: false
+  source: "augustus"
+  predict_genes: true
   augustus:
     species: "human"
     hints: null
@@ -36,11 +35,11 @@ annotation:
     enabled: true
     database:
       name: "wild_boar_custom"
-      path: ".tests/snpEff/data/"
+      path: "results/snpeff/data/"
     build:
       config_file: ".tests/snpEff/snpEff.config"
       annotation_format: "gff3"
-      options: "-noCheckCds -noCheckProtein"
+      # For real runs, keep default build checks enabled
     run:
       options: "-v -noStats"
   grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
