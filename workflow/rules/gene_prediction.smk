@@ -142,11 +142,22 @@ rule augustus_validate:
         # Check for overlapping features
         echo "Checking for issues..." >> {output.report}
         
-        # Sort GFF
-        grep "^#" {input.gff} > {output.validated}
-        grep -v "^#" {input.gff} | sort -k1,1 -k4,4n >> {output.validated}
+        # Sort GFF using awk to avoid non-zero exit on no matches
+        awk 'BEGIN{OFS="\t"} /^#/ {print}' {input.gff} > {output.validated}
+        awk 'BEGIN{OFS="\t"} !/^#/ {print}' {input.gff} | sort -k1,1 -k4,4n >> {output.validated}
         
         echo "Validation complete" >> {output.report}
+
+        # Append summary counts
+        echo "" >> {output.report}
+        echo "Summary" >> {output.report}
+        echo "-------" >> {output.report}
+        echo "Headers: $(awk '/^#/ {c++} END{print c+0}' {input.gff})" >> {output.report}
+        echo "Total features: $(awk '!/^#/ {c++} END{print c+0}' {output.validated})" >> {output.report}
+        echo "Genes: $(awk '!/^#/ && $3==\"gene\" {c++} END{print c+0}' {output.validated})" >> {output.report}
+        echo "mRNA: $(awk '!/^#/ && $3==\"mRNA\" {c++} END{print c+0}' {output.validated})" >> {output.report}
+        echo "CDS: $(awk '!/^#/ && $3==\"CDS\" {c++} END{print c+0}' {output.validated})" >> {output.report}
+        echo "Exons: $(awk '!/^#/ && $3==\"exon\" {c++} END{print c+0}' {output.validated})" >> {output.report}
         """
 
 
