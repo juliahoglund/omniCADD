@@ -38,8 +38,11 @@ rule snpeff_prepare_genome:
     - snpEff/data/genome_name/genes.gff (or genes.gtf)
     """
     input:
-        # all chromosome fasta files (expanded at runtime)
-        genome_files=lambda wildcards: sorted(__import__('glob').glob(config["generate_variants"]["reference_genome_wildcard"].replace("{chr}", "*"))),
+        # Only karyotype chromosomes to avoid mismatches with annotation
+        genome_files=[
+            config["generate_variants"]["reference_genome_wildcard"].format(chr=chr_)
+            for chr_ in config["chromosomes"]["karyotype"]
+        ],
         annotation = lambda wildcards: (
             config["gene_annotation"].get("gff") if config["gene_annotation"].get("source") == "gff"
             else config["gene_annotation"].get("gtf") if config["gene_annotation"].get("source") == "gtf"
