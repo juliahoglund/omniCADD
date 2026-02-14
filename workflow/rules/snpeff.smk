@@ -124,20 +124,29 @@ rule snpeff_validate_prep:
             config["annotation"]["snpeff"]["database"]["name"],
             "prep_validated.flag"
         )
+    params:
+        allow_empty = config["annotation"]["snpeff"]["build"].get("allow_empty", False)
     shell:
         """
         set -euo pipefail
         # Count feature lines (exclude comments, require at least 9 columns as GFF3)
         FEAT_COUNT=$(awk 'BEGIN{{FS="\t"}} !/^#/ && NF>=9 {{c++}} END{{print c+0}}' {input.anno})
         if [ "$FEAT_COUNT" -eq 0 ]; then
-            echo "ERROR: Prepared genes.gff has zero feature lines: {input.anno}" >&2
-            echo "Genome contigs (first 10):" >&2
-            grep '^>' {input.genome} | sed 's/>//' | awk '{{print $1}}' | head -n 10 >&2 || true
-            echo "Annotation contigs (first 10):" >&2
-            awk 'BEGIN{{FS="\t"}} !/^#/ {{print $1}}' {input.anno} | head -n 10 >&2 || true
-            echo "Hint: Augustus may have produced no predictions for the test genome." >&2
-            echo "      Consider switching gene_annotation.source to 'gff' with a pseudo/real GFF for testing." >&2
-            exit 1
+            if [ "{params.allow_empty}" = "True" ] || [ "{params.allow_empty}" = "true" ]; then
+                echo "WARN: genes.gff has zero features; proceeding due to allow_empty" >&2
+                echo "Genome contigs (first 10):" >&2
+                grep '^>' {input.genome} | sed 's/>//' | awk '{{print $1}}' | head -n 10 >&2 || true
+                echo "Annotation appears empty; SNPEff will annotate as intergenic." >&2
+            else
+                echo "ERROR: Prepared genes.gff has zero feature lines: {input.anno}" >&2
+                echo "Genome contigs (first 10):" >&2
+                grep '^>' {input.genome} | sed 's/>//' | awk '{{print $1}}' | head -n 10 >&2 || true
+                echo "Annotation contigs (first 10):" >&2
+                awk 'BEGIN{{FS="\t"}} !/^#/ {{print $1}}' {input.anno} | head -n 10 >&2 || true
+                echo "Hint: Augustus may have produced no predictions for the test genome." >&2
+                echo "      Consider switching gene_annotation.source to 'gff' with a pseudo/real GFF for testing." >&2
+                exit 1
+            fi
         fi
 
         # Extract contig names from genome and annotation
