@@ -75,18 +75,30 @@ rule snpeff_prepare_genome:
             cp {input.annotation} {output.anno_out}
         fi
 
-        # Normalize chromosome names between genome and annotation (handle chr prefix mismatches)
-        GEN_HAS_CHR=0
-        ANN_HAS_CHR=0
+        # Normalize chromosome names between genome and annotation (handle chr and chr_ prefix mismatches)
+        GEN_STYLE="plain"
+        ANN_STYLE="plain"
         FIRST_GEN=$(grep '^>' {output.genome_out} | sed 's/>//' | awk '{{print $1}}' | head -n1 || true)
-        if [[ "$FIRST_GEN" == chr* ]]; then GEN_HAS_CHR=1; fi
         FIRST_ANN=$(grep -v '^#' {output.anno_out} | awk -F'\t' 'NF>0{{print $1; exit}}' || true)
-        if [[ "$FIRST_ANN" == chr* ]]; then ANN_HAS_CHR=1; fi
+        if [[ "$FIRST_GEN" == chr_* ]]; then GEN_STYLE="chr_"; elif [[ "$FIRST_GEN" == chr* ]]; then GEN_STYLE="chr"; fi
+        if [[ "$FIRST_ANN" == chr_* ]]; then ANN_STYLE="chr_"; elif [[ "$FIRST_ANN" == chr* ]]; then ANN_STYLE="chr"; fi
 
-        if [[ "$GEN_HAS_CHR" -eq 1 && "$ANN_HAS_CHR" -eq 0 ]]; then
-            awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ if (substr($1,1,3)!="chr") $1="chr"$1; print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
-        elif [[ "$GEN_HAS_CHR" -eq 0 && "$ANN_HAS_CHR" -eq 1 ]]; then
-            awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr/, "", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+        if [[ "$GEN_STYLE" != "$ANN_STYLE" ]]; then
+            if [[ "$GEN_STYLE" == "chr" && "$ANN_STYLE" == "plain" ]]; then
+                awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ if (substr($1,1,3)!="chr") $1="chr"$1; print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            elif [[ "$GEN_STYLE" == "chr_" && "$ANN_STYLE" == "plain" ]]; then
+                awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ if (substr($1,1,4)!="chr_") $1="chr_"$1; print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            elif [[ "$GEN_STYLE" == "plain" && "$ANN_STYLE" == "chr" ]]; then
+                awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr/, "", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            elif [[ "$GEN_STYLE" == "plain" && "$ANN_STYLE" == "chr_" ]]; then
+                awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr_/, "", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            elif [[ "$GEN_STYLE" == "chr_" && "$ANN_STYLE" == "chr" ]]; then
+                # Convert chrX to chr_X
+                awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr/, "chr_", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            elif [[ "$GEN_STYLE" == "chr" && "$ANN_STYLE" == "chr_" ]]; then
+                # Convert chr_X to chrX
+                awk 'BEGIN{{OFS="\t"}} /^#/ {{print; next}} {{ sub(/^chr_/, "chr", $1); print }}' {output.anno_out} > {output.anno_out}.tmp && mv {output.anno_out}.tmp {output.anno_out}
+            fi
         fi
 
         # Filter annotation to chromosomes present in genome
@@ -152,12 +164,17 @@ rule snpeff_validate_prep:
         # Extract contig names from genome and annotation
         grep '^>' {input.genome} | sed 's/>//' | awk '{{print $1}}' | sort -u > genome.contigs
         awk 'BEGIN{{FS="\t"}} !/^#/ {{print $1}}' {input.anno} | sort -u > anno.contigs
-        # Compute intersection size
+        # Compute intersection size (skip check if allow_empty)
         INTERSECT=$(comm -12 genome.contigs anno.contigs | wc -l | awk '{{print $1}}')
         if [ "$INTERSECT" -eq 0 ]; then
-            echo "ERROR: No overlapping contig names between genome ({input.genome}) and annotation ({input.anno})." >&2
-            echo "Hint: chr-prefix normalization may have failed; inspect genome.contigs and anno.contigs." >&2
-            exit 2
+            if [ "{params.allow_empty}" = "True" ] || [ "{params.allow_empty}" = "true" ]; then
+                echo "WARN: No overlapping contigs; proceeding due to allow_empty" >&2
+            else
+                echo "ERROR: No overlapping contig names between genome ({input.genome}) and annotation ({input.anno})." >&2
+                echo "Hint: chr-prefix normalization may have failed; inspect genome.contigs and anno.contigs." >&2
+                rm -f genome.contigs anno.contigs || true
+                exit 2
+            fi
         fi
         rm -f genome.contigs anno.contigs || true
         touch {output.flag}
