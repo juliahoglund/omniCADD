@@ -130,11 +130,12 @@ rule snpeff_extract_normalized_chr:
         """
         set -euo pipefail
         mkdir -p $(dirname {output.chr_fa})
-        # Extract this chromosome from combined genome
+        # Extract this chromosome and rename header to match VCF (chr prefix, no underscore)
         awk -v chr="{wildcards.chr}" '
             /^>/ {{
+                # Match plain number, chr prefix, or chr_ prefix
                 if ($1 == ">" chr || $1 == ">chr" chr || $1 == ">chr_" chr) {{
-                    print; keep=1
+                    print ">chr" chr; keep=1
                 }} else {{
                     keep=0
                 }}
