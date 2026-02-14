@@ -56,7 +56,7 @@ rule gen_derived:
 		"results/derived_variants/raw/chr{chr}.vcf",
 	shell:
 		'''
-		if [ `wc -l file.txt | awk '{print $1}'` -ge "3" ]
+		if [ `wc -l {input.reference} | awk '{{print $1}}'` -ge "3" ]
 		then
 			echo "Formatting multiline fasta to single line fasta"
 			# this one needs a failsafe if genome is already a oneliner!!!!!
