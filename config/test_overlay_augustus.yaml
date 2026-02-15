@@ -12,11 +12,11 @@ generate_variants:
   reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/hoglu001/omniCADD/genomeBoar/Wild_Boar_chr{chr}.fa"
 
 gene_annotation:
-  # For testing SNPEff end-to-end, use a small pseudo GFF
-  source: "gff"
-  gff: "resources/testdata/sample_genes_chr2_chr18.gff3"
-  predict_genes: false
-  # Keep Augustus settings here for later switch-back
+  # Switch to Augustus for real gene predictions
+  source: "augustus"
+  predict_genes: true
+  # Test GFF for SNPEff end-to-end testing (kept for reference)
+  # gff: "resources/testdata/sample_genes_chr2_chr18.gff3"
   augustus:
     species: "human"
     hints: null
