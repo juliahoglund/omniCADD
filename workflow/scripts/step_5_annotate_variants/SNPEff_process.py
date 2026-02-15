@@ -682,10 +682,31 @@ def extract_extra(output_dict, vepfields, fVExtra):
 ############### MAIN SCRIPT ##############
 ##########################################
 
+# Quick check: if VCF has no variants, write an empty TSV and exit cleanly
+def vcf_has_variants(vcf_file: str) -> bool:
+    try:
+        with open_file(vcf_file, "r") as infile:
+            for line in infile:
+                if not line.startswith("#") and line.strip():
+                    return True
+        return False
+    except Exception as e:
+        print(f"Warning: Could not read VCF to check variants: {e}")
+        return False
+
 # Open the reference genome (FASTA file).
 ref_fasta = pysam.FastaFile(args.reference)
 # Load the Grantham scores
 grantham_scores = read_grantham(args.grantham)
+
+# If the VCF is empty, emit an empty TSV with header and exit gracefully
+if not vcf_has_variants(args.input):
+    print("VCF has no variants; writing empty TSV and exiting.")
+    input_compression = detect_compression_type(args.input)
+    with open_output_file(args.output, "w", input_compression) as outfile:
+        writer = csv.DictWriter(outfile, fieldnames=ELIST, delimiter="\t")
+        writer.writeheader()
+    sys.exit(0)
 
 # Validate chromosome naming consistency between VCF and reference FASTA
 if not validate_chromosome_naming(args.input, ref_fasta):
