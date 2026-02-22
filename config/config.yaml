@@ -1,112 +1,282 @@
-##### GLOBAL SETTINGS #####
+#####################################
+### ENHANCED omniCADD CONFIGURATION ###
+#####################################
+# This configuration supports both standard (well-annotated) and 
+# limited (poorly-annotated) species workflows
+
+###################
+### DATA TIER #####
+###################
+# Quick preset configurations for common scenarios
+data_tier: "standard"  # Options: "standard", "limited", "custom"
+# - standard: Well-annotated species (human, mouse, domestic pig)
+# - limited: Poorly annotated species (wild boar, non-model organisms)
+# - custom: Manual configuration (ignores tier presets)
+
+###################
+### SPECIES INFO ##
+###################
 species_name: "sus_scrofa"
-genome_version: "Sus_scrofa11.1"
+genome_version: "Sscrofa11.1"
 
-##### PATHS #####
-paths:
-  resources: "resources/"
-  reference_genome: "resources/genome/"
-  alignments: "resources/alignment/"
-  population_vcf: "resources/pop-level-VCF/"
-  annotations: "resources/"
-
-##### CHROMOSOME SETS #####
 chromosomes:
   autosomes: [ '18' ]
   karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X']
   train: [ '1', '2', '3', '4', '5' ]
   score: [ '1', '2', '3', '4', '5' ]
+  
+  # Chromosome naming and standardization
+  naming:
+    convention: "numeric"  # Options: "numeric" (1,2,3), "chr" (chr1,chr2), "custom"
+    include_scaffolds: false
+    standardize:
+      enabled: true  # Run standardization preprocessing
+      patterns:  # Applied in order
+        - from: "chr_"
+          to: ""
+        - from: "_pilon"
+          to: ""
+        - from: "chromosome_"
+          to: ""
 
-##### ALIGNMENT SETTINGS #####
-alignment:
-  path: 'resources/alignment/'
-  type: 'maf.gz'
-  clean_maf: 'True'
-  ancestral_label: "Ancestor_Pig_Cow" 
-  filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
-    # all species needed / wanted for gerp computation need to be included here, as maf_order removes everything not in this list
-    # Full species list: balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,felis_catus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,mus_spretus,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries_rambouillet,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris,sus_scrofa
-  exclude_patterns: [ "scaffold", "epo.Y" ] 
-  name_species_interest: "sus_scrofa"
-  chrom_prefix: "chr" # prefix of chromosome in sequence label
+#######################
+### PREPROCESSING #####
+#######################
+preprocessing:
+  # Reference genome preparation
+  reference_genome:
+    needs_formatting: false  # Linearize multi-line FASTA to single-line
+    needs_filtering: false   # Remove scaffolds based on chromosome list
+    needs_indexing: true     # Create FAI index
+    
+  # Population VCF preparation
+  population_vcf:
+    needs_processing: false
+    chromosome_prefix: "chr"  # Expected prefix in VCF
 
-##### ANCESTOR INFERENCE #####
+########################
+### GENE ANNOTATION ####
+########################
+gene_annotation:
+  # Primary source of gene annotation
+  source: "gff"  # Options: "gff", "gtf", "augustus", "none"
+  
+  # Existing annotation files (if source is gff/gtf)
+  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
+  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
+  
+  # Gene prediction (if source is augustus)
+  predict_genes: false
+  augustus:
+    enabled: false
+    species_model: "human"  # Augustus training set (human, mouse, fly, etc.)
+    species: "human"        # Normalized key used by rules
+    output_format: "gff3"
+    parameters: "--protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on"
+    
+  # Format conversion
+  convert_gff_to_gtf: false  # Auto-convert if GTF needed but only GFF available
+
+###########################
+### ANCESTRAL SEQUENCE ####
+###########################
+ancestral_sequence:
+  source: "alignment"  # Options: "alignment", "reconstruct", "outgroup"
+  
+  # Alignment-based extraction (standard method)
+  alignment:
+    enabled: true
+    alignments:
+      43_mammals.epo:
+        path: 'resources/alignment/'
+        type: 'maf.gz'
+        clean_maf: true
+        ancestral_label: "Ancestor_Pig_Cow"
+        filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+        exclude_patterns: [ "scaffold", "epo.Y" ]
+        name_species_interest: "sus_scrofa"
+        chrom_prefix: "chr"
+        
+  # Reconstruction from reference (for species without alignments)
+  reconstruct:
+    enabled: false
+    method: "align_to_reference"  # Align ancestral sequence to reference genome
+    input_fasta: "resources/ancestral/Ancestor.fasta"
+    tools:
+      bbmap:
+        read_length: 150
+        quality: 40
+      bwa:
+        threads: 32
+        scoring: "-B 3 -O 4,4"
+      samtools:
+        min_quality: 2
+      htsbox:
+        min_quality: 30
+        min_base_quality: 30
+        min_length: 35
+    format_gaps: true  # Convert gaps to N (or vice versa)
+    
+  # Outgroup-based (use closely related species)
+  outgroup:
+    enabled: false
+    species: "bos_taurus"
+
 mark_ancestor:
+  ancestral_alignment: "43_mammals.epo"
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
   reference_genome: 'resources/genome/Sus_scrofa_ref.fa'
 
-##### VARIANT GENERATION #####
+###########################
+### VARIANT GENERATION ####
+###########################
 generate_variants:
   reference_genome_wildcard: "resources/genome/Sus_scrofa_ref_{chr}.fa"
-  population_vcf: "resources/pop-level-VCF/chr{chr}.vcf"
+  population_vcf: "resources/population/chr{chr}.vcf.gz"
+  
   derive:
     frequency_threshold: 0.9
+    
   simulate:
     overestimation_factor: 5
 
-##### ANNOTATION SETTINGS #####
+############################
+### VARIANT ANNOTATION #####
+############################
 annotation:
-  gerp:
-    n_chunks: '30'
-    tree: 'resources/tree_43_mammals.nwk'
-  phast:
-    tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus)(ovis_aries_rambouillet))'
-    tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
-    train_precision: "HIGH"
-    phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
-    phyloP_params: "--method=LRT --mode=CONACC"
+  # Primary variant annotator
+  variant_annotator: "vep"  # Options: "vep", "snpeff", "both"
+  
+  ################
+  ### VEP ########
+  ################
   vep:
+    enabled: true
     cache:
-      directory: '$VEP_CACHE' # Environment variable or path like: resources/vep
-      should_install: False # Set to True to auto-install VEP cache
-      install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1"
+      directory: '$VEP_CACHE'
+      should_install: false
+      install_params: "--CACHE_VERSION 111 -s sus_scrofa -y Sscrofa11.1"
+    options: "--everything --fork 2"
+    
+  ##################
+  ### SNPEff #######
+  ##################
+  snpeff:
+    enabled: false
+    database:
+      exists: false  # If false, will build database
+      name: "sus_scrofa_custom"
+      path: "resources/snpEff/data/"
+    build:
+      annotation_format: "gff3"  # or "gtf"
+      genome_fasta: "resources/genome/Sus_scrofa_ref.fa"
+      config_file: "resources/snpEff/snpEff.config"
+      # Automatically add entry to config: genome_name.genome : Species Name
+    run:
+      options: "-v -stats"
+      output_format: "vcf"
+      
+  ##################
+  ### SIFT #########
+  ##################
+  sift:
+    enabled: false
+    database:
+      exists: false
+      parent_dir: "resources/SIFT4G/"
+    
+  ########################
+  ### CONSERVATION #######
+  ########################
+  conservation:
+    # Enable/disable specific conservation scores
+    gerp:
+      enabled: true
+      alignment: '43_mammals.epo'
+      n_chunks: 30
+      tree: 'resources/tree_43_mammals.nwk'
+      
+    phast:
+      enabled: true
+      phastCons: true
+      phyloP: true
+      tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))'
+      tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
+      train_precision: "HIGH"
+      phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
+      phyloP_params: "--method=LRT --mode=CONACC"
+      
+  #########################
+  ### GRANTHAM MATRIX #####
+  #########################
+  grantham_matrix: "resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"
 
 annotation_config:
   processing: "config/annot_processing_config.tsv"
-  interactions: "config/annot_combinations_config.tsv"
+  interactions: "config/annot_combination_config.tsv"
 
-##### SUMMARY REPORTS #####
-
+########################
+### SUMMARY REPORT #####
+########################
 stats_report:
-  annotation: 'True'
-  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
-  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
-  is_gtf: 'False' # Set to True if using GTF instead of GFF
+  enabled: true
+  annotation: true
   prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
-  tree: 'resources/tree_43_mammals.nwk' # Consistent with annotation.gerp.tree
-  ingroup: 'sus scrofa' # Must be lowercase
+  tree: 'resources/tree_43_mammals.nwk'
+  ingroup: 'sus scrofa'
   outgroup: 'bos taurus'
 
-##### MODEL TRAINING #####
+######################
+### MODEL TRAINING ###
+######################
 model:
   n_folds: 10
   test_params:
     c: [0.1, 1.0, 10.0]
-    max_iter: [100, 200]
+    max_iter: [100]
   final_params:
     c: 10.0
     max_iter: 100
   column_subsets:
     All: "SPECIAL KEY, uses all columns"
 
-##### COMPUTATIONAL RESOURCES #####
+#########################
+### PARALLELIZATION #####
+#########################
 parallelization:
   whole_genome_positions_per_file: 500000
-  alignment_positions_per_file: 500000
+  alignment_chunks: 30
 
-memory:
-  dataset_mb: 32000      # Base memory for dataset operations
-  scoring_mb: 64000      # Base memory for scoring operations
-  annotation_mb: 16000   # Base memory for annotation operations
+dataset_memory_mb: 60000
 
-
-########################
-### GENE ANNOTATION ####
-########################
-# Default Augustus species model; overlays may switch source to 'augustus'
-gene_annotation:
-  augustus:
-    species: "human"
-
+###########################
+### WORKFLOW PROFILES #####
+###########################
+# These override individual settings when data_tier is set
+profiles:
+  standard:
+    gene_annotation:
+      source: "gff"
+      predict_genes: false
+    annotation:
+      variant_annotator: "vep"
+    ancestral_sequence:
+      source: "alignment"
+    preprocessing:
+      reference_genome:
+        needs_formatting: false
+        
+  limited:
+    gene_annotation:
+      source: "augustus"
+      predict_genes: true
+    annotation:
+      variant_annotator: "snpeff"
+    ancestral_sequence:
+      source: "reconstruct"
+    preprocessing:
+      reference_genome:
+        needs_formatting: true
+        needs_filtering: true

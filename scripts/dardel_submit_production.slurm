@@ -54,7 +54,7 @@ $CONTAINER_CMD exec docker://juliahoglund/augustus:bioconda-3x bash -c '
 
 # Run snakemake with production config
 snakemake -s run_production.smk \
-  --configfile config/config_enhanced.yaml \
+  --configfile config/config.yaml \
   --config-file config/production_augustus_full.yaml \
   --cores 16 \
   --use-singularity \

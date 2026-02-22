@@ -9,8 +9,7 @@ omniCADD_version = "0.1.0"  # Updated for enhanced configuration
 min_version("7.21.0")
 
 ##### Load config #####
-# Try to load enhanced config first, fall back to standard
-configfile: "config/config_enhanced.yaml" if os.path.exists("config/config_enhanced.yaml") else "config/config.yaml"
+configfile: "config/config.yaml"
 
 ##### setup report #####
 report: "report/workflow.rst"
