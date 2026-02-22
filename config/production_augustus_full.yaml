@@ -11,7 +11,7 @@ chromosomes:
 # Reference genome paths
 generate_variants:
   reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/hoglu001/omniCADD/genomeBoar/Wild_Boar_chr{chr}.fa"
-  population_vcf: "resources/population/chr{chr}.vcf.gz"
+  population_vcf: "resources/population/WildBoar_Chr{chr}.vcf.gz"
   derive:
     frequency_threshold: 0.9
 
