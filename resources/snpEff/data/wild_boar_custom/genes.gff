@@ -1,4 +1,0 @@
-##gff-version 3
-chr2	source	gene	1	10	.	+	.	ID=gene1;Name=Gene1
-chr2	source	mRNA	1	10	.	+	.	ID=mRNA1;Parent=gene1
-chr2	source	CDS	1	10	.	+	0	ID=cds1;Parent=mRNA1
