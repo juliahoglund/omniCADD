@@ -1,0 +1,59 @@
+# Production configuration - Full chromosome set with Augustus gene prediction
+
+data_tier: "custom"
+
+chromosomes:
+  # All autosomes + X chromosome
+  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X' ]
+  train: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X' ]
+  score: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X' ]
+
+# Reference genome paths
+generate_variants:
+  reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/hoglu001/omniCADD/genomeBoar/Wild_Boar_chr{chr}.fa"
+  population_vcf: "resources/population/chr{chr}.vcf.gz"
+  derive:
+    frequency_threshold: 0.9
+
+# Gene annotation with Augustus
+gene_annotation:
+  source: "augustus"
+  predict_genes: true
+  augustus:
+    species: "human"  # Best mammalian model available
+    hints: null
+    options: "--strand=both --UTR=on --softmasking=on --gff3=on"
+
+# Container images
+containers:
+  augustus: "docker://juliahoglund/augustus:bioconda-3x"
+  snpeff: "docker://juliahoglund/augustus:bioconda-3x"
+
+# SNPEff annotation
+annotation:
+  variant_annotator: "snpeff"
+  snpeff:
+    enabled: true
+    database:
+      name: "wild_boar_full"
+      path: "results/snpeff/data/"
+    build:
+      config_file: ".tests/snpEff/snpEff.config"
+      annotation_format: "gff3"
+      allow_empty: false  # Strict validation for production
+      options: "-noCheckCds -noCheckProtein"
+    run:
+      options: "-v -noStats"
+  grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
+
+# Ancestral sequences
+ancestral_sequence:
+  source: "none"
+
+# Use merged karyotype FASTA for steps that require a single genome file
+mark_ancestor:
+  name_ancestor: 'Ancestor_Pig_Cow'
+  reference_genome: "results/genome/merged_genome.fa"
+
+stats_report:
+  enabled: false
