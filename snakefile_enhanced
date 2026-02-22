@@ -1,0 +1,162 @@
+from snakemake.utils import min_version
+from glob import glob
+import os
+
+##### pipeline version ######
+omniCADD_version = "0.1.0"  # Updated for enhanced configuration
+
+##### set minimum snakemake version #####
+min_version("7.21.0")
+
+##### Load config #####
+# Try to load enhanced config first, fall back to standard
+configfile: "config/config_enhanced.yaml" if os.path.exists("config/config_enhanced.yaml") else "config/config.yaml"
+
+##### setup report #####
+report: "report/workflow.rst"
+
+##### PARAMS #####
+REFERENCE = "resources/genome/"
+SCRIPTS_1 = "../scripts/step_1_extract_ancestor/"
+SCRIPTS_2 = "../scripts/step_2_derive_variants/"
+SCRIPTS_3 = "../scripts/step_3_simulate_variants/"
+SCRIPTS_4 = "../scripts/step_4_summary_report/"
+SCRIPTS_5 = "../scripts/step_5_annotate_variants/"
+SCRIPTS_6 = "../scripts/step_6_combine_annotations/"
+SCRIPTS_7 = "../scripts/step_7_train_test_model/"
+SCRIPTS_8 = "../scripts/step_8_score_variants/"
+
+SCRIPTS_SIFT = "../scripts/step_5_annotate_variants/sift/"
+SCRIPTS_FASTA2BED = "../scripts/fasta2bed.py"
+SCRIPTS_EMF2MAF = "../scripts/emftomaf.pl"
+SCRIPTS_HELPER = "../scripts/data_helper.py"
+
+##### Load configuration logic and helper functions #####
+include: "workflow/rules/config_logic.smk"
+
+##### Load common rules #####
+include: "workflow/rules/common.smk"
+
+##### Conditionally load preprocessing rules #####
+if should_include_preprocessing():
+    include: "workflow/rules/preprocessing.smk"
+    print("Including preprocessing rules")
+
+##### Conditionally load gene prediction rules #####
+if should_include_gene_prediction():
+    include: "workflow/rules/gene_prediction.smk"
+    print("Including gene prediction rules")
+
+##### Load core workflow modules #####
+include: "workflow/rules/1_extract_ancestor.smk"
+
+# Conditionally load ancestral reconstruction
+if should_include_ancestral_reconstruction():
+    print("Using ancestral reconstruction workflow")
+    # Reconstruction rules are in preprocessing.smk
+
+include: "workflow/rules/2_derive_variants.smk"
+include: "workflow/rules/3_simulate_variants.smk"
+include: "workflow/rules/4_summary_report.smk"
+
+##### Conditionally load annotation methods #####
+if should_include_vep():
+    print("Including VEP annotation rules")
+    # VEP rules are in 5_annotate_vars.smk
+
+if should_include_snpeff():
+    include: "workflow/rules/snpeff.smk"
+    print("Including SNPEff annotation rules")
+
+include: "workflow/rules/5_annotate_vars.smk"
+include: "workflow/rules/6_combine_annotations.smk"
+include: "workflow/rules/7_train_test_model.smk"
+include: "workflow/rules/8_score_variants.smk"
+
+##### target rules #####
+rule all:
+    input:
+        # Step 1: Ancestral sequence
+        expand("results/ancestral_seq/{ancestor}/chr{chr}.fa",
+               ancestor = config["mark_ancestor"]["name_ancestor"],
+               chr = config["chromosomes"]["karyotype"]) if config.get("ancestral_sequence", {}).get("source") == "alignment" else [],
+        
+        # Step 2: Derived variants
+        expand("results/derived_variants/singletons/chr{chr}.vcf",
+               chr=config["chromosomes"]["karyotype"]),
+        
+        # Step 3: Simulated variants
+        expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf",
+               chr=config["chromosomes"]["karyotype"]),
+        
+        # Step 4: Summary report
+        "results/visualisation/raw_summary.log",
+        "results/visualisation/filtered_summary.log",
+        "results/visualisation/parameter_summary.log",
+        
+        # Step 5: Annotations (conditional based on annotator choice)
+        expand("results/annotation/{annotator}/{type}/chr{chr}_{annotator}.tsv",
+               annotator = [config["annotation"]["variant_annotator"]] if config["annotation"]["variant_annotator"] in ["vep", "snpeff"] else ["vep", "snpeff"],
+               chr = config["chromosomes"]["karyotype"],
+               type = ["simulated", "derived"]) if config.get("annotation", {}).get("variant_annotator") else [],
+        
+        # Conservation scores (conditional)
+        expand("results/annotation/phast/phyloP/chr{chr}/chr{chr}-{part}.phylo.bed",
+               chr=config["chromosomes"]["karyotype"],
+               part=range(1, config["annotation"]["conservation"]["phast"].get("n_chunks", 30) + 1)) if "phyloP" in get_enabled_conservation_methods() else [],
+        
+        expand("results/annotation/phast/phastCons/chr{chr}/chr{chr}-{part}.phast.bed",
+               chr=config["chromosomes"]["karyotype"],
+               part=range(1, config["annotation"]["conservation"]["phast"].get("n_chunks", 30) + 1)) if "phastCons" in get_enabled_conservation_methods() else [],
+        
+        expand("results/annotation/gerp/chr{chr}/chr{chr}-{part}.rates.parsed",
+               chr=config["chromosomes"]["karyotype"],
+               part=range(1, config["annotation"]["conservation"]["gerp"].get("n_chunks", 30) + 1)) if "gerp" in get_enabled_conservation_methods() else [],
+        
+        # Step 6: Combined annotations
+        expand("results/dataset/{type}/chr{chr}_annotated.tsv",
+               type = ['simulated', 'derived'],
+               chr = config['chromosomes']['karyotype']),
+        
+        # Step 7: Model training
+        "results/model/All/full.mod.pickle",
+        "results/model/All/full.scaler.pickle",
+        "results/model/All/full.mod.weights.csv",
+        
+        # Step 8: Whole genome scores
+        expand("results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+               chr = config['chromosomes']['score']),
+        
+        expand("results/whole_genome_scores/phred/chr{chr}.tsv",
+               chr=config["chromosomes"]["score"]),
+
+
+##### Workflow-specific target rules #####
+
+rule preprocessing_only:
+    """Run only preprocessing steps"""
+    input:
+        expand("resources/genome/Sus_scrofa_ref_chr{chr}.fa",
+               chr=config["chromosomes"]["karyotype"]) if should_include_preprocessing() else [],
+        "results/preprocessing_validation/validation_report.txt" if should_include_preprocessing() else []
+
+rule annotation_only:
+    """Run only annotation steps"""
+    input:
+        expand("results/annotation/{annotator}/{type}/chr{chr}_{annotator}.tsv",
+               annotator = config["annotation"]["variant_annotator"],
+               chr = config["chromosomes"]["karyotype"],
+               type = ["simulated", "derived"])
+
+rule conservation_only:
+    """Run only conservation annotation"""
+    input:
+        expand("results/annotation/constraint/constraint_chr{chr}.bed",
+               chr=config["chromosomes"]["karyotype"])
+
+rule model_only:
+    """Train model without scoring"""
+    input:
+        "results/model/All/full.mod.pickle",
+        "results/model/All/full.scaler.pickle",
+        "results/model/All/full.mod.weights.csv"

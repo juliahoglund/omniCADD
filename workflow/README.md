@@ -11,3 +11,7 @@ Step 5: Annotate variants
 Step 6: Combine annotations
 Step 7: Train and test prediction model
 Step 8: Generate and score variants
+
+
+##!!NOTE!!
+the snakerules have not yet been revised to work for alignment free

@@ -1,0 +1,127 @@
+# Configuration Profile: Limited Data Species
+# For poorly-annotated non-model organisms (wild boar, rare species, etc.)
+# Requires gene prediction, custom database creation, and ancestral reconstruction
+
+data_tier: "custom"
+
+species_name: "sus_scrofa_wild"
+genome_version: "Wild_Boar_Assembly"
+
+chromosomes:
+  karyotype: [ '2' ]
+  train: [ '2' ]
+  score: [ '2' ]
+  naming:
+    convention: "numeric"
+    include_scaffolds: false
+    standardize:
+      enabled: true
+      patterns:
+        - from: "chr_"
+          to: ""
+        - from: "_pilon"
+          to: ""
+
+preprocessing:
+  reference_genome:
+    needs_formatting: true   # Convert to single-line FASTA
+    needs_filtering: true    # Remove scaffolds
+    needs_indexing: true
+
+gene_annotation:
+  source: "gff"  # Use existing minimal annotation to avoid local Augustus dependency
+  predict_genes: false
+  gff: "resources/annotation/minimal_wild_boar.gff"
+  augustus:
+    enabled: false
+
+ancestral_sequence:
+  source: "reconstruct"  # No MAF alignment available
+  reconstruct:
+    enabled: true
+    method: "align_to_reference"
+    input_fasta: "resources/PigAncestralData/ancestral_seq/Ancestor.fasta"
+    tools:
+      bbmap:
+        read_length: 150
+        quality: 40
+      bwa:
+        threads: 32
+        scoring: "-B 3 -O 4,4"
+      samtools:
+        min_quality: 2
+      htsbox:
+        min_quality: 30
+        min_base_quality: 30
+        min_length: 35
+    format_gaps: true
+
+mark_ancestor:
+  reference_genome: 'resources/genome/Wild_Boar_Assembly.fasta'
+
+generate_variants:
+  reference_genome_wildcard: "resources/genome/Wild_Boar_chr{chr}.fa"
+  population_vcf: "boar/frequencies/chr{chr}.frq"
+  derive:
+    frequency_threshold: 0.9
+  simulate:
+    overestimation_factor: 5
+
+annotation:
+  variant_annotator: "snpeff"  # SNPEff more flexible for custom species
+  
+  vep:
+    enabled: false  # No VEP cache available for wild boar
+  
+  snpeff:
+    enabled: true
+    database:
+      exists: false  # Will build custom database
+      name: "wild_boar_custom"
+      path: "resources/snpEff/data/"
+    build:
+      annotation_format: "gff3"
+      genome_fasta: "resources/genome/Wild_Boar_Assembly.fasta"
+      config_file: "resources/snpEff/snpEff.config"
+    run:
+      options: "-v -stats"
+  
+  conservation:
+    gerp:
+      enabled: true
+      n_chunks: 50  # Larger chunks for larger chromosomes
+      tree: 'resources/tree_43_mammals.nwk'
+    phast:
+      enabled: true
+      phastCons: true
+      phyloP: true
+      tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))'
+      tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
+
+  grantham_matrix: "resources/grantham_matrix/grantham_matrix.tsv"
+
+annotation_config:
+  processing: "config/annot_processing_config.tsv"
+  interactions: "config/annot_combination_config.tsv"
+
+stats_report:
+  enabled: true
+  annotation: true
+  prefix: 'results/gene_prediction/'
+  tree: 'resources/tree_43_mammals.nwk'
+  ingroup: 'sus scrofa'
+  outgroup: 'bos taurus'
+
+model:
+  n_folds: 10
+  test_params:
+    c: [0.1, 1.0, 10.0]
+    max_iter: [100, 200]
+  final_params:
+    c: 10.0
+    max_iter: 200
+
+parallelization:
+  whole_genome_positions_per_file: 500000
+
+dataset_memory_mb: 60000

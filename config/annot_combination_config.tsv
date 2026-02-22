@@ -1,0 +1,21 @@
+# Configuration for the processing of annotations by data_preparation.py
+# This file determines what interactions will be created in the dataset
+
+# Explanation by column:
+# Name: Explanation, does not end up in the dataset
+# A_cols: first list of cols to merge, sperated by only a ,
+# B_cols: second list, will be matched A*B, all potential combinations
+
+# Do not edit header:
+Name	A_cols	B_cols
+
+RefA	Ref_A	Alt_C,Alt_G,Alt_T
+RefC	Ref_C	Alt_A,Alt_G,Alt_T
+RefG	Ref_G	Alt_A,Alt_C,Alt_T
+RefT	Ref_T	Alt_A,Alt_C,Alt_G
+
+Amino_Acids	oAA_*,oAA_A,oAA_C,oAA_D,oAA_E,oAA_F,oAA_G,oAA_H,oAA_I,oAA_K,oAA_L,oAA_M,oAA_N,oAA_P,oAA_Q,oAA_R,oAA_S,oAA_T,oAA_V,oAA_W,oAA_Y	nAA_*,nAA_A,nAA_C,nAA_D,nAA_E,nAA_F,nAA_G,nAA_H,nAA_I,nAA_K,nAA_L,nAA_M,nAA_N,nAA_P,nAA_Q,nAA_R,nAA_S,nAA_T,nAA_V,nAA_W,nAA_Y
+
+cons_by_consequence	GERP_NS,GERP_RS,phastCons,phyloP	Consequence_U3,Consequence_U5,Consequence_CS,Consequence_DN,Consequence_I,Consequence_IG,Consequence_NC,Consequence_NS,Consequence_R,Consequence_S,Consequence_SG,Consequence_SL,Consequence_SN,Consequence_UP
+
+pos_by_vep_consequence	cDNApos,CDSpos,protPos,relcDNApos,relCDSpos,relprotPos	Consequence_U3,Consequence_U5,Consequence_CS,Consequence_DN,Consequence_I,Consequence_IG,Consequence_NC,Consequence_NS,Consequence_R,Consequence_S,Consequence_SG,Consequence_SL,Consequence_SN,Consequence_UP

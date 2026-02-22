@@ -1,0 +1,48 @@
+# Local overlay for quick SNPEff + optional Augustus tests
+# Update paths to match your local layout.
+
+data_tier: "custom"
+
+chromosomes:
+  karyotype: [ '2', '12' ]
+  train: [ '2' ]
+  score: [ '12' ]
+
+# Use your local genome directory; assumes files named chr{chr}.fa
+# If your filenames differ, create symlinks or update this pattern.
+generate_variants:
+  reference_genome_wildcard: "genomeBoar/Wild_Boar_chr{chr}.fa"
+
+# Choose how to provide gene annotation
+# Option A: Precomputed GFF
+# gene_annotation:
+#   source: "gff"
+#   predict_genes: false
+#   gff: "./annotationBoar/wild_boar_augustus.gff3"
+
+# Option B: Run Augustus per chromosome and merge (requires augustus installed)
+# This enables the optional gene prediction rules.
+gene_annotation:
+  source: "augustus"
+  predict_genes: true
+  augustus:
+    species: "generic"  # default generic; override to "human" or "sus_scrofa" when suitable models available
+    hints: null              # path to extrinsic hints file if you have one
+    options: "--strand=both --UTR=on --gff3=on"
+
+annotation:
+  variant_annotator: "snpeff"
+  snpeff:
+    enabled: true
+    database:
+      name: "wild_boar_local"
+      path: ".tests/snpEff/data/"
+    build:
+      config_file: ".tests/snpEff/snpEff.config"
+      annotation_format: "gff3"
+    run:
+      options: "-v -noStats"
+  grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
+
+stats_report:
+  enabled: false

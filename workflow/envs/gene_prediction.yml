@@ -1,0 +1,10 @@
+name: gene_prediction
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.10
+  - augustus
+  - gffread
+  - bedtools
+  - samtools

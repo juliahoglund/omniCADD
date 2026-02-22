@@ -81,7 +81,7 @@ stats_report:
 
 ##### MODEL TRAINING #####
 model:
-  n_folds: 5
+  n_folds: 10
   test_params:
     c: [0.1, 1.0, 10.0]
     max_iter: [100, 200]
@@ -100,4 +100,13 @@ memory:
   dataset_mb: 32000      # Base memory for dataset operations
   scoring_mb: 64000      # Base memory for scoring operations
   annotation_mb: 16000   # Base memory for annotation operations
+
+
+########################
+### GENE ANNOTATION ####
+########################
+# Default Augustus species model; overlays may switch source to 'augustus'
+gene_annotation:
+  augustus:
+    species: "human"
 

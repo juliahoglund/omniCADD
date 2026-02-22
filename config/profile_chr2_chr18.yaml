@@ -1,0 +1,72 @@
+# Profile: custom minimal test for chr2 and chr18
+
+data_tier: "custom"
+
+species_name: "sus_scrofa_wild"
+genome_version: "Wild_Boar_Assembly"
+
+chromosomes:
+  karyotype: [ '2', '18' ]
+  train: [ '2' ]
+  score: [ '18' ]
+  naming:
+    convention: "numeric"
+    include_scaffolds: false
+
+preprocessing:
+  reference_genome:
+    needs_formatting: false
+    needs_filtering: false
+    needs_indexing: true
+
+gene_annotation:
+  source: "gff"
+  predict_genes: false
+  gff: "resources/annotation/minimal_wild_boar.gff"
+
+ancestral_sequence:
+  source: "reconstruct"
+  reconstruct:
+    enabled: true
+
+mark_ancestor:
+  reference_genome: 'resources/genome/Wild_Boar_Assembly.fasta'
+
+generate_variants:
+  reference_genome_wildcard: "resources/genome/Wild_Boar_chr{chr}.fa"
+  population_vcf: "boar/frequencies/chr{chr}.frq"
+  derive:
+    frequency_threshold: 0.9
+
+annotation:
+  variant_annotator: "snpeff"
+  snpeff:
+    enabled: true
+    database:
+      exists: false
+      name: "wild_boar_custom"
+      path: "resources/snpEff/data/"
+    build:
+      annotation_format: "gff3"
+      config_file: "resources/snpEff/snpEff.config"
+    run:
+      options: "-v -stats"
+
+  conservation:
+    gerp:
+      enabled: false
+    phast:
+      enabled: false
+
+  grantham_matrix: "resources/grantham_matrix/grantham_matrix.tsv"
+
+stats_report:
+  enabled: false
+
+model:
+  n_folds: 2
+
+parallelization:
+  whole_genome_positions_per_file: 500000
+
+dataset_memory_mb: 60000
