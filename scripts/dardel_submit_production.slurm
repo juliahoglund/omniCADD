@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A snic2022-5-341
+#SBATCH -A naiss2025-5-78
 #SBATCH -J omniCADD_production
 #SBATCH -t 48:00:00
 #SBATCH -p main
