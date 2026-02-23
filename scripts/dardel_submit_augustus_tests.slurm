@@ -107,7 +107,7 @@ if [ -n "${AUG_IMG:-}" ]; then
 fi
 
 # Run multi-chromosome test wrapper (chr2 + chr18)
-snakemake -s run_multi_test.smk \
+snakemake -s workflow/run_multi_test.smk \
   --configfile config/test_overlay_augustus.yaml \
   --profile config/slurm/profile \
   --use-conda \

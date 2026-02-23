@@ -30,7 +30,7 @@ mkdir -p "$CONDA_PKGS_DIRS" || true
 python3 scripts/preflight_check.py --profile config/profile_chr2_chr18.yaml || { echo "Preflight failed"; exit 1; }
 
 # Run Snakemake orchestrator and submit worker jobs via the Slurm profile
-snakemake -s run_multi_test.smk \
+snakemake -s workflow/run_multi_test.smk \
   --configfile config/profile_chr2_chr18.yaml \
   --profile config/slurm/profile \
   --use-conda \

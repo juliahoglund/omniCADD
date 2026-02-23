@@ -29,7 +29,7 @@ mkdir -p "$CONDA_PKGS_DIRS" || true
 python3 scripts/preflight_check.py --profile config/test_overlay.yaml || { echo "Preflight failed"; exit 1; }
 
 # Run with layered configs: base + overlay
-snakemake -s run_multi_test.smk \
+snakemake -s workflow/run_multi_test.smk \
   --configfile config/test_overlay.yaml \
   --profile config/slurm/profile \
   --use-conda \

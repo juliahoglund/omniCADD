@@ -20,7 +20,7 @@ module load conda || true
 python3 scripts/preflight_check.py --profile config/profile_limited_data.yaml || { echo "Preflight failed"; exit 1; }
 
 # Run Snakemake orchestrator inside this Slurm job and submit worker jobs via the Slurm profile
-snakemake -s run_chr2_test.smk \
+snakemake -s workflow/run_chr2_test.smk \
   --configfile config/profile_limited_data.yaml \
   --profile config/slurm/profile \
   --use-conda \
