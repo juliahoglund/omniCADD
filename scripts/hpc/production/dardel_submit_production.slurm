@@ -15,8 +15,10 @@ set -euo pipefail
 
 # Load modules
 ml PDC bioinfo-tools
-ml snakemake/7.25.0 || true
-ml apptainer/latest || true
+ml snakemake/7.25.0
+
+# Singularity/Apptainer is usually available by default on Dardel
+# Check which container runtime is available
 
 # Select runtime binary
 if command -v singularity &> /dev/null; then
