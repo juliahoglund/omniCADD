@@ -51,6 +51,12 @@ ancestral_sequence:
   source: "alignment"  # Use pre-computed ancestral sequences
   skip_extraction: true  # Don't run alignment-based extraction, sequences already exist
 
+# Minimal alignment config (needed for chromosome prefix in vcftools)
+alignment:
+  43_mammals.epo:
+    chrom_prefix: "chr"  # Chromosome prefix in VCF files
+    name_species_interest: "sus_scrofa"
+
 # Use merged karyotype FASTA for steps that require a single genome file
 mark_ancestor:
   name_ancestor: 'Ancestor_Pig_Cow'
