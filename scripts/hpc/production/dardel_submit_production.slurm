@@ -59,7 +59,7 @@ $CONTAINER_CMD exec docker://juliahoglund/augustus:bioconda-3x bash -c '
 # Run snakemake with production config
 snakemake -s workflow/run_production.smk \
   --configfile config/config.yaml \
-  --config-file config/production_augustus_full.yaml \
+  --configfile config/production_augustus_full.yaml \
   --cores 16 \
   --use-singularity \
   --singularity-args "--bind /cfs,/tmp" \
