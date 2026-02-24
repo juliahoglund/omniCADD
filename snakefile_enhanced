@@ -47,7 +47,12 @@ if should_include_gene_prediction():
     print("Including gene prediction rules")
 
 ##### Load core workflow modules #####
-include: "workflow/rules/1_extract_ancestor.smk"
+# Only include alignment-based ancestor extraction if not using pre-computed sequences
+if not config.get("ancestral_sequence", {}).get("skip_extraction", False):
+    include: "workflow/rules/1_extract_ancestor.smk"
+    print("Including alignment-based ancestor extraction rules")
+else:
+    print("Skipping ancestor extraction - using pre-computed ancestral sequences")
 
 # Conditionally load ancestral reconstruction
 if should_include_ancestral_reconstruction():

@@ -46,9 +46,10 @@ annotation:
       options: "-v -noStats"
   grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
 
-# Ancestral sequences
+# Ancestral sequences (pre-computed, skip alignment extraction)
 ancestral_sequence:
-  source: "none"
+  source: "alignment"  # Use pre-computed ancestral sequences
+  skip_extraction: true  # Don't run alignment-based extraction, sequences already exist
 
 # Use merged karyotype FASTA for steps that require a single genome file
 mark_ancestor:
