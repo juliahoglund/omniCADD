@@ -1,4 +1,4 @@
-include: "snakefile_enhanced"
+include: "../snakefile_enhanced"
 
 # Targets for local test chromosomes (2, 12)
 rule target_chr2:

@@ -1,4 +1,4 @@
-include: "snakefile_enhanced"
+include: "../snakefile_enhanced"
 
 # Targets for two chromosomes
 rule target_chr2:

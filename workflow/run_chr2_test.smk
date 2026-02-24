@@ -1,4 +1,4 @@
-include: "snakefile_enhanced"
+include: "../snakefile_enhanced"
 
 rule target_chr2:
     input:

@@ -1,4 +1,4 @@
-include: "snakefile_enhanced"
+include: "../snakefile_enhanced"
 
 # Production target: all chromosomes with Augustus + SNPEff
 rule target_all_chromosomes:
