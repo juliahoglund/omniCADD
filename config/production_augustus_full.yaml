@@ -53,9 +53,8 @@ ancestral_sequence:
 
 # Minimal alignment config (needed for chromosome prefix in vcftools)
 alignment:
-  43_mammals.epo:
-    chrom_prefix: "chr"  # Chromosome prefix in VCF files
-    name_species_interest: "sus_scrofa"
+  chrom_prefix: "chr"  # Chromosome prefix in VCF files
+  name_species_interest: "sus_scrofa"
 
 # Use merged karyotype FASTA for steps that require a single genome file
 mark_ancestor:
