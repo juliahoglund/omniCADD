@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A naiss2025-5-78
 #SBATCH -J omniCADD_production
-#SBATCH -t 48:00:00
+#SBATCH -t 24:00:00
 #SBATCH -p main
 #SBATCH -N 1
 #SBATCH -n 16
