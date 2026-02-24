@@ -8,6 +8,8 @@
 #SBATCH --mem=64G
 #SBATCH -o slurm-%j.out
 #SBATCH -e slurm-%j.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=julia.hoglund@su.se
 
 # Production run: Full chromosome set with Augustus predictions
 
@@ -16,8 +18,8 @@ set -euo pipefail
 # Load modules
 ml PDC bioinfo-tools
 ml snakemake/7.25.0
+ml apptainer
 
-# Singularity/Apptainer is usually available by default on Dardel
 # Check which container runtime is available
 
 # Select runtime binary
