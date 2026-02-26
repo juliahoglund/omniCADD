@@ -56,6 +56,11 @@ alignment:
   chrom_prefix: "chr"  # Chromosome prefix in VCF files
   name_species_interest: "sus_scrofa"
 
+# Parallelization settings for alignment splitting
+parallelization:
+  alignment_positions_per_file: 500000
+  alignment_chunks: 30
+
 # Use merged karyotype FASTA for steps that require a single genome file
 mark_ancestor:
   name_ancestor: 'Ancestor_Pig_Cow'
