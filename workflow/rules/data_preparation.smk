@@ -8,7 +8,7 @@ rule derive_impute_means:
             chr=config["chromosomes"]["karyotype"],
         ),
         processing=config["annotation_config"]["processing"],
-        script=workflow.source_path(f"workflow/scripts/combine_annotations/derive_means.py"),
+        script=workflow.source_path(f"scripts/combine_annotations/derive_means.py"),
     log:
         "results/logs/combine_annotations/derive_impute_means.log",
     conda:
@@ -31,7 +31,7 @@ rule column_analysis:
             "results/dataset/simulated/chr{chr}_annotated.tsv",
             chr=config["chromosomes"]["karyotype"],
         ),
-        script=workflow.source_path(f"workflow/scripts/combine_annotations/column_analysis.py"),
+        script=workflow.source_path(f"scripts/combine_annotations/column_analysis.py"),
     log:
         "results/logs/combine_annotations/column_analysis.log",
     conda:
@@ -66,7 +66,7 @@ rule prepare_data:
         imputation="results/dataset/imputation_dict.txt",
         processing=config["annotation_config"]["processing"],
         interactions=config["annotation_config"]["interactions"],
-        script=workflow.source_path(f"workflow/scripts/combine_annotations/prepare_annotated_data.py"),
+        script=workflow.source_path(f"scripts/combine_annotations/prepare_annotated_data.py"),
     params:
         derived_flag=lambda wildcards: (
             "--derived" if wildcards.type == "derived" else ""
