@@ -45,7 +45,7 @@ rule linearize_fasta:
     conda:
         get_conda_env("common")
     shell:
-        "awk '/^>/ {printf("\n%s\n",$0); next;} {printf("%s",$0);} END {printf("\n");}' {input.fasta} > {output.linearized}"
+        'awk \'/^>/ {printf("\\n%s\\n",$0); next;} {printf("%s",$0);} END {printf("\\n");}\' {input.fasta} > {output.linearized}'
 
 # Rule: Chunk VCF/MAF files
 rule chunk_maf:
