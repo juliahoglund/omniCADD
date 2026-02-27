@@ -28,7 +28,7 @@ rule clean_ambiguous:
         "resources/alignment/{part}.maf.gz",
     params:
         name_ancestor=config["mark_ancestor"]["name_ancestor"],
-        name_reference=config["alignment"]["name_species_interest"],
+        name_reference=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         p_n=config["mark_ancestor"].get("p_n", 0.8),
         p_gap=config["mark_ancestor"].get("p_gap", 0.8),
     log:
@@ -54,12 +54,12 @@ rule clean_ambiguous:
 #    				(how it is named in the alignment file alignment section)
 rule mark_ancestor:
     input:
-        script=workflow.source_path(f"{SCRIPTS_1}mark_ancestor.py"),  # Fixed path
+        script=f"{SCRIPTS_1}mark_ancestor.py",
         maf=lambda wildcards: get_df_input_maf(),  # Move maf to input section
     params:
         sp1_ab=config["mark_ancestor"]["sp1_tree_ab"],
         sp2_ab=config["mark_ancestor"]["sp2_tree_ab"],
-        name_sp1=config["alignment"]["name_species_interest"],
+        name_sp1=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
     conda:
         get_conda_env("ancestor")
@@ -90,49 +90,46 @@ def get_df_input_maf():
     if "name_ancestor" in config["mark_ancestor"]:
         return "results/alignment/marked_ancestor/{part}.maf.gz"
 
-    if config["alignment"]["clean_maf"] == "True":
+    if config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["clean_maf"]:
         return "results/alignment/cleaned_maf/{part}.maf.gz"
 
-    return f"{config['alignment']['path']}{{part}}.maf.gz"
+    return f"{config['ancestral_sequence']['alignment']['alignments']['43_mammals.epo']['path']}{{part}}.maf.gz"
 
 
 # Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
 # Can be run in a container, as mafTools is python2.7 dependent and can cause version issues.
 rule maf_df:
     input:
-        lambda wildcards: get_df_input_maf(),
+        lambda wildcards: get_df_input_maf()
     log:
-        "results/logs/extract_ancestor/maf_df/{part}.log",
+        "results/logs/extract_ancestor/maf_df/{part}.log"
     container:
         "docker://juliahoglund/maftools:latest"
     conda:
         get_conda_env("ancestor")
     threads: 2
     output:
-        temp("results/alignment/dedup/{part}.maf.lz4"),
+        temp("results/alignment/dedup/{part}.maf.lz4")
     shell:
-        """
-        mkdir -p $(dirname {output})
-        lz4 -dc {input} 2>> {log} | mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}
-        """
+        "mkdir -p $(dirname {output}) && lz4 -dc {input} 2>> {log} | mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 
 # Reorders species within any alignment block, so that the wanted species are in front.
 # (it also removes sequences that are not from species given in the order)
 rule maf_ro:
     input:
-        "results/alignment/dedup/{part}.maf.lz4",
+        "results/alignment/dedup/{part}.maf.lz4"
     params:
-        order=config["alignment"]["filter_order"],
+        order=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["filter_order"]
     log:
-        "results/logs/extract_ancestor/maf_ro/{part}.log",
+        "results/logs/extract_ancestor/maf_ro/{part}.log"
     conda:
         get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
     threads: 2
     output:
-        temp("results/alignment/row_ordered/{part}.maf.lz4"),
+        temp("results/alignment/row_ordered/{part}.maf.lz4")
     shell:
         "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
@@ -150,7 +147,7 @@ rule maf_ro:
 
 
 def gather_part_files():
-    alignment_config = config["alignment"]
+    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
     input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
     parts = glob_wildcards(input_pattern).part
     parts_filtered = []
@@ -184,31 +181,25 @@ def gather_part_files():
 rule sort_by_chr:
     input:
         maf=gather_part_files(),
-        script=workflow.source_path(f"{SCRIPTS_1}sort_by_chromosome.py"),
+        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py"
     params:
-        species_name=config["alignment"]["name_species_interest"],
+        species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
-        directory=lambda wildcards, output: "results/alignment/merged/",
+        directory="results/alignment/merged/"
     log:
-        "results/logs/extract_ancestor/sort_by_chr.log",
+        "results/logs/extract_ancestor/sort_by_chr/chr{chr}.log"
     conda:
         get_conda_env("alignment")
     resources:
         mem_mb=lambda wildcards, attempt: min(64000, 8000 * attempt),
         runtime=lambda wildcards, attempt: min(720, 120 * attempt),
-        tmpdir="results/tmp/sort_chr",
+        tmpdir="results/tmp/sort_chr"
     threads: 8
     output:
-        out_chr=expand(
-            "results/alignment/merged/chr{chr}.maf",
-            chr=config["chromosomes"]["karyotype"],
-        ),
+        "results/alignment/merged/chr{chr}.maf"
     shell:
-        """
-        mkdir -p results/alignment/merged
-        python3 {input.script}
-        """
+        "mkdir -p results/alignment/merged && python3 {input.script} --species {params.species_name} --ancestor {params.ancestor} --chromosomes {params.chromosomes} --outdir {params.directory} > {log} 2>&1"
 
 
 # Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand.
@@ -216,7 +207,7 @@ rule maf_str:
     input:
         "results/alignment/merged/chr{chr}.maf.gz",
     params:
-        species_label=config["alignment"]["name_species_interest"],
+        species_label=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
     log:
         "results/logs/extract_ancestor/maf_str/chr{chr}.log",
     conda:
@@ -235,7 +226,7 @@ rule maf_sorter:
     input:
         "results/alignment/stranded/chr{chr}.maf.gz",
     params:
-        species_label=config["alignment"]["name_species_interest"],
+        species_label=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
     log:
         "results/logs/extract_ancestor/maf_sorter/chr{chr}.log",
     conda:
@@ -253,9 +244,9 @@ rule maf_sorter:
 rule gen_ancestor_seq:
     input:
         maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
-        script=workflow.source_path(f"{SCRIPTS_1}extract_ancestor.py"),
+        script=f"{SCRIPTS_1}extract_ancestor.py",
     params:
-        species_name=config["alignment"]["name_species_interest"],
+        species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
         reference=config["mark_ancestor"]["reference_genome"],
     conda:

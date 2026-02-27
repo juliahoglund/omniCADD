@@ -50,16 +50,16 @@ if should_include_gene_prediction():
 ##### Load core workflow modules #####
 # Only include alignment-based ancestor extraction if not using pre-computed sequences
 if not config.get("ancestral_sequence", {}).get("skip_extraction", False):
-    include: "workflow/rules/1_extract_ancestor.smk"
-    print("Including alignment-based ancestor extraction rules")
+       include: "workflow/rules/ancestral_generation.smk"
+       print("Including alignment-based ancestor extraction rules")
 # Skipping ancestor extraction - using pre-computed ancestral sequences
 
 # Conditionally load ancestral reconstruction
 if should_include_ancestral_reconstruction():
+       include: "workflow/rules/ancestral_reconstruction.smk"
        print("Using ancestral reconstruction workflow")
-       # Reconstruction rules are in data_preparation.smk
 
-include: "workflow/rules/2_derive_variants.smk"
+include: "workflow/rules/variant_derivation.smk"
 include: "workflow/rules/3_simulate_variants.smk"
 include: "workflow/rules/4_summary_report.smk"
 
@@ -72,10 +72,11 @@ if should_include_snpeff():
        include: "workflow/rules/snpeff.smk"
        print("Including SNPEff annotation rules")
 
-include: "workflow/rules/5_annotate_vars.smk"
-include: "workflow/rules/6_combine_annotations.smk"
-include: "workflow/rules/7_train_test_model.smk"
-include: "workflow/rules/8_score_variants.smk"
+include: "workflow/rules/vep_annotation.smk"
+include: "workflow/rules/snpeff_annotation.smk"
+include: "workflow/rules/combine_annotations.smk"
+include: "workflow/rules/train_test_model.smk"
+include: "workflow/rules/score_variants.smk"
 
 ##### target rules #####
 
