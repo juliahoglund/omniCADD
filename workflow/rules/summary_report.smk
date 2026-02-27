@@ -82,7 +82,7 @@ if config["stats_report"]["annotation"] == "True":
 
 rule create_datafiles:
     input:
-        script=workflow.source_path(f"{SCRIPTS_4}stats_report.Rmd"),
+        script="../scripts/summary_report/stats_report.R",
         tree=config["stats_report"]["tree"],
         ideogram="results/visualisation/indexfile.txt",
         annotation=(
@@ -142,7 +142,7 @@ rule raw_singleton_stats:
 
 rule create_stats_report:
     input:
-        script=workflow.source_path(f"{SCRIPTS_4}stats_report.Rmd"),
+        script="../scripts/summary_report/stats_report.R",
         tree=config["stats_report"]["tree"],
         ideogram="results/visualisation/indexfile.txt",
         annotation=(
@@ -195,4 +195,4 @@ rule summary_report_with_gene_prediction:
     conda:
         get_conda_env("report")
     shell:
-        "Rscript workflow/scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report}"
+           "Rscript ../scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report}"
