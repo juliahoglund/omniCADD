@@ -31,14 +31,18 @@ SCRIPTS_HELPER = "workflow/data_helper.py"
 
 ##### load modules  #####
 include: "workflow/rules/common.smk"
-include: "workflow/rules/1_extract_ancestor.smk"        # step one
-include: "workflow/rules/2_derive_variants.smk"         # step two
-include: "workflow/rules/3_simulate_variants.smk"       # step three
-include: "workflow/rules/4_summary_report.smk"          # step four
-include: "workflow/rules/5_annotate_vars.smk"   	# step five
-include: "workflow/rules/6_combine_annotations.smk"  	# step six
-include: "workflow/rules/7_train_test_model.smk"     	# step seven
-include: "workflow/rules/8_score_variants.smk"  	# step eight
+include: "workflow/rules/preprocessing.smk"             # preprocessing
+include: "workflow/rules/ancestral_generation.smk"      # step one
+include: "workflow/rules/variant_derivation.smk"        # step two
+include: "workflow/rules/variant_simulation.smk"        # step three
+include: "workflow/rules/summary_report.smk"            # step four
+include: "workflow/rules/vep_annotation.smk"            # VEP annotation
+include: "workflow/rules/gerp_annotation.smk"           # GERP annotation
+include: "workflow/rules/phast_annotation.smk"          # PHAST annotation
+include: "workflow/rules/snpeff_annotation.smk"         # SNPEff annotation
+include: "workflow/rules/combine_annotations.smk"       # combine annotations
+include: "workflow/rules/model_training.smk"            # model training
+include: "workflow/rules/variant_scoring.smk"           # variant scoring
 
 ##### target rules #####
 rule all:
