@@ -14,20 +14,21 @@ import sys
 import glob
 
 
-# Global script variables (update to new modular structure if needed)
-SCRIPTS_1 = "../scripts/ancestral_generation/"
-SCRIPTS_2 = "../scripts/variant_derivation/"
-SCRIPTS_3 = "../scripts/variant_simulation/"
-SCRIPTS_4 = "../scripts/summary_report/"
-SCRIPTS_5 = "../scripts/vep_annotation/"
-SCRIPTS_6 = "../scripts/combine_annotations/"
-SCRIPTS_7 = "../scripts/model_training/"
-SCRIPTS_8 = "../scripts/variant_scoring/"
 
-SCRIPTS_SIFT = "../scripts/snpeff_annotation/sift/"
-SCRIPTS_FASTA2BED = "../scripts/fasta2bed.py"
-SCRIPTS_EMF2MAF = "../scripts/emftomaf.pl"
-SCRIPTS_HELPER = "../scripts/data_helper.py"
+# Global script variables (update to new modular structure)
+SCRIPTS_1 = "workflow/scripts/ancestral_generation/"
+SCRIPTS_2 = "workflow/scripts/variant_derivation/"
+SCRIPTS_3 = "workflow/scripts/variant_simulation/"
+SCRIPTS_4 = "workflow/scripts/summary_report/"
+SCRIPTS_5 = "workflow/scripts/vep_annotation/"
+SCRIPTS_6 = "workflow/scripts/combine_annotations/"
+SCRIPTS_7 = "workflow/scripts/model_training/"
+SCRIPTS_8 = "workflow/scripts/variant_scoring/"
+
+SCRIPTS_SIFT = "workflow/scripts/snpeff_annotation/sift/"
+SCRIPTS_FASTA2BED = "workflow/scripts/fasta2bed.py"
+SCRIPTS_EMF2MAF = "workflow/scripts/emftomaf.pl"
+SCRIPTS_HELPER = "workflow/scripts/data_helper.py"
 
 
 

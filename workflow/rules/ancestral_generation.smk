@@ -15,9 +15,12 @@
  :Date: 1-4-2023
 """
 
+
+# Set correct script path for modular structure
+SCRIPTS_1 = "workflow/scripts/ancestral_generation/"
+
 import sys
 from snakemake.io import expand, glob_wildcards
-
 
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
