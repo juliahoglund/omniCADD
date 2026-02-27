@@ -39,7 +39,7 @@ include: "workflow/rules/common.smk"
 
 ##### Conditionally load preprocessing rules #####
 if should_include_preprocessing():
-       include: "workflow/rules/preprocessing.smk"
+       include: "workflow/rules/data_preparation.smk"
        print("Including preprocessing rules")
 
 ##### Conditionally load gene prediction rules #####
@@ -57,7 +57,7 @@ if not config.get("ancestral_sequence", {}).get("skip_extraction", False):
 # Conditionally load ancestral reconstruction
 if should_include_ancestral_reconstruction():
        print("Using ancestral reconstruction workflow")
-       # Reconstruction rules are in preprocessing.smk
+       # Reconstruction rules are in data_preparation.smk
 
 include: "workflow/rules/2_derive_variants.smk"
 include: "workflow/rules/3_simulate_variants.smk"

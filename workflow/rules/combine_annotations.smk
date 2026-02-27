@@ -383,7 +383,7 @@ rule combine_annotations:
     conda:
         get_conda_env("annotation")
     shell:
-        "python3 ../scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined}"
+        "python3 workflow/scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined}"
 
 rule combine_annotations_snpeff:
     input:
@@ -395,7 +395,7 @@ rule combine_annotations_snpeff:
     conda:
         get_conda_env("annotation")
     shell:
-        "python3 ../scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined}"
+        "python3 workflow/scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined}"
 
 # Example summary report rule with gene prediction check
 rule summary_report:
@@ -407,4 +407,4 @@ rule summary_report:
     conda:
         get_conda_env("report")
     shell:
-        "Rscript ../scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report}"
+        "Rscript workflow/scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report}"

@@ -180,7 +180,7 @@ rule split_by_chromosome:
     conda:
         "../envs/common.yml"
     script:
-        "../scripts/split_fasta_by_chromosome.py"
+        "workflow/scripts/split_fasta_by_chromosome.py"
 
 
 # ======================================
