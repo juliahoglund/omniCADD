@@ -13,22 +13,25 @@ import os
 import sys
 import glob
 
-# Add  script variables
-SCRIPTS_1 = "../scripts/step_1_extract_ancestor/"
-SCRIPTS_2 = "../scripts/step_2_derive_variants/"
-SCRIPTS_3 = "../scripts/step_3_simulate_variants/"
-SCRIPTS_4 = "../scripts/step_4_summary_report/"
-SCRIPTS_5 = "../scripts/step_5_annotate_variants/"
-SCRIPTS_6 = "../scripts/step_6_combine_annotations/"
-SCRIPTS_7 = "../scripts/step_7_train_test_model/"
-SCRIPTS_8 = "../scripts/step_8_score_variants/"
 
-SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
+# Global script variables (update to new modular structure if needed)
+SCRIPTS_1 = "../scripts/ancestral_generation/"
+SCRIPTS_2 = "../scripts/variant_derivation/"
+SCRIPTS_3 = "../scripts/variant_simulation/"
+SCRIPTS_4 = "../scripts/summary_report/"
+SCRIPTS_5 = "../scripts/vep_annotation/"
+SCRIPTS_6 = "../scripts/combine_annotations/"
+SCRIPTS_7 = "../scripts/model_training/"
+SCRIPTS_8 = "../scripts/variant_scoring/"
+
+SCRIPTS_SIFT = "../scripts/snpeff_annotation/sift/"
 SCRIPTS_FASTA2BED = "../scripts/fasta2bed.py"
 SCRIPTS_EMF2MAF = "../scripts/emftomaf.pl"
 SCRIPTS_HELPER = "../scripts/data_helper.py"
 
 
+
+# Global conda environment resolver
 def get_conda_env(env_name):
     """Return path to conda environment file"""
     return f"workflow/envs/{env_name}.yml"
@@ -41,9 +44,11 @@ Name, label and file may not contain /, they may not be sub-folders.
 """
 
 
+
+# Global wildcard constraints for use across modules
 wildcard_constraints:
     chr="[0-9XY]+",
-    part="[0-9]+",
+    part="[a-zA-Z0-9-]+",
     fold="[0-9]+",
     type="(simulated|derived|validation)",
     cols="(All|[A-Za-z0-9_]+)",
