@@ -1,0 +1,152 @@
+# Configuration for multiway alignment generation using minimap2
+# This creates alignments for GERP conservation scoring
+
+# Chromosomes to process
+chromosomes:
+  karyotype: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X']
+
+# Alignment generation settings
+alignment_generation:
+  # Reference genome (wild boar)
+  reference_genome: "resources/genome/Wild_Boar_Assembly.fasta"
+  
+  # Directory containing downloaded species genomes
+  genome_dir: "resources/alignment_genomes"
+  
+  # Output directory for alignment results
+  output_dir: "results/alignment_generation"
+  
+  # Minimap2 settings
+  minimap_preset: "asm5"  # Use asm5 for divergent species (>5% divergence)
+                          # Use asm10 for closely related (<10% divergence)
+  threads: 16
+  
+  # Quality filters
+  min_mapq: 30      # Minimum mapping quality
+  min_baseq: 30     # Minimum base quality for consensus
+  min_coverage: 35  # Minimum coverage depth for consensus calling
+  
+  # Species to align (43 mammals from EPO alignment)
+  species:
+    # Afrotheria
+    - "Loxodonta_africana"
+    
+    # Lagomorpha
+    - "Oryctolagus_cuniculus"
+    
+    # Rodentia (Sciuromorpha)
+    - "Marmota_marmota_marmota"
+    - "Sciurus_vulgaris"
+    
+    # Rodentia (Myomorpha)
+    - "Cricetulus_griseus_chok1gshd"
+    - "Microtus_ochrogaster"
+    - "Peromyscus_maniculatus_bairdii"
+    - "Mus_musculus"
+    - "Mus_spretus"
+    - "Mus_caroli"
+    - "Mus_pahari"
+    - "Rattus_norvegicus"
+    
+    # Rodentia (Hystricomorpha)
+    - "Cavia_porcellus"
+    
+    # Primates (Strepsirrhini)
+    - "Microcebus_murinus"
+    
+    # Primates (Catarrhini)
+    - "Chlorocebus_sabaeus"
+    - "Macaca_mulatta"
+    - "Macaca_fascicularis"
+    - "Homo_sapiens"
+    - "Pan_paniscus"
+    - "Pan_troglodytes"
+    - "Gorilla_gorilla"
+    - "Nomascus_leucogenys"
+    
+    # Carnivora (Caniformia)
+    - "Canis_lupus_dingo"
+    - "Canis_lupus_familiaris"
+    
+    # Carnivora (Feliformia)
+    - "Panthera_leo"
+    - "Panthera_pardus"
+    - "Felis_catus"
+    
+    # Perissodactyla
+    - "Equus_caballus"
+    
+    # Artiodactyla (Ruminantia)
+    - "Bos_indicus_hybrid"
+    - "Bos_taurus"
+    - "Bos_grunniens"
+    - "Capra_hircus"
+    - "Ovis_aries_rambouillet"
+    - "Cervus_hanglu_yarkandensis"
+    
+    # Cetacea
+    - "Physeter_catodon"
+    - "Phocoena_sinus"
+    - "Delphinapterus_leucas"
+    - "Monodon_monoceros"
+    - "Balaenoptera_musculus"
+    
+    # Artiodactyla (Suina)
+    - "Sus_scrofa"  # Domestic pig reference (not wild boar)
+    - "Catagonus_wagneri"
+    
+    # Tylopoda
+    - "Camelus_dromedarius"
+    
+    # Chiroptera
+    - "Rhinolophus_ferrumequinum"
+
+# Download URLs for species genomes (from Ensembl)
+genome_downloads:
+  base_url: "https://ftp.ensembl.org/pub/current_fasta"
+  pattern: "{species}/dna/{species}.{assembly}.dna_sm.toplevel.fa.gz"
+  
+  assemblies:
+    Loxodonta_africana: "loxAfr3"
+    Oryctolagus_cuniculus: "OryCun2.0"
+    Marmota_marmota_marmota: "marMar2.1"
+    Sciurus_vulgaris: "mSciVul1.1"
+    Cricetulus_griseus_chok1gshd: "CHOK1GS_HDv1"
+    Microtus_ochrogaster: "MicOch1.0"
+    Peromyscus_maniculatus_bairdii: "HU_Pman_2.1"
+    Mus_musculus: "GRCm39"
+    Mus_spretus: "SPRET_EiJ_v1"
+    Mus_caroli: "CAROLI_EIJ_v1.1"
+    Mus_pahari: "PAHARI_EIJ_v1.1"
+    Rattus_norvegicus: "mRatBN7.2"
+    Cavia_porcellus: "Cavpor3.0"
+    Microcebus_murinus: "Mmur_3.0"
+    Chlorocebus_sabaeus: "ChlSab1.1"
+    Macaca_mulatta: "Mmul_10"
+    Macaca_fascicularis: "Macaca_fascicularis_6.0"
+    Homo_sapiens: "GRCh38"
+    Pan_paniscus: "panpan1.1"
+    Pan_troglodytes: "Pan_tro_3.0"
+    Gorilla_gorilla: "gorGor4"
+    Nomascus_leucogenys: "Nleu_3.0"
+    Canis_lupus_dingo: "ASM325472v1"
+    Canis_lupus_familiaris: "ROS_Cfam_1.0"
+    Panthera_leo: "PanLeo1.0"
+    Panthera_pardus: "PanPar1.0"
+    Felis_catus: "Felis_catus_9.0"
+    Equus_caballus: "EquCab3.0"
+    Bos_indicus_hybrid: "UOA_Brahman_1"
+    Bos_taurus: "ARS-UCD1.3"
+    Bos_grunniens: "LU_Bosgru_v3.0"
+    Capra_hircus: "ARS1"
+    Ovis_aries_rambouillet: "ARS-UI_Ramb_v2.0"
+    Cervus_hanglu_yarkandensis: "CEY_v1"
+    Physeter_catodon: "ASM283717v2"
+    Phocoena_sinus: "mPhoSin1.pri"
+    Delphinapterus_leucas: "ASM228892v3"
+    Monodon_monoceros: "NGI_Narwhal_1"
+    Balaenoptera_musculus: "mBalMus1.v2"
+    Sus_scrofa: "Sscrofa11.1"
+    Catagonus_wagneri: "CatWag_v2_BIUU_UCD"
+    Camelus_dromedarius: "CamDro2"
+    Rhinolophus_ferrumequinum: "mRhiFer1_v1.p"

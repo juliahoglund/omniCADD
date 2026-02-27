@@ -1,0 +1,10 @@
+# Configuration for ancestral sequence reconstruction using PHAST
+
+chromosomes:
+  karyotype: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X']
+
+ancestral_reconstruction:
+  tree: "resources/tree_43_mammals.nwk"
+  node: "root"  # or specify a node name from your tree
+  align_dir: "results/alignment_generation/gerp_ready"
+  output_dir: "results/ancestral_seq_phast"
