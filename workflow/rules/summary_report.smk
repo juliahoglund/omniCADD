@@ -16,7 +16,7 @@
 
 rule create_summary:
     input:
-        script=workflow.source_path(f"{SCRIPTS_4}generate_summary_info.R"),
+        script="../scripts/summary_report/generate_summary_info.R",
         raw_snps="results/simulated_variants/raw_snps/all_chr.vcf",
         filtered_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         derived_vars="results/derived_variants/singletons/all_chr.vcf",
