@@ -1,22 +1,36 @@
-notes.md
+# Combined and optimized .gitignore for omniCADD
 
+# System files
 .DS_Store
+
+# Snakemake files
+.snakemake/
 .snakemake/.DS_Store
 .snakemake/log/.DS_Store
+
+# Config files
 config/.DS_Store
 config/slurm/.DS_Store
+config/sift4g_config.yaml
+config/.gitignore
+
+# Resources
 resources/.DS_Store
 resources/grantham_matrix/.DS_Store
+resources/snpEff/data/
+
+# Workflow files
 workflow/.DS_Store
 workflow/docker/.DS_Store
 workflow/docker/sift4g/.DS_Store
 workflow/scripts/.DS_Store
-
 workflow/scripts/step_1_extract_ancestor/.DS_Store
 workflow/scripts/step_2_derive_variants/.DS_Store
 workflow/scripts/step_3_simulate_variants/.DS_Store
 workflow/scripts/step_4_summary_report/.DS_Store
 workflow/scripts/step_5_annotate_variants/.DS_Store
+
+# HOWTO and documentation files
 workflow/scripts/step_1_extract_ancestor/HOWTO1.md
 workflow/scripts/step_2_derive_variants/HOWTO2.md
 workflow/scripts/step_4_summary_report/HOWTO4.md
@@ -24,8 +38,18 @@ workflow/scripts/step_5_annotate_variants/HOWTO5.md
 workflow/scripts/step_6_combine_annotations/HOWTO6.md
 workflow/scripts/step_7_train_test_model/HOWTO7.md
 workflow/scripts/step_8_score_variants/HOWTO8.md
+boar_tmp_HOWTO.md
+boar_tmp_HOWTO_MERGE.md
+CONFIG_GUIDE.md
+IMPLEMENTATION_SUMMARY.md
+QUICK_REFERENCE.md
+visualisee_CADD.md
+workflow/docker/augustus/README.md
+GERP/README.md
+output/worflow-Page-2.drawio.png
 
-
+# Output and results
+output/
 output/anc-coverage.svg
 output/anc-seq.svg
 output/derived_cow.pdf
@@ -39,35 +63,24 @@ output/simulated_elephant.pdf
 output/simulated_horse.pdf
 output/simulated_sheep.pdf
 output/venn_all_chr.pdf
+results/
+
+# Academic and docs
 academic_cv_edit.docx
 omniCADD.docx
 ~$niCADD.docx
-
-visualisee_CADD.md
-GERP/README.md
-/GERP
-workflow/rules/5_annotate_vars_unimplemented.smk
-config/sift4g_config.yaml
-/.snakemake
-boar_tmp_HOWTO_MERGE.md
-CONFIG_GUIDE.md
-IMPLEMENTATION_SUMMARY.md
-output/worflow-Page-2.drawio.png
-QUICK_REFERENCE.md
-workflow/docker/augustus/README.md
-boar_tmp_HOWTO.md
-
-# Results directory - generated outputs
-results/
-
-# Built SNPEff databases
-resources/snpEff/data/
 notes.md
 docs/boar_tmp_HOWTO.md
 docs/DARDEL_SETUP.md
 docs/DOCKER_SLURM_GUIDE.md
 docs/SETUP.md
+docs/ALIGNMENT_GENERATION.md
 
+# Misc
 frqBoar/
 genomeBoar/
-docs/ALIGNMENT_GENERATION.md
+
+# Remove obsolete or duplicate entries
+# Removed: packrat/lib* (not present)
+# Removed: /GERP (redundant with GERP/README.md)
+# Removed: workflow/rules/5_annotate_vars_unimplemented.smk (if not present)
