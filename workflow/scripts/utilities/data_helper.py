@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+# -*- coding: ASCII -*-
+
+"""
+:Author: Job van Schipstal
+:Contact: job.vanschipstal@wur.nl
+:Date: 7-12-2023
+:Usage: import the helper functions
+
+Provides helper functions for the other scripts.
+"""
+
+# Import dependencies
+import sys
+import os
+import pickle
+from typing import Union
+
+import pandas
+from joblib import Parallel, delayed
+from scipy.sparse import load_npz, vstack, save_npz
+
+def filter_matrix(desired: list[str], columns: list[str], data_matrix) -> tuple:
+    """
+    Returns desired columns from a scipy data matrix.
+    :param desired: list of str, desired columns
+    :param columns: list of str, column names of data_matrix
+    :param data_matrix: Scipy sparse matrix to extract columns from
+    :return: tuple, scipy sparse matrix with desired columns and list of column names
+    """
+    id_cols = {}
+    for col in desired:
+        if col not in columns:
+            sys.exit(f"Missing column {col} in scipy sparse matrix, "
+                     f"but it was requested")
+        id_cols[columns.index(col)] = col
+    id_cols = dict(sorted(id_cols.items()))
+    return data_matrix[:, list(id_cols.keys())], list(id_cols.values())
+
+def read_columns(file: str) -> list[str]:
+    """
+    Read column csv, return list of columns
+    :param file: str, path+file to read columns from
+    :return: list of str, columns
+    """
+    columns = []
+    with open(file, "r") as col_f:
+        for line in col_f:
+            line = line.strip()
+            if not line:
+                continue
+            columns.extend([col.strip() for col in line.split(",")])
+    if len(columns) == 0:
+        sys.exit(f"Read columns file {columns} and found no columns!")
+    return columns
+
+def load_data(file: str, cols: list[str], desired: Union[list[str], None], log: bool) -> tuple:
+    """
+    Loads data in npz format to scipy sparse matrix and metadata in csv
+    format to a pandas dataframe, filter the matrix if needed.
+    :param file: str, file to load the data from
+    :param cols: list of str, column names for the scipy csr
+    :param desired: list of str, column names to load (def None -> load all)
+    :param log: bool (def True), write progress to stderr
+    :return: tuple, scipy csr with desired columns, metadata and selected cols
+    """
+    selected_cols = None
+    if log:
+        sys.stderr.write(f"## Loading data from "
+                         f"{os.sep.join(file.split(os.sep)[-2:])}\n")
+
+        # Load metadata via pandas df and the actual data via scipy sparse.
+    meta_data = pandas.read_csv(file + ".meta.csv.gz", sep=',',
+                                na_values=['-'], header=0, low_memory=False)
+    npz = load_npz(file)
+    if desired:
+        npz, selected_cols = filter_matrix(desired, cols, npz)
+    return npz, meta_data, selected_cols
+
+
+
+def load_npz_with_meta(files: list[str], desired: Union[list[str], None] = None,
+                       log: bool = True, n_jobs: int = 3) -> tuple:
+    """
+    Loads data in npz format to scipy sparse matrix and metadata in csv
+    # FASTA/MAF conversion utilities
+    from Bio import AlignIO, SeqIO
+    from collections import defaultdict
+    from Bio.SeqRecord import SeqRecord
+    from Bio.Seq import Seq
+
+    format to a pandas dataframe, column list is also returned and it is
+        """
+        Convert MAF file to FASTA format.
+        """
+        with open(maffile, "r") as input_handle, open(fastafile, "w") as output_handle:
+            alignments = AlignIO.parse(input_handle, "maf")
+            AlignIO.write(alignments, output_handle, "fasta")
+
+    verified that this is the same for each file.
+        """
+        Format FASTA file to ensure each sequence line is 60 characters long.
+        """
+        with open(fastafile, 'r') as ifile, open(formattedfile, 'w') as ofile:
+            for line in ifile:
+                if line.startswith('>'):
+                    ofile.write('\n' + line.strip() + '\n')
+                else:
+                    line = line.strip()
+                    ofile.write(line + '-' * (60 - len(line)) + '\n')
+
+    :param files: list of str, files to load the data from
+        """
+        Linearize FASTA file by concatenating sequences of the same species.
+        """
+        species = defaultdict(list)
+        with open(formattedfile, 'r') as ifile:
+            for record in SeqIO.parse(ifile, "fasta"):
+                record.id = record.id.split('.')[0]
+                species[record.id].append(record)
+        with open(linearizedfile, 'w') as ofile:
+            ik = {i: k for i, k in enumerate(species)}
+            for i in range(len(ik)):
+                for j in range(len(species[ik[0]])):
+                    if j == 0:
+                        if i == 0:
+                            ofile.write('>' + ik[i] + '\n')
+                        else:
+                            ofile.write('\n>' + ik[i] + '\n')
+                    else:
+                        ofile.write(str(species[ik[i]][j].seq))
+    :param desired: list of str, column names to load (def None -> load all)
+    :param log: bool (def True), write progress to stderr
+    :param n_jobs: int (def 3), number of threads to use for reading data
+    :return: tuple, scipy sparse matrix, pandas dataframe, list of column names
+    """
+    cols = None
+    for file in files:
+        # Load cols and verify they match for the different files
+        new_cols = read_columns(file + ".columns.csv")
+        if not cols:
+            cols = new_cols
+        elif not cols == new_cols:
+            for i in range(min(len(cols), len(new_cols))):
+                if cols[i] != new_cols[i]:
+                    sys.stderr.write(f"{i}: {cols[i]} vs {new_cols[i]}\t")
+            sys.exit(f"\nColumns for file {file} differ from those of the "
+                     f"previously read infile(s), "
+                     f"lengths: {len(new_cols)} vs {len(cols)}\n" +
+                     " ".join(new_cols) + "\n" + " ".join(cols) + "\n")
+
+    # Merge if needed
+    if len(files) > 1:
+        blocks = Parallel(n_jobs=n_jobs)(
+            delayed(load_data)(file, cols, desired, log) for file in files
+        )
+        data = [block[0] for block in blocks]
+        meta = [block[1] for block in blocks]
+        selected_cols = blocks[0][2]  # Are all the same
+        del blocks
+        if log:
+            sys.stderr.write("## Merging data parts\n")
+        # CSR is row based, stacking it by row should be efficient, logistic
+        # regression from scikit-learn also expects a csr format sparse matrix
+        # so we want it to remain of that type.
+        data = vstack(data, format="csr")
+        meta = pandas.concat(meta, axis=0)
+    else:
+        data, meta, selected_cols = load_data(files[0], cols, desired, log)
+
+    if desired:
+        cols = selected_cols
+    return data, meta, cols
+
+
+def load_dataset(files: list[str], desired_cols: Union[list[str], str, None], jobs: int = 1) -> tuple:
+    """
+    Wrapper to load dataset, filter for desired column and take y from metadata
+    :param files: list of str, files to read data from
+    :param desired_cols: list of str or str, desired columns, None for all
+    :param jobs: int (def 1), number of concurrent jobs to run
+    :return: tuple, data csr, np array with y values, list of columns for csr
+    """
+    if jobs < 1:
+        jobs = len(files)
+    if desired_cols and desired_cols != "All":
+        cols = read_columns(desired_cols)
+    else:
+        cols = None
+    data_matrix, metadata, columns = load_npz_with_meta(files,
+                                                        cols,
+                                                        n_jobs=jobs)
+    if "y" in metadata.columns:
+        y_values = metadata[["y"]].to_numpy(dtype="float").flatten()
+    else:
+        y_values = None
+    return data_matrix, y_values, columns
+
+
+def save_npz_with_meta(file: str, data_m, meta: pandas.DataFrame, cols: list[str], log: bool = True) -> None:
+    """
+    Writes sparse data matrix to npz file,
+    with metadata and columns in additional csv files.
+    :param file: str, base filename to write to, expected to end in npz
+    :param data_m: scipy sparse matrix, data matrix
+    :param meta: pandas dataframe, metadata not included in model data matrix
+    :param cols: list of str, columns of data matrix
+    :param log: bool (def True), write progress to stderr
+    :return: None, written to files
+    """
+    if log:
+        sys.stderr.write(f"## Writing data to "
+                         f"{os.sep.join(file.split(os.sep)[-2:])}\n")
+    save_npz(file, data_m, compressed=True)
+    meta.to_csv(file + ".meta.csv.gz", index=False, na_rep="-", low_memory=False)
+    # Write column names to file, since scipy sparse doesn't support them
+    with open(file + ".columns.csv", "w") as f:
+        f.write(",".join(cols))
+
+
+def get_pickle(file: str, clazz: type) -> object:
+    """
+    Loads an object from file and checks if it is an instance of clazz
+    :param file: str, file to read object from
+    :param clazz: type, class that is expected to be returned
+    :return: instance of clazz, loaded from file
+    """
+    with open(file, "rb") as file_h:
+        ins = pickle.load(file_h)
+    if not isinstance(ins, clazz):
+        sys.exit(f"Error loading instance from pickle file, "
+                 f"expected an instance of {clazz} but got {type(ins)}")
+    return ins
