@@ -1,4 +1,3 @@
-
 from snakemake.utils import min_version
 from glob import glob
 import os
@@ -33,7 +32,7 @@ SCRIPTS_EMF2MAF = "workflow/scripts/emftomaf.pl"
 SCRIPTS_HELPER = "workflow/scripts/data_helper.py"
 
 ##### Load configuration logic and helper functions #####
-include: "workflow/rules/config_logic.smk"
+include: "workflow/rules/config_helpers.smk"
 
 ##### Load common rules #####
 include: "workflow/rules/common.smk"
