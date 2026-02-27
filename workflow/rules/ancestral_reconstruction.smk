@@ -1,0 +1,58 @@
+"""
+Ancestral sequence reconstruction using PHAST (phyloFit + ancestors)
+
+This workflow takes a multiway alignment (FASTA or MAF), fits a phylogenetic model with phyloFit,
+and reconstructs the ancestral sequence at the root or a specified node using ancestors.
+
+Author: Julia Höglund
+Date: 2026-02-27
+"""
+
+import os
+
+# Config
+PHAST_TREE = config.get("ancestral_reconstruction", {}).get("tree", "resources/tree_43_mammals.nwk")
+NODE = config.get("ancestral_reconstruction", {}).get("node", "root")  # Node name or 'root'
+ALIGN_DIR = config.get("ancestral_reconstruction", {}).get("align_dir", "results/alignment_generation/gerp_ready")
+OUTPUT_DIR = config.get("ancestral_reconstruction", {}).get("output_dir", "results/ancestral_seq_phast")
+CHROMOSOMES = config.get("chromosomes", {}).get("karyotype", [])
+
+rule all_ancestral:
+    input:
+        expand(f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa", chr=CHROMOSOMES)
+
+rule fit_phylo_model:
+    input:
+        alignment=f"{ALIGN_DIR}/chr{{chr}}_oneline.fa",
+        tree=PHAST_TREE
+    output:
+        mod=f"{OUTPUT_DIR}/chr{{chr}}.mod"
+    log:
+        f"{OUTPUT_DIR}/logs/fit_phylo_model_chr{{chr}}.log"
+    conda:
+        "../envs/annotation.yml"
+    shell:
+        """
+        phyloFit --tree {input.tree} --subst-mod REV --out-root {OUTPUT_DIR}/chr{wildcards.chr} \
+            {input.alignment} > {log} 2>&1
+        mv {OUTPUT_DIR}/chr{wildcards.chr}.mod {output.mod}
+        """
+
+rule reconstruct_ancestor:
+    input:
+        alignment=f"{ALIGN_DIR}/chr{{chr}}_oneline.fa",
+        mod=f"{OUTPUT_DIR}/chr{{chr}}.mod"
+    output:
+        ancestor=f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa"
+    log:
+        f"{OUTPUT_DIR}/logs/ancestor_chr{{chr}}.log"
+    params:
+        node=NODE
+    conda:
+        "../envs/annotation.yml"
+    shell:
+        """
+        ancestors --msa-format FASTA --tree {input.mod} --msa {input.alignment} \
+            --out-root {OUTPUT_DIR}/chr{wildcards.chr}_ancestor --node {params.node} > {log} 2>&1
+        mv {OUTPUT_DIR}/chr{wildcards.chr}_ancestor.seqs {output.ancestor}
+        """
