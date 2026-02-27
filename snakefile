@@ -60,8 +60,8 @@ if should_include_ancestral_reconstruction():
        print("Using ancestral reconstruction workflow")
 
 include: "workflow/rules/variant_derivation.smk"
-include: "workflow/rules/3_simulate_variants.smk"
-include: "workflow/rules/4_summary_report.smk"
+include: "workflow/rules/variant_simulation.smk"
+include: "workflow/rules/summary_report.smk"
 
 ##### Conditionally load annotation methods #####
 if should_include_vep():
