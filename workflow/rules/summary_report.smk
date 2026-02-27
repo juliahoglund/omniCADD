@@ -61,7 +61,7 @@ if config["stats_report"]["annotation"] == "True":
         input:
             gff=config["stats_report"]["gff"],
             file=config["stats_report"]["prefix"],
-            script=workflow.source_path("scripts/summary_report/fasta2bed.py"),
+            script=workflow.source_path("../scripts/summary_report/fasta2bed.py"),
         log:
             "results/logs/summary_report/create_input.log",
         conda:
