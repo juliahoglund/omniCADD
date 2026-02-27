@@ -100,7 +100,7 @@ ancestral_sequence:
         
   # Reconstruction from reference (for species without alignments)
   reconstruct:
-    enabled: false
+    enabled: true
     method: "align_to_reference"  # Align ancestral sequence to reference genome
     input_fasta: "resources/ancestral/Ancestor.fasta"
     tools:
