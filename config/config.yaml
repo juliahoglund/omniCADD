@@ -8,7 +8,7 @@
 ### DATA TIER #####
 ###################
 # Quick preset configurations for common scenarios
-data_tier: "standard"  # Options: "standard", "limited", "custom"
+data_tier: "limited"  # Options: "standard", "limited", "custom"
 # - standard: Well-annotated species (human, mouse, domestic pig)
 # - limited: Poorly annotated species (wild boar, non-model organisms)
 # - custom: Manual configuration (ignores tier presets)
@@ -59,17 +59,17 @@ preprocessing:
 ########################
 gene_annotation:
   # Primary source of gene annotation
-  source: "gff"  # Options: "gff", "gtf", "augustus", "none"
+  source: "augustus"  # Options: "gff", "gtf", "augustus", "none"
   
   # Existing annotation files (if source is gff/gtf)
   gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
   gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
   
   # Gene prediction (if source is augustus)
-  predict_genes: false
+  predict_genes: true
   ancestral_mode: "alignment"  # Options: "extract", "alignment"
   augustus:
-    enabled: false
+    enabled: true
     species_model: "human"  # Augustus training set (human, mouse, fly, etc.)
     species: "human"        # Normalized key used by rules
     output_format: "gff3"
