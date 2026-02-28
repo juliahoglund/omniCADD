@@ -54,7 +54,8 @@ rule clean_ambiguous:
 #    				(how it is named in the alignment file alignment section)
 rule mark_ancestor:
     input:
-        maf=lambda wildcards: get_df_input_maf(),  # Move maf to input section
+        maf=lambda wildcards: get_df_input_maf(),
+        script="workflow/scripts/ancestral_generation/mark_ancestor.py",
     params:
         sp1_ab=config["mark_ancestor"]["sp1_tree_ab"],
         sp2_ab=config["mark_ancestor"]["sp2_tree_ab"],
@@ -66,8 +67,6 @@ rule mark_ancestor:
         "results/logs/{part}_mark_ancestor_log.txt",
     output:
         temp("results/alignment/marked_ancestor/{part}.maf.gz"),
-    script:
-        "workflow/scripts/ancestral_generation/mark_ancestor.py"
     shell:
         "python3 {input.script}"
         " -i {input.maf}"
