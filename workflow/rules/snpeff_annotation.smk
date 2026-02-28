@@ -543,7 +543,7 @@ rule merge_vep_snpeff:
     input:
         vep = "{folder}/chr{chr}_vep.tsv",
         snpeff = "{folder}/chr{chr}_snpeff.tsv",
-        script = workflow.source_path(SCRIPTS_6 + "merge_annotations.py")
+        script = "workflow/scripts/combine_annotations/merge_annotations.py"
     conda:
         "../envs/annotation.yml"
     output:

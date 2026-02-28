@@ -162,7 +162,7 @@ rule intersect_genomewide:
     input:
         vep="results/whole_genome_annotations/chr{chr}/{part}.vep.tsv",
         bed="results/annotation/constraint/constraint_chr{chr}.bed",
-        script=workflow.source_path(f"{SCRIPTS_6}merge_annotations.py"),
+        script="workflow/scripts/combine_annotations/merge_annotations.py",
     log:
         "results/logs/score_variants/intersect_genomewide/chr{chr}_{part}.log",
     conda:
