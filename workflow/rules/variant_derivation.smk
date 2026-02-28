@@ -43,7 +43,7 @@ rule gen_derived:
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         reference=config["generate_variants"]["reference_genome_wildcard"],
         frequency="results/processed_population_frequency/chr{chr}.frq",
-        script=f"{SCRIPTS_2}derive_variants.py",
+        script="workflow/scripts/variant_derivation/derive_variants.py",
     params:
         no_chrs=config["chromosomes"]["autosomes"],
         output_prefix="results/derived_variants/raw/chr{chr}",
@@ -75,7 +75,7 @@ rule gen_derived:
 rule snp_filter:
     input:
         vcf="results/derived_variants/raw/chr{chr}.vcf",
-        script=f"{SCRIPTS_2}filter_snps.py",
+        script="workflow/scripts/variant_derivation/filter_snps.py",
     log:
         "results/logs/derive_variants/snp_filter/chr{chr}.log",
     conda:

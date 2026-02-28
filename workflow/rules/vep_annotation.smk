@@ -48,7 +48,7 @@ rule process_vep:
         index="{folder}/chr{chr}.vcf.gz.tbi",
         vep="{folder}/chr{chr}_vep_output.tsv",
         genome=config["generate_variants"]["reference_genome_wildcard"],
-        grantham=workflow.source_path(
+        grantham="workflow/scripts/vep_annotation/grantham_matrix.tsv",
             "../../resources/grantham_matrix/grantham_table.tsv"
         ),
     params:

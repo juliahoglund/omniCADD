@@ -88,7 +88,7 @@ rule compute_gerp:
 
 rule gerp2coords:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}gerp_to_position.py"),
+        script="workflow/scripts/vep_annotation/gerp_to_position.py",
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
         gerp="results/annotation/gerp/chr{chr}/{part}.rates",
     output:

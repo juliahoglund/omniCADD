@@ -60,7 +60,7 @@ This rule expects SIFT scores to be available but this is not the case for many 
 
 rule run_vep:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
+        script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
         cache=(
             rules.vep_cache.output
@@ -93,7 +93,7 @@ The VEP consequences are summarised and basic annotations are calculated here as
 
 rule process_vep:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
+        script="workflow/scripts/vep_annotation/VEP_process.py",
         vcf="{folder}/chr{chr}.vcf.gz",
         index="{folder}/chr{chr}.vcf.gz.tbi",
         vep="{folder}/chr{chr}_vep_output.tsv",
@@ -129,7 +129,7 @@ checkpoint split_alignment:
     chunks, they are also converted to fasta format in preparation for annotations
     """
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}split_alignments.py"),
+        script="workflow/scripts/vep_annotation/split_alignments.py",
         maf="results/alignment/merged/chr{chr}.maf",
     params:
         blocksize=config["parallelization"]["alignment_positions_per_file"],
@@ -153,7 +153,7 @@ checkpoint split_alignment:
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
 rule convert_alignment:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}maf2fasta.pl"),
+        script="workflow/scripts/vep_annotation/maf2fasta.pl",
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
     log:
         "results/logs/annotate_vars/convert_alignment/chr{chr}_{part}.log",
@@ -167,7 +167,7 @@ rule convert_alignment:
 
 rule format_alignment:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}format_alignments.py"),
+        script="workflow/scripts/vep_annotation/format_alignments.py",
         fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
     log:
         "results/logs/annotate_vars/format_alignment/chr{chr}_{part}.log",
@@ -185,7 +185,7 @@ rule format_alignment:
 # REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
 rule prune_columns:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}prune_cols.py"),
+        script="workflow/scripts/vep_annotation/prune_cols.py",
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
     log:
         "results/logs/annotate_vars/prune_columns/chr{chr}_{part}.log",
@@ -236,7 +236,7 @@ rule gerp2coords:
     This analysis is run as one job per genome chunk, but is internally run per contig.
     """
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}gerp_to_position.py"),
+        script="workflow/scripts/vep_annotation/gerp_to_position.py",
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
         gerp="results/annotation/gerp/chr{chr}/{part}.rates",
     output:

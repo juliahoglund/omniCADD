@@ -63,8 +63,8 @@ rule fold_data:
             "results/dataset/simulated/chr{chr}.npz.columns.csv",
             chr=config["chromosomes"]["train"],
         ),
-        script=workflow.source_path(f"{SCRIPTS_7}fold_data.py"),
-        lib=workflow.source_path(SCRIPTS_HELPER),
+        script="workflow/scripts/model_training/fold_data.py",
+        lib="workflow/scripts/data_helper.py",
     log:
         "results/logs/train_test_model/fold_data.log",
     conda:
@@ -113,8 +113,8 @@ rule train_model:
             "results/dataset/fold_{fold}.npz.columns.csv",
             fold=get_train_folds(wildcards.fold),
         ),
-        script=workflow.source_path(f"{SCRIPTS_7}train_model.py"),
-        lib=workflow.source_path(SCRIPTS_HELPER),
+        script="workflow/scripts/model_training/train_model.py",
+        lib="workflow/scripts/data_helper.py",
     params:
         c=config["model"]["test_params"]["c"],
         max_iter=config["model"]["test_params"]["max_iter"],
@@ -223,7 +223,7 @@ rule evaluate_models:
             c=config["model"]["test_params"]["c"],
             iter=config["model"]["test_params"]["max_iter"],
         ),
-        script=workflow.source_path(f"{SCRIPTS_7}evaluate_models.py"),
+        script="workflow/scripts/model_training/evaluate_models.py",
     conda:
         get_conda_env("model")
     resources:

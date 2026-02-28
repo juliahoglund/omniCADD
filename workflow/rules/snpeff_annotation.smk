@@ -608,7 +608,7 @@ rule process_genome_snpeff:
         vcf = "results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf",
         genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
         grantham = config["annotation"]["grantham_matrix"],
-        script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
+        script = "workflow/scripts/vep_annotation/SNPEff_process.py"
     conda:
         "../envs/score.yml"
     priority: 1

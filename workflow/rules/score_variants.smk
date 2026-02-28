@@ -32,7 +32,7 @@ The files are also directly bgzipped.
 checkpoint generate_all_variants:
     input:
         reference=config["generate_variants"]["reference_genome_wildcard"],
-        script=workflow.source_path(f"{SCRIPTS_8}create_variants.py"),
+        script="workflow/scripts/variant_scoring/create_variants.py",
     params:
         blocksize=config["parallelization"]["whole_genome_positions_per_file"],
     conda:
@@ -88,7 +88,7 @@ This rule expects SIFT scores to be available but this is not the case for many 
 rule run_genome_vep:
     input:
         vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
-        script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
+        script="workflow/scripts/vep_annotation/vep.sh",
         cache=(
             rules.vep_cache.output
             if config["annotation"]["vep"]["cache"]["should_install"] == "True"
@@ -135,7 +135,7 @@ rule process_genome_vep:
         grantham=workflow.source_path(
             "../../resources/grantham_matrix/grantham_table.tsv"
         ),
-        script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
+        script="workflow/scripts/vep_annotation/VEP_process.py",
     log:
         "results/logs/score_variants/process_genome_vep/chr{chr}_{part}.log",
     conda:
@@ -193,7 +193,7 @@ rule prepare_whole_genome:
         imputation="results/dataset/imputation_dict.txt",
         processing=config["annotation_config"]["processing"],
         interactions=config["annotation_config"]["interactions"],
-        script=workflow.source_path(f"{SCRIPTS_6}prepare_annotated_data.py"),
+        script="workflow/scripts/combine_annotations/prepare_annotated_data.py",
     params:
         derived_variants="",  # Fixed empty params
         y="",
@@ -238,7 +238,7 @@ rule score_variants:
         data_c="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv",
         scaler="results/model/{cols}/full.scaler.pickle",
         model="results/model/{cols}/full.mod.pickle",
-        script=workflow.source_path(f"{SCRIPTS_8}model_predict.py"),
+        script="workflow/scripts/variant_scoring/model_predict.py",
     log:
         "results/logs/score_variants/score_variants/{cols}_chr{chr}_{part}.log",
     conda:
@@ -341,7 +341,7 @@ rule assign_phred_scores:
             "results/whole_genome_scores/counts/chr{chr}.txt",
             chr=config["chromosomes"]["score"],
         ),
-        script=workflow.source_path(f"{SCRIPTS_8}assign_phred_scores.py"),
+        script="workflow/scripts/variant_scoring/assign_phred_scores.py",
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],

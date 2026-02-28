@@ -66,6 +66,8 @@ rule mark_ancestor:
         "results/logs/{part}_mark_ancestor_log.txt",
     output:
         temp("results/alignment/marked_ancestor/{part}.maf.gz"),
+    script:
+        "workflow/scripts/ancestral_generation/mark_ancestor.py"
     shell:
         "python3 {input.script}"
         " -i {input.maf}"
@@ -243,7 +245,7 @@ rule maf_sorter:
 rule gen_ancestor_seq:
     input:
         maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
-        script=f"{SCRIPTS_1}extract_ancestor.py",
+        script="workflow/scripts/ancestral_generation/extract_ancestor.py",
     params:
         species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         ancestor=config["mark_ancestor"]["name_ancestor"],

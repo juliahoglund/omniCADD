@@ -20,7 +20,7 @@
 
 rule create_parameters:
     input:
-        script=f"{SCRIPTS_3}create_parameters.py",
+        script="workflow/scripts/variant_simulation/create_parameters.py",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         reference=config["generate_variants"]["reference_genome_wildcard"],
     log:
@@ -41,7 +41,7 @@ Computes the required mutation rates so they are ready to use for simulation.
 
 rule process_parameters:
     input:
-        script=f"{SCRIPTS_3}process_parameters.py",
+        script="workflow/scripts/variant_simulation/process_parameters.py",
         parameters=expand(
             "results/simulated_variants/parameters/chr{chr}.txt",
             chr=config["chromosomes"]["karyotype"],
@@ -69,7 +69,7 @@ is all we need for the current version of the workflow.
 
 rule simulate_snps:
     input:
-        script=f"{SCRIPTS_3}simulate_variants.py",
+        script="workflow/scripts/variant_simulation/simulate_variants.py",
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl",
     log:
@@ -112,7 +112,7 @@ rule simulate_indels:
 # Filters the simulated variants for variants that are generated on the ancestral sequence (and not on gaps).
 rule filter_variants:
     input:
-        script=f"{SCRIPTS_3}filter_variants.py",
+        script="workflow/scripts/variant_simulation/filter_variants.py",
         variants="results/simulated_variants/raw_{type}/chr{chr}.vcf",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
     log:
@@ -171,7 +171,7 @@ These are later used for the visualisation and tables in the stats report.
 
 rule check_substitutions_rates:
     input:
-        script=f"{SCRIPTS_3}check_substitution_rates.py",
+        script="workflow/scripts/variant_simulation/check_substitution_rates.py",
         snps="results/simulated_variants/raw_snps/all_chr.vcf",
         trimmed_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         params=expand(
@@ -201,7 +201,7 @@ This is solved by overestimation and trimming.
 
 rule trim_vcf:
     input:
-        script=f"{SCRIPTS_3}trim_vcf.py",
+        script="workflow/scripts/variant_simulation/trim_vcf.py",
         vcf="results/simulated_variants/filtered_snps/all_chr.vcf",
         simulated_count="results/simulated_variants/filtered_snps/all_chr.vcf.count",
         derived_count="results/derived_variants/singletons/total.count",
