@@ -460,7 +460,7 @@ rule process_snpeff_derived:
         vcf = "results/derived_variants/singletons/chr{chr}_snpeff_output.vcf",
         genome = "results/snpeff/data/normalized_genome/chr{chr}.fa",
         grantham = config["annotation"]["grantham_matrix"],
-        script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
+            script = "../scripts/snpeff_annotation/SNPEff_process.py"
     conda:
         "../envs/annotation.yml"
     output:
@@ -489,7 +489,7 @@ rule process_snpeff_simulated:
         vcf = "results/simulated_variants/trimmed_snps/chr{chr}_snpeff_output.vcf",
         genome = "results/snpeff/data/normalized_genome/chr{chr}.fa",
         grantham = config["annotation"]["grantham_matrix"],
-        script = workflow.source_path(SCRIPTS_5 + "SNPEff_process.py")
+            script = "../scripts/snpeff_annotation/SNPEff_process.py"
     conda:
         "../envs/annotation.yml"
     output:

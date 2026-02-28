@@ -18,7 +18,7 @@ rule vep_cache:
 
 rule run_vep:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
+        script="../scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
         cache=(
             rules.vep_cache.output
@@ -43,7 +43,7 @@ rule run_vep:
 
 rule process_vep:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
+        script="../scripts/vep_annotation/VEP_process.py",
         vcf="{folder}/chr{chr}.vcf.gz",
         index="{folder}/chr{chr}.vcf.gz.tbi",
         vep="{folder}/chr{chr}_vep_output.tsv",

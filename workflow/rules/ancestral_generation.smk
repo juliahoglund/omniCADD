@@ -40,8 +40,8 @@ rule clean_ambiguous:
     threads: 2
     output:
         temp("results/alignment/cleaned_maf/{part}.maf.gz"),
-    script:
-        f"{SCRIPTS_1}clean_maf.py"
+        script:
+            "../scripts/ancestral_generation/clean_maf.py"
 
 
 # Identifies the most recent common ancestor between two given species and marks it with an identifier.
@@ -54,7 +54,7 @@ rule clean_ambiguous:
 #    				(how it is named in the alignment file alignment section)
 rule mark_ancestor:
     input:
-        script=f"{SCRIPTS_1}mark_ancestor.py",
+    script="../scripts/ancestral_generation/mark_ancestor.py",
         maf=lambda wildcards: get_df_input_maf(),  # Move maf to input section
     params:
         sp1_ab=config["mark_ancestor"]["sp1_tree_ab"],

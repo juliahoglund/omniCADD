@@ -6,7 +6,7 @@ wildcard_constraints:
 
 checkpoint split_alignment:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}split_alignments.py"),
+        script="../scripts/combine_annotations/split_alignments.py",
         maf="results/alignment/merged/chr{chr}.maf",
     params:
         blocksize=config["parallelization"]["alignment_positions_per_file"],
@@ -27,7 +27,7 @@ checkpoint split_alignment:
 
 rule convert_alignment:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}maf2fasta.pl"),
+        script="../scripts/combine_annotations/maf2fasta.pl",
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
     log:
         "results/logs/annotate_vars/convert_alignment/chr{chr}_{part}.log",
@@ -40,7 +40,7 @@ rule convert_alignment:
 
 rule format_alignment:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}format_alignments.py"),
+        script="../scripts/combine_annotations/format_alignments.py",
         fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
     log:
         "results/logs/annotate_vars/format_alignment/chr{chr}_{part}.log",
@@ -54,7 +54,7 @@ rule format_alignment:
 
 rule prune_columns:
     input:
-        script=workflow.source_path(f"{SCRIPTS_5}prune_cols.py"),
+        script="../scripts/combine_annotations/prune_cols.py",
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
     log:
         "results/logs/annotate_vars/prune_columns/chr{chr}_{part}.log",
