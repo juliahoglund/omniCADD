@@ -39,7 +39,7 @@ rule clean_ambiguous:
         runtime=lambda wildcards, attempt: min(480, 60 * attempt),
     threads: 2
     output:
-        temp("results/alignment/cleaned_maf/{part}.maf.gz"),
+            temp("results/alignment/cleaned_maf/{part}.maf.gz")
         script:
             "../scripts/ancestral_generation/clean_maf.py"
 
