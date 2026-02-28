@@ -39,9 +39,9 @@ rule clean_ambiguous:
         runtime=lambda wildcards, attempt: min(480, 60 * attempt),
     threads: 2
     output:
-            temp("results/alignment/cleaned_maf/{part}.maf.gz")
-        script:
-            "../scripts/ancestral_generation/clean_maf.py"
+        temp("results/alignment/cleaned_maf/{part}.maf.gz")
+    script:
+        "../scripts/ancestral_generation/clean_maf.py"
 
 
 # Identifies the most recent common ancestor between two given species and marks it with an identifier.
