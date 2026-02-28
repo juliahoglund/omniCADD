@@ -48,9 +48,10 @@ rule process_vep:
         index="{folder}/chr{chr}.vcf.gz.tbi",
         vep="{folder}/chr{chr}_vep_output.tsv",
         genome=config["generate_variants"]["reference_genome_wildcard"],
-        grantham="workflow/scripts/vep_annotation/grantham_matrix.tsv",
+        grantham=[
+            "workflow/scripts/vep_annotation/grantham_matrix.tsv",
             "../../resources/grantham_matrix/grantham_table.tsv"
-        ),
+        ],
     params:
         output_type=lambda wildcards: (
             "derived" if "derived_variants" in wildcards.folder else "simulated"
