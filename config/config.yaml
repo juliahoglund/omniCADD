@@ -256,6 +256,7 @@ parallelization:
   alignment_positions_per_file: 100000  # Default chunk size for splitting alignments
   whole_genome_positions_per_file: 500000
   alignment_chunks: 30
+  memory: 60000  # Default memory in MB for scoring
 
 dataset_memory_mb: 60000
 
