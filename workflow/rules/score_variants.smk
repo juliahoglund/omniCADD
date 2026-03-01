@@ -277,7 +277,7 @@ rule sort_raw_scores:
     threads: 8
     resources:
         mem_mb=lambda wildcards, attempt: min(
-            128000, config["memory"]["dataset_mb"] * attempt
+            128000, config["parallelization"]["memory"] * attempt
         ),
         runtime=lambda wildcards, attempt: min(720, 90 * attempt),
         tmpdir="results/tmp/sort_raw_{chr}",
@@ -376,7 +376,7 @@ rule sort_and_merge_scores:
         "results/logs/score_variants/sort_and_merge_scores.log",
     threads: 16
     resources:
-        mem_mb=config["memory"]["dataset_mb"],
+        mem_mb=config["parallelization"]["memory"],
         runtime=240,
         tmpdir="results/tmp/sort_merge",
     output:
