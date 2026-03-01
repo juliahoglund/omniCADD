@@ -36,7 +36,7 @@ The VEP cache and program should be from the same release, hence care should be 
 """
 
 
-rule vep_cache:
+rule vep_cache_combine:
     params:
         version_species=config["annotation"]["vep"]["cache"]["install_params"],
     log:
