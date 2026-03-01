@@ -68,7 +68,7 @@ rule prune_columns:
 rule compute_gerp:
     input:
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        tree=config["annotation"]["gerp"]["tree"],
+        tree=config["annotation"]["conservation"]["gerp"]["tree"],
     conda:
         get_conda_env("annotation")
     resources:

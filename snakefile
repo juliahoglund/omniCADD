@@ -1,4 +1,3 @@
-print("CONFIG DEBUG:", config)
 from snakemake.utils import min_version
 from glob import glob
 import os
