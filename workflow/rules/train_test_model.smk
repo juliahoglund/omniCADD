@@ -174,7 +174,7 @@ rule final_model:
         train=expand("results/dataset/fold_{fold}.npz", fold=get_folds()),
         train_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
         train_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
-        script=workflow.source_path(f"{SCRIPTS_7}train_model.py"),
+        script="workflow/scripts/model_training/train_model.py",
         lib=workflow.source_path(SCRIPTS_HELPER),
     params:
         c=config["model"]["final_params"]["c"],
