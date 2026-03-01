@@ -98,7 +98,7 @@ rule process_vep_combine:
         index="{folder}/chr{chr}.vcf.gz.tbi",
         vep="{folder}/chr{chr}_vep_output.tsv",
         genome=config["generate_variants"]["reference_genome_wildcard"],
-        grantham="../../resources/grantham_matrix/grantham_table.tsv",
+        grantham=config["annotation"]["grantham_matrix"],
     params:
         output_type=lambda wildcards: (
             "derived" if "derived_variants" in wildcards.folder else "simulated"

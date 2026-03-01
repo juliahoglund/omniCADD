@@ -132,7 +132,7 @@ rule process_genome_vep:
         vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
         vep="results/whole_genome_annotations/chr{chr}/{part}_vep_output.tsv",
         genome=config["generate_variants"]["reference_genome_wildcard"],
-        grantham="../../resources/grantham_matrix/grantham_table.tsv",
+        grantham=config["annotation"]["grantham_matrix"],
         script="workflow/scripts/vep_annotation/VEP_process.py",
     log:
         "results/logs/score_variants/process_genome_vep/chr{chr}_{part}.log",

@@ -5,9 +5,9 @@ rule phylo_fit:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf",
     params:
-        tree=config["annotation"]["phast"]["tree"],
-        tree_species=config["annotation"]["phast"]["tree_species"],
-        precision=config["annotation"]["phast"]["train_precision"],
+        tree=config["conservation"]["phast"]["tree"],
+        tree_species=config["conservation"]["phast"]["tree_species"],
+        precision=config["conservation"]["phast"]["train_precision"],
         out="results/annotation/phast/phylo_model/chr{chr}/{part}",
     log:
         "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log",
@@ -31,7 +31,7 @@ rule run_phastCons:
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     params:
         species_interest=config["species_name"],
-        phast_params=config["annotation"]["phast"]["phastCons_params"],
+        phast_params=config["conservation"]["phast"]["phastCons_params"],
     log:
         "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log",
     conda:
