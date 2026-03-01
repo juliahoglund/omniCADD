@@ -32,7 +32,7 @@ The files are also directly bgzipped.
 checkpoint generate_all_variants:
     input:
         reference=config["generate_variants"]["reference_genome_wildcard"],
-        script="workflow/scripts/variant_scoring/create_variants.py",
+        script="workflow/scripts/score_variants/create_variants.py",
     params:
         blocksize=config["parallelization"]["whole_genome_positions_per_file"],
     conda:
@@ -236,7 +236,7 @@ rule score_variants:
         data_c="results/dataset/whole_genome_snps/chr{chr}/{part}.npz.columns.csv",
         scaler="results/model/{cols}/full.scaler.pickle",
         model="results/model/{cols}/full.mod.pickle",
-        script="workflow/scripts/variant_scoring/model_predict.py",
+        script="workflow/scripts/score_variants/model_predict.py",
     log:
         "results/logs/score_variants/score_variants/{cols}_chr{chr}_{part}.log",
     conda:
@@ -339,7 +339,7 @@ rule assign_phred_scores:
             "results/whole_genome_scores/counts/chr{chr}.txt",
             chr=config["chromosomes"]["score"],
         ),
-        script="workflow/scripts/variant_scoring/assign_phred_scores.py",
+        script="workflow/scripts/score_variants/assign_phred_scores.py",
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
