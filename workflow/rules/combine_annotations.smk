@@ -208,7 +208,7 @@ rule compute_gerp_combine:
     """
     input:
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        tree=config["annotation"]["gerp"]["tree"],
+        tree=config["annotation"]["conservation"]["gerp"]["tree"],
     conda:
         get_conda_env("annotation")
     resources:
