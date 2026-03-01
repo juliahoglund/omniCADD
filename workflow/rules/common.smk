@@ -22,7 +22,7 @@ SCRIPTS_3 = "workflow/scripts/variant_simulation/"
 SCRIPTS_4 = "workflow/scripts/summary_report/"
 SCRIPTS_5 = "workflow/scripts/vep_annotation/"
 SCRIPTS_6 = "workflow/scripts/combine_annotations/"
-SCRIPTS_7 = "workflow/scripts/model_training/"
+SCRIPTS_7 = "workflow/scripts/train_test_model/"
 SCRIPTS_8 = "workflow/scripts/variant_scoring/"
 
 SCRIPTS_SIFT = "workflow/scripts/snpeff_annotation/sift/"
