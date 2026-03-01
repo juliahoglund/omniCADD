@@ -58,7 +58,7 @@ This rule expects SIFT scores to be available but this is not the case for many 
 """  # TODO make sift a config option
 
 
-rule run_vep:
+rule run_vep_combine:
     input:
         script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
@@ -91,7 +91,7 @@ The VEP consequences are summarised and basic annotations are calculated here as
 """
 
 
-rule process_vep:
+rule process_vep_combine:
     input:
         script="workflow/scripts/vep_annotation/VEP_process.py",
         vcf="{folder}/chr{chr}.vcf.gz",
@@ -151,7 +151,7 @@ checkpoint split_alignment:
 
 # script from mugsy [ref];
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
-rule convert_alignment:
+rule convert_alignment_combine:
     input:
         script="workflow/scripts/vep_annotation/maf2fasta.pl",
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
@@ -165,7 +165,7 @@ rule convert_alignment:
         "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
 
 
-rule format_alignment:
+rule format_alignment_combine:
     input:
         script="workflow/scripts/vep_annotation/format_alignments.py",
         fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
@@ -183,7 +183,7 @@ rule format_alignment:
 # modified version of script, originally written andreas wilm under the MIT License
 # original (pythhon < 2.7 included in compbio-utils)
 # REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
-rule prune_columns:
+rule prune_columns_combine:
     input:
         script="workflow/scripts/vep_annotation/prune_cols.py",
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
@@ -199,7 +199,7 @@ rule prune_columns:
 
 # adapted from generode [ref]
 # https://github.com/NBISweden/GenErode
-rule compute_gerp:
+rule compute_gerp_combine:
     """
     Compute GERP++ (gerpcol) scores.
     Output only includes scores, no bp positions, no contig names.
@@ -229,7 +229,7 @@ rule compute_gerp:
 
 # adapted from generode [ref]
 # https://github.com/NBISweden/GenErode
-rule gerp2coords:
+rule gerp2coords_combine:
     """
     Convert GERP-scores to the correct genomic coordinates. 
     Script currently written to output positions without contig names.
@@ -257,7 +257,7 @@ rule gerp2coords:
 ################################
 
 
-rule phylo_fit:
+rule phylo_fit_combine:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf",
     params:
@@ -282,7 +282,7 @@ rule phylo_fit:
         "rm tmp{wildcards.part}.fa 2>> {log}"
 
 
-rule run_phastCons:
+rule run_phastCons_combine:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
@@ -306,7 +306,7 @@ rule run_phastCons:
          """
 
 
-rule run_phyloP:
+rule run_phyloP_combine:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
@@ -330,7 +330,7 @@ rule run_phyloP:
         """
 
 
-rule wig2bed:
+rule wig2bed_combine:
     input:
         "results/annotation/phast/{tool}/chr{chr}/{part}.wig",
     log:
@@ -352,7 +352,7 @@ rule wig2bed:
 # If no GFF, trigger gene prediction before summary report
 
 # Example conditional rule for gene prediction before SNPEff
-rule gene_prediction:
+rule gene_prediction_combine:
     input:
         genome="resources/genome/{file}.fa"
     output:
@@ -362,7 +362,7 @@ rule gene_prediction:
     shell:
         "augustus --species=human {input.genome} > {output.gff}"
 
-rule snpeff_annotation:
+rule snpeff_annotation_combine:
     input:
         vcf="results/variants/{type}/chr{chr}.vcf.gz",
         gff="results/gene_prediction/genes_validated.gff3"
@@ -373,7 +373,7 @@ rule snpeff_annotation:
     shell:
         "snpeff ann -gff {input.gff} {input.vcf} > {output.snpeff}"
 
-rule combine_annotations:
+rule combine_annotations_combine:
     input:
         vep="results/annotation/vep/{type}/chr{chr}_vep.tsv",
         gerp="results/annotation/gerp/chr{chr}/gerp_scores.tsv",
@@ -385,7 +385,7 @@ rule combine_annotations:
     shell:
         "python3 workflow/scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined}"
 
-rule combine_annotations_snpeff:
+rule combine_annotations_snpeff_combine:
     input:
         snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
         gerp="results/annotation/gerp/chr{chr}/gerp_scores.tsv",
@@ -398,7 +398,7 @@ rule combine_annotations_snpeff:
         "python3 workflow/scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined}"
 
 # Example summary report rule with gene prediction check
-rule summary_report:
+rule summary_report_combine:
     input:
         combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
         gff="results/gene_prediction/genes_validated.gff3"
