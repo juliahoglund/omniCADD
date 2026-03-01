@@ -175,7 +175,7 @@ rule final_model:
         train_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
         train_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
         script="workflow/scripts/model_training/train_model.py",
-        lib=workflow.source_path(SCRIPTS_HELPER),
+        lib="workflow/scripts/data_helper.py",
     params:
         c=config["model"]["final_params"]["c"],
         max_iter=config["model"]["final_params"]["max_iter"],
