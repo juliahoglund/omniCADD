@@ -93,7 +93,7 @@ This step can be quite slow, it can take several hours.
 
 rule simulate_indels:
     input:
-        script=f"{SCRIPTS_3}simulate_variants.py",
+        script="workflow/scripts/variant_simulation/simulate_variants.py",
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl",
     log:

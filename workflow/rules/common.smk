@@ -15,20 +15,6 @@ import glob
 
 
 
-# Global script variables (update to new modular structure)
-SCRIPTS_1 = "workflow/scripts/ancestral_generation/"
-SCRIPTS_2 = "workflow/scripts/variant_derivation/"
-SCRIPTS_3 = "workflow/scripts/variant_simulation/"
-SCRIPTS_4 = "workflow/scripts/summary_report/"
-SCRIPTS_5 = "workflow/scripts/vep_annotation/"
-SCRIPTS_6 = "workflow/scripts/combine_annotations/"
-SCRIPTS_7 = "workflow/scripts/train_test_model/"
-SCRIPTS_8 = "workflow/scripts/variant_scoring/"
-
-SCRIPTS_SIFT = "workflow/scripts/snpeff_annotation/sift/"
-SCRIPTS_FASTA2BED = "workflow/scripts/fasta2bed.py"
-SCRIPTS_EMF2MAF = "workflow/scripts/emftomaf.pl"
-SCRIPTS_HELPER = "workflow/scripts/data_helper.py"
 
 
 
