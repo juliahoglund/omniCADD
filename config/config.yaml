@@ -1,6 +1,3 @@
-# Parallelization settings for alignment chunking
-parallelization:
-  alignment_positions_per_file: 100000  # Default chunk size for splitting alignments
 # Container images for workflow tools
 containers:
   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
@@ -254,7 +251,9 @@ model:
 #########################
 ### PARALLELIZATION #####
 #########################
+# Parallelization settings for alignment chunking
 parallelization:
+  alignment_positions_per_file: 100000  # Default chunk size for splitting alignments
   whole_genome_positions_per_file: 500000
   alignment_chunks: 30
 

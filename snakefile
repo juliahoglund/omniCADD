@@ -11,8 +11,6 @@ min_version("7.21.0")
 ##### Load config #####
 configfile: "config/config.yaml"
 
-print("Loaded parallelization config:", config.get("parallelization", {}))
-print("alignment_positions_per_file:", config.get("parallelization", {}).get("alignment_positions_per_file"))
 ##### setup report #####
 report: "report/workflow.rst"
 
