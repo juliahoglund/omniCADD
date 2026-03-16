@@ -84,3 +84,4 @@ genomeBoar/
 # Removed: packrat/lib* (not present)
 # Removed: /GERP (redundant with GERP/README.md)
 # Removed: workflow/rules/5_annotate_vars_unimplemented.smk (if not present)
+docs/DARDEL_SETUP.md
