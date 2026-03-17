@@ -24,6 +24,118 @@ def get_conda_env(env_name):
     return f"workflow/envs/{env_name}.yml"
 
 
+def get_gene_annotation_file():
+    """
+    Return appropriate gene annotation file based on config.
+    Used by: gene_prediction.smk
+    """
+    source = config["gene_annotation"]["source"]
+    
+    if source == "gff":
+        return config["gene_annotation"]["gff"]
+    elif source == "gtf":
+        return config["gene_annotation"]["gtf"]
+    elif source == "augustus":
+        return "results/gene_prediction/genes_validated.gff3"
+    elif source == "none":
+        return None
+    else:
+        raise ValueError(f"Unknown gene annotation source: {source}")
+
+
+def get_df_input_maf():
+    """
+    Input based on configuration. If ancestor must be marked that rule is input, if not and also no cleaning is needed,
+    the source maf file is taken as input instead. If cleaning is needed that rule is added instead.
+    Otherwise the input MAF file is required directly, skipping the other two steps and saving some time.
+    Used by: ancestral_generation.smk
+    :return: str, input file
+    """
+    # Since we only have one alignment now, check if marking is needed
+    if "name_ancestor" in config["mark_ancestor"]:
+        return "results/alignment/marked_ancestor/{part}.maf.gz"
+
+    if config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["clean_maf"]:
+        return "results/alignment/cleaned_maf/{part}.maf.gz"
+
+    return f"{config['ancestral_sequence']['alignment']['alignments']['43_mammals.epo']['path']}{{part}}.maf.gz"
+
+
+def gather_part_files():
+    """
+    Gather all alignment part files based on configuration.
+    Used by: ancestral_generation.smk
+    """
+    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
+    input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
+    parts = glob_wildcards(input_pattern).part
+    parts_filtered = []
+    for part in parts:
+        if not any(pattern in part for pattern in alignment_config["exclude_patterns"]):
+            parts_filtered.append(part)
+
+    # Formulate filenames as output from the previous step
+    infiles = expand(
+        f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered
+    )
+
+    # Handle the case when no files are found
+    if len(infiles) == 0:
+        # For linting, return a placeholder
+        import sys
+        if "--lint" in sys.argv:
+            print(
+                f"Warning: No alignment parts found in the form {input_pattern} (linting mode)"
+            )
+            return ["results/alignment/row_ordered/placeholder.maf.lz4"]
+        else:
+            # For actual runs, exit with error
+            sys.exit(f"No alignment parts found in the form {input_pattern}")
+    
+    return infiles
+
+
+def get_folds(excluding=None) -> list:
+    """
+    Get list of numbers, one for each fold that is to be taken as input.
+    Used by: train_test_model.smk
+    :param excluding: optional int(-like), fold to exclude (def None)
+    :return: List of numbers, useful for snakemake.expand
+    """
+    folds = list(range(config["model"]["n_folds"]))
+    if excluding:
+        excluding = int(excluding)
+        if excluding in folds:
+            folds.remove(excluding)
+    return folds
+
+
+def get_train_folds(fold):
+    """
+    Get all folds except the test fold.
+    Used by: train_test_model.smk
+    """
+    all_folds = list(range(config["model"]["n_folds"]))
+    return [f for f in all_folds if f != int(fold)]
+
+
+def gather_scores(wildcards):
+    """
+    Gather all score files from generate_all_variants checkpoint.
+    Used by: score_variants.smk
+    """
+    from natsort import natsorted, ns
+    checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
+    parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.vcf.gz")).part
+    parts_sorted = natsorted(parts, alg=ns.INT)  # Natural sort
+    return expand(
+        "results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv",
+        cols=wildcards.cols,
+        chr=wildcards.chr,
+        part=parts_sorted,
+    )
+
+
 """
 Global wildcard constraints, ease matching of wildcards in rules.
 Chr is constrained to only be numbers or letters.

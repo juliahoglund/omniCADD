@@ -22,20 +22,6 @@ wildcard_constraints:
     cols="[^/]+",
 
 
-def get_folds(excluding=None) -> list:
-    """
-    Get list of numbers, one for each fold that is to be taken as input.
-    :param excluding: optional int(-like), fold to exclude (def None)
-    :return: List of numbers, useful for snakemake.expand
-    """
-    folds = list(range(config["model"]["n_folds"]))
-    if excluding:
-        excluding = int(excluding)
-        if excluding in folds:
-            folds.remove(excluding)
-    return folds
-
-
 # Loads the different dataset chunks and merges them.
 # The dataset is then split into n_folds which are each written to disk
 rule fold_data:
@@ -89,13 +75,6 @@ rule fold_data:
         mkdir -p results/dataset
         python3 {input.script} -m {input.lib} -n {threads} -i {input.derived} {input.simulated} -o {output.test} 2> {log}
         """
-
-
-# Helper function to get training folds (all except test fold)
-def get_train_folds(fold):
-    """Get all folds except the test fold"""
-    all_folds = list(range(config["model"]["n_folds"]))
-    return [f for f in all_folds if f != int(fold)]
 
 
 rule train_model:

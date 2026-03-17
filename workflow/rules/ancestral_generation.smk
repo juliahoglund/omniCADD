@@ -80,24 +80,6 @@ rule mark_ancestor:
         " --sp2-ab {params.sp2_ab}"
 
 
-def get_df_input_maf():
-    """
-    Input based on configuration. If ancestor must be marked that rule is input, if not and also no cleaning is needed,
-    the source maf file is taken as input instead. If cleaning is needed that rule is added instead.
-    Otherwise the input MAF file is required directly, skipping the other two steps and saving some time.
-    :return: str, input file
-    """
-
-    # Since we only have one alignment now, check if marking is needed
-    if "name_ancestor" in config["mark_ancestor"]:
-        return "results/alignment/marked_ancestor/{part}.maf.gz"
-
-    if config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["clean_maf"]:
-        return "results/alignment/cleaned_maf/{part}.maf.gz"
-
-    return f"{config['ancestral_sequence']['alignment']['alignments']['43_mammals.epo']['path']}{{part}}.maf.gz"
-
-
 # Removes all duplicate sequences and keeps only the one sequence that is the most similar to the block consensus.
 # Can be run in a container, as mafTools is python2.7 dependent and can cause version issues.
 rule maf_df:
@@ -133,54 +115,15 @@ rule maf_ro:
         get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
-    threads: 2
+    threads: get_resource("maf_ro", "threads")
+    resources:
+        mem_mb = get_resource("maf_ro", "mem_mb"),
+        time = get_resource("maf_ro", "time"),
+        partition = get_resource("maf_ro", "partition")
     output:
         temp("results/alignment/row_ordered/{part}.maf.lz4")
     shell:
         "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
-
-
-"""
- Helper function to gather alignment part files so they can be merged for each chromosome.
- Output: list of str, all part files for that prefix
- Exits the program if no files are found since creating a rule with no inputs would break the workflow.
- 
- Amount of parts can be dynamic, so gather parts by looking how many are present.
- We are looking at the original input files so we can build the DAG ahead of time,
- otherwise checkpoints would be needed to reevaluate the DAG.
- both emf and maf input files can be checked, based on the config.
-"""
-
-
-def gather_part_files():
-    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
-    input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
-    parts = glob_wildcards(input_pattern).part
-    parts_filtered = []
-    for part in parts:
-        if not any(pattern in part for pattern in alignment_config["exclude_patterns"]):
-            parts_filtered.append(part)
-
-    # Formulate filenames as output from the previous step
-    infiles = expand(
-        f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered
-    )
-
-    # Handle the case when no files are found
-    if len(infiles) == 0:
-        # For linting, return a placeholder
-        import sys
-
-        if "--lint" in sys.argv:
-            print(
-                f"Warning: No alignment parts found in the form {input_pattern} (linting mode)"
-            )
-            return ["results/alignment/row_ordered/placeholder.maf.lz4"]
-        else:
-            # For actual runs, exit with error
-            sys.exit(f"No alignment parts found in the form {input_pattern}")
-
-    return infiles
 
 
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest

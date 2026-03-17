@@ -62,19 +62,6 @@ checkpoint generate_all_variants:
          """
 
 
-# hardcoded to All columns as of now
-def gather_scores(wildcards):
-    """Gather all score files from generate_all_variants checkpoint"""
-    checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
-    parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.vcf.gz")).part
-    parts_sorted = natsorted(parts, alg=ns.INT)  # Natural sort
-    return expand(
-        "results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv",
-        cols=wildcards.cols,
-        chr=wildcards.chr,
-        part=parts_sorted,
-    )
-
 
 """
 Annotate a vcf file using Ensembl-VEP.

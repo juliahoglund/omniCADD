@@ -175,24 +175,6 @@ rule augustus_validate:
 ### Conditional Gene Source ########
 ####################################
 
-def get_gene_annotation_file():
-    """
-    Return appropriate gene annotation file based on config.
-    """
-    source = config["gene_annotation"]["source"]
-    
-    if source == "gff":
-        return config["gene_annotation"]["gff"]
-    elif source == "gtf":
-        return config["gene_annotation"]["gtf"]
-    elif source == "augustus":
-        return "results/gene_prediction/genes_validated.gff3"
-    elif source == "none":
-        return []
-    else:
-        raise ValueError(f"Unknown gene_annotation source: {source}")
-
-
 rule convert_gff_to_gtf:
     """
     Convert GFF3 to GTF format if needed (e.g., for SIFT).
