@@ -39,9 +39,9 @@ checkpoint generate_all_variants:
         get_conda_env("score")
     threads: get_resource("generate_all_variants", "threads")
     resources:
-        mem_mb = get_resource("generate_all_variants", "mem_mb"),
-        time = get_resource("generate_all_variants", "time"),
-        partition = get_resource("generate_all_variants", "partition")
+        mem_mb=get_resource("generate_all_variants", "mem_mb"),
+        time=get_resource("generate_all_variants", "time"),
+        partition=get_resource("generate_all_variants", "partition"),
     log:
         "results/whole_genome_variants/chr{chr}/generation.log",
     output:
@@ -62,7 +62,6 @@ checkpoint generate_all_variants:
          """
 
 
-
 """
 Annotate a vcf file using Ensembl-VEP.
 The VEP cache can automatically be downloaded if should_install is True in the config, 
@@ -78,11 +77,7 @@ rule run_genome_vep:
     input:
         vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
         script="workflow/scripts/vep_annotation/vep.sh",
-        cache=(
-            rules.vep_cache.output
-            if config["annotation"]["vep"]["cache"]["should_install"] == "True"
-            else []
-        ),
+        cache=(rules.vep_cache.output if config["annotation"]["vep"]["cache"]["should_install"] == "True" else []),
     params:
         cache_dir=config["annotation"]["vep"]["cache"]["directory"],
         species_name=config["species_name"],
@@ -92,9 +87,9 @@ rule run_genome_vep:
         get_conda_env("annotation")
     threads: get_resource("run_genome_vep", "threads")
     resources:
-        mem_mb = get_resource("run_genome_vep", "mem_mb"),
-        time = get_resource("run_genome_vep", "time"),
-        partition = get_resource("run_genome_vep", "partition")
+        mem_mb=get_resource("run_genome_vep", "mem_mb"),
+        time=get_resource("run_genome_vep", "time"),
+        partition=get_resource("run_genome_vep", "partition"),
     priority: 1
     benchmark:
         "logs/benchmarks/run_genome_vep_chr{chr}_{part}.tsv"
@@ -130,9 +125,9 @@ rule process_genome_vep:
         get_conda_env("common")
     threads: get_resource("process_genome_vep", "threads")
     resources:
-        mem_mb = get_resource("process_genome_vep", "mem_mb"),
-        time = get_resource("process_genome_vep", "time"),
-        partition = get_resource("process_genome_vep", "partition")
+        mem_mb=get_resource("process_genome_vep", "mem_mb"),
+        time=get_resource("process_genome_vep", "time"),
+        partition=get_resource("process_genome_vep", "partition"),
     priority: 1
     benchmark:
         "logs/benchmarks/process_genome_vep_chr{chr}_{part}.tsv"
@@ -159,9 +154,9 @@ rule intersect_genomewide:
         get_conda_env("annotation")
     threads: get_resource("intersect_genomewide", "threads")
     resources:
-        mem_mb = get_resource("intersect_genomewide", "mem_mb"),
-        time = get_resource("intersect_genomewide", "time"),
-        partition = get_resource("intersect_genomewide", "partition")
+        mem_mb=get_resource("intersect_genomewide", "mem_mb"),
+        time=get_resource("intersect_genomewide", "time"),
+        partition=get_resource("intersect_genomewide", "partition"),
     benchmark:
         "logs/benchmarks/intersect_bed_chr{chr}_{part}.tsv"
     output:
@@ -190,12 +185,12 @@ rule prepare_whole_genome:
         y="",
     threads: get_resource("prepare_whole_genome", "threads")
     resources:
-        mem_mb = get_resource("prepare_whole_genome", "mem_mb"),
-        time = get_resource("prepare_whole_genome", "time"),
-        partition = get_resource("prepare_whole_genome", "partition"),
+        mem_mb=get_resource("prepare_whole_genome", "mem_mb"),
+        time=get_resource("prepare_whole_genome", "time"),
+        partition=get_resource("prepare_whole_genome", "partition"),
         runtime=60,
     conda:
-        get_conda_env("annotation"),
+        get_conda_env("annotation")
     benchmark:
         "logs/benchmarks/prepare_whole_genome_chr{chr}_{part}.tsv"
     output:
@@ -238,9 +233,9 @@ rule score_variants:
         get_conda_env("score")
     threads: get_resource("score_variants", "threads")
     resources:
-        mem_mb = get_resource("score_variants", "mem_mb"),
-        time = get_resource("score_variants", "time"),
-        partition = get_resource("score_variants", "partition")
+        mem_mb=get_resource("score_variants", "mem_mb"),
+        time=get_resource("score_variants", "time"),
+        partition=get_resource("score_variants", "partition"),
     benchmark:
         "logs/benchmarks/score_variants_{cols}_chr{chr}_{part}.tsv"
     output:
@@ -272,11 +267,9 @@ rule sort_raw_scores:
         "results/logs/score_variants/sort_raw_scores/chr{chr}.log",
     threads: get_resource("sort_raw_scores", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: min(
-            128000, get_resource("sort_raw_scores", "mem_mb") * attempt
-        ),
-        time = lambda wildcards, attempt: get_resource("sort_raw_scores", "time") * attempt,
-        partition = get_resource("sort_raw_scores", "partition"),
+        mem_mb=lambda wildcards, attempt: min(128000, get_resource("sort_raw_scores", "mem_mb") * attempt),
+        time=lambda wildcards, attempt: get_resource("sort_raw_scores", "time") * attempt,
+        partition=get_resource("sort_raw_scores", "partition"),
         tmpdir="results/tmp/sort_raw_{chr}",
     benchmark:
         "logs/benchmarks/sort_raw_scores_chr{chr}.tsv"
@@ -306,9 +299,9 @@ rule count_positions:
         "results/logs/score_variants/count_positions/chr{chr}.log",
     threads: get_resource("count_positions", "threads")
     resources:
-        mem_mb = get_resource("count_positions", "mem_mb"),
-        time = get_resource("count_positions", "time"),
-        partition = get_resource("count_positions", "partition")
+        mem_mb=get_resource("count_positions", "mem_mb"),
+        time=get_resource("count_positions", "time"),
+        partition=get_resource("count_positions", "partition"),
     benchmark:
         "logs/benchmarks/count_positions_chr{chr}.tsv"
     output:
@@ -346,9 +339,9 @@ rule assign_phred_scores:
         "results/logs/score_variants/assign_phred_scores.log",
     threads: get_resource("assign_phred_scores", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("assign_phred_scores", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("assign_phred_scores", "time") * attempt,
-        partition = get_resource("assign_phred_scores", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("assign_phred_scores", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("assign_phred_scores", "time") * attempt,
+        partition=get_resource("assign_phred_scores", "partition"),
     benchmark:
         "logs/benchmarks/assign_phred_scores.tsv"
     output:
@@ -377,9 +370,9 @@ rule sort_and_merge_scores:
         "results/logs/score_variants/sort_and_merge_scores.log",
     threads: get_resource("sort_and_merge_scores", "threads")
     resources:
-        mem_mb = get_resource("sort_and_merge_scores", "mem_mb"),
-        time = get_resource("sort_and_merge_scores", "time"),
-        partition = get_resource("sort_and_merge_scores", "partition"),
+        mem_mb=get_resource("sort_and_merge_scores", "mem_mb"),
+        time=get_resource("sort_and_merge_scores", "time"),
+        partition=get_resource("sort_and_merge_scores", "partition"),
         tmpdir="results/tmp/sort_merge",
     output:
         "results/whole_genome_scores/full_RAW_scores.csv.gz",  # Direct to final compressed
@@ -410,9 +403,9 @@ rule index_cadd_scores:
         get_conda_env("common")
     threads: get_resource("index_cadd_scores", "threads")
     resources:
-        mem_mb = get_resource("index_cadd_scores", "mem_mb"),
-        time = get_resource("index_cadd_scores", "time"),
-        partition = get_resource("index_cadd_scores", "partition")
+        mem_mb=get_resource("index_cadd_scores", "mem_mb"),
+        time=get_resource("index_cadd_scores", "time"),
+        partition=get_resource("index_cadd_scores", "partition"),
     output:
         "results/cadd_scores/chr{chr}.tsv.gz.tbi",
     shell:
@@ -421,9 +414,7 @@ rule index_cadd_scores:
 
 rule summarize_cadd_scores:
     input:
-        scores=expand(
-            "results/cadd_scores/chr{chr}.tsv.gz", chr=config["chromosomes"]["score"]
-        ),
+        scores=expand("results/cadd_scores/chr{chr}.tsv.gz", chr=config["chromosomes"]["score"]),
         indices=expand(
             "results/cadd_scores/chr{chr}.tsv.gz.tbi",
             chr=config["chromosomes"]["score"],
@@ -434,9 +425,9 @@ rule summarize_cadd_scores:
         get_conda_env("common")
     threads: get_resource("summarize_cadd_scores", "threads")
     resources:
-        mem_mb = get_resource("summarize_cadd_scores", "mem_mb"),
-        time = get_resource("summarize_cadd_scores", "time"),
-        partition = get_resource("summarize_cadd_scores", "partition")
+        mem_mb=get_resource("summarize_cadd_scores", "mem_mb"),
+        time=get_resource("summarize_cadd_scores", "time"),
+        partition=get_resource("summarize_cadd_scores", "partition"),
     output:
         summary=report("results/cadd_scores/scoring_summary.txt", category="Logs"),
     shell:

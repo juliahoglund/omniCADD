@@ -22,6 +22,7 @@ SCRIPTS_1 = "workflow/scripts/ancestral_generation/"
 import sys
 from snakemake.io import expand, glob_wildcards
 
+
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
     input:
@@ -37,11 +38,11 @@ rule clean_ambiguous:
         get_conda_env("alignment")
     threads: get_resource("clean_ambiguous", "threads")
     resources:
-        mem_mb = get_resource("clean_ambiguous", "mem_mb"),
-        time = lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
-        partition = get_resource("clean_ambiguous", "partition")
+        mem_mb=get_resource("clean_ambiguous", "mem_mb"),
+        time=lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
+        partition=get_resource("clean_ambiguous", "partition"),
     output:
-        temp("results/alignment/cleaned_maf/{part}.maf.gz")
+        temp("results/alignment/cleaned_maf/{part}.maf.gz"),
     script:
         "../scripts/ancestral_generation/clean_maf.py"
 
@@ -84,20 +85,20 @@ rule mark_ancestor:
 # Can be run in a container, as mafTools is python2.7 dependent and can cause version issues.
 rule maf_df:
     input:
-        lambda wildcards: get_df_input_maf()
+        lambda wildcards: get_df_input_maf(),
     log:
-        "results/logs/extract_ancestor/maf_df/{part}.log"
+        "results/logs/extract_ancestor/maf_df/{part}.log",
     container:
         "docker://juliahoglund/maftools:latest"
     conda:
         get_conda_env("ancestor")
     threads: get_resource("maf_df", "threads")
     resources:
-        mem_mb = get_resource("maf_df", "mem_mb"),
-        time = get_resource("maf_df", "time"),
-        partition = get_resource("maf_df", "partition")
+        mem_mb=get_resource("maf_df", "mem_mb"),
+        time=get_resource("maf_df", "time"),
+        partition=get_resource("maf_df", "partition"),
     output:
-        temp("results/alignment/dedup/{part}.maf.lz4")
+        temp("results/alignment/dedup/{part}.maf.lz4"),
     shell:
         "mkdir -p $(dirname {output}) && lz4 -dc {input} 2>> {log} | mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
@@ -106,22 +107,22 @@ rule maf_df:
 # (it also removes sequences that are not from species given in the order)
 rule maf_ro:
     input:
-        "results/alignment/dedup/{part}.maf.lz4"
+        "results/alignment/dedup/{part}.maf.lz4",
     params:
-        order=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["filter_order"]
+        order=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["filter_order"],
     log:
-        "results/logs/extract_ancestor/maf_ro/{part}.log"
+        "results/logs/extract_ancestor/maf_ro/{part}.log",
     conda:
         get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
     threads: get_resource("maf_ro", "threads")
     resources:
-        mem_mb = get_resource("maf_ro", "mem_mb"),
-        time = get_resource("maf_ro", "time"),
-        partition = get_resource("maf_ro", "partition")
+        mem_mb=get_resource("maf_ro", "mem_mb"),
+        time=get_resource("maf_ro", "time"),
+        partition=get_resource("maf_ro", "partition"),
     output:
-        temp("results/alignment/row_ordered/{part}.maf.lz4")
+        temp("results/alignment/row_ordered/{part}.maf.lz4"),
     shell:
         "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
@@ -130,24 +131,24 @@ rule maf_ro:
 rule sort_by_chr:
     input:
         maf=gather_part_files(),
-        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py"
+        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     params:
         species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
-        directory=lambda w, output: os.path.dirname(output[0])
+        directory=lambda w, output: os.path.dirname(output[0]),
     log:
-        "results/logs/extract_ancestor/sort_by_chr/chr{chr}.log"
+        "results/logs/extract_ancestor/sort_by_chr/chr{chr}.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("sort_by_chr", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
-        partition = get_resource("sort_by_chr", "partition"),
-        tmpdir="results/tmp/sort_chr"
+        mem_mb=lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
+        partition=get_resource("sort_by_chr", "partition"),
+        tmpdir="results/tmp/sort_chr",
     output:
-        "results/alignment/merged/chr{chr}.maf"
+        "results/alignment/merged/chr{chr}.maf",
     shell:
         "mkdir -p results/alignment/merged && python3 {input.script} --species {params.species_name} --ancestor {params.ancestor} --chromosomes {params.chromosomes} --outdir {params.directory} > {log} 2>&1"
 
@@ -166,9 +167,9 @@ rule maf_str:
         "docker://juliahoglund/maftools:latest"
     threads: get_resource("maf_str", "threads")
     resources:
-        mem_mb = get_resource("maf_str", "mem_mb"),
-        time = get_resource("maf_str", "time"),
-        partition = get_resource("maf_str", "partition")
+        mem_mb=get_resource("maf_str", "mem_mb"),
+        time=get_resource("maf_str", "time"),
+        partition=get_resource("maf_str", "partition"),
     output:
         temp("results/alignment/stranded/chr{chr}.maf.gz"),
     shell:
@@ -189,9 +190,9 @@ rule maf_sorter:
         "docker://juliahoglund/maftools:latest"
     threads: get_resource("maf_sorter", "threads")
     resources:
-        mem_mb = get_resource("maf_sorter", "mem_mb"),
-        time = get_resource("maf_sorter", "time"),
-        partition = get_resource("maf_sorter", "partition")
+        mem_mb=get_resource("maf_sorter", "mem_mb"),
+        time=get_resource("maf_sorter", "time"),
+        partition=get_resource("maf_sorter", "partition"),
     output:
         "results/alignment/sorted/chr{chr}.maf.gz",
     shell:
@@ -208,7 +209,7 @@ rule gen_ancestor_seq:
         ancestor=config["mark_ancestor"]["name_ancestor"],
         reference=config["mark_ancestor"]["reference_genome"],
     log:
-        "results/logs/ancestral_generation/gen_ancestor_seq/chr{chr}.log"
+        "results/logs/ancestral_generation/gen_ancestor_seq/chr{chr}.log",
     conda:
         get_conda_env("ancestor")
     output:

@@ -1,8 +1,10 @@
 # VEP Annotation Module
 # Contains vep_cache, run_vep, process_vep rules
 
+
 wildcard_constraints:
     part="[a-zA-Z0-9-]+",
+
 
 rule vep_cache:
     params:
@@ -16,15 +18,12 @@ rule vep_cache:
     shell:
         "vep_install -a cf -n {params.version_species} -c {output} --CONVERT 2> {log}"
 
+
 rule run_vep:
     input:
         script="../scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
-        cache=(
-            rules.vep_cache.output
-            if config["annotation"]["vep"]["cache"]["should_install"] == "True"
-            else []
-        ),
+        cache=(rules.vep_cache.output if config["annotation"]["vep"]["cache"]["should_install"] == "True" else []),
     params:
         cache_dir=config["annotation"]["vep"]["cache"]["directory"],
         species_name=config["species_name"],
@@ -34,9 +33,9 @@ rule run_vep:
         get_conda_env("annotation")
     threads: get_resource("run_vep", "threads")
     resources:
-        mem_mb = get_resource("run_vep", "mem_mb"),
-        time = get_resource("run_vep", "time"),
-        partition = get_resource("run_vep", "partition")
+        mem_mb=get_resource("run_vep", "mem_mb"),
+        time=get_resource("run_vep", "time"),
+        partition=get_resource("run_vep", "partition"),
     output:
         temp("{folder}/{file}_vep_output.tsv"),
     shell:
@@ -44,6 +43,7 @@ rule run_vep:
          mkdir -p $(dirname {output})
          chmod +x {input.script} 2>> {log} && {input.script} {input.vcf} {output} {params.cache_dir} {params.species_name} {threads} 2>> {log} && [[ -s {output} ]] 2>> {log}
          """
+
 
 rule process_vep:
     input:
@@ -56,9 +56,7 @@ rule process_vep:
             config["annotation"]["grantham_matrix"],
         ],
     params:
-        output_type=lambda wildcards: (
-            "derived" if "derived_variants" in wildcards.folder else "simulated"
-        ),
+        output_type=lambda wildcards: ("derived" if "derived_variants" in wildcards.folder else "simulated"),
     log:
         "{folder}/chr{chr}_process_vep.log",
     conda:

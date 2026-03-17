@@ -1,6 +1,7 @@
 # PHAST Annotation Module
 # Contains phylo_fit, run_phastCons, run_phyloP, wig2bed rules
 
+
 rule phylo_fit:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf",
@@ -25,6 +26,7 @@ rule phylo_fit:
         "tmp{wildcards.part}.fa 2>> {log} && "
         "rm tmp{wildcards.part}.fa 2>> {log}"
 
+
 rule run_phastCons:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
@@ -38,9 +40,9 @@ rule run_phastCons:
         get_conda_env("annotation")
     threads: get_resource("run_phastCons", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("run_phastCons", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("run_phastCons", "time") * attempt,
-        partition = get_resource("run_phastCons", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("run_phastCons", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("run_phastCons", "time") * attempt,
+        partition=get_resource("run_phastCons", "partition"),
     output:
         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
     shell:
@@ -48,6 +50,7 @@ rule run_phastCons:
          mkdir -p $(dirname {output})
          phastCons --msa-format FASTA --not-informative={params.species_interest} {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
          """
+
 
 rule run_phyloP:
     input:
@@ -62,9 +65,9 @@ rule run_phyloP:
         get_conda_env("annotation")
     threads: get_resource("run_phyloP", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("run_phyloP", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("run_phyloP", "time") * attempt,
-        partition = get_resource("run_phyloP", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("run_phyloP", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("run_phyloP", "time") * attempt,
+        partition=get_resource("run_phyloP", "partition"),
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     shell:
@@ -72,6 +75,7 @@ rule run_phyloP:
         mkdir -p $(dirname {output})
         phyloP --msa-format FASTA --chrom {wildcards.chr} --wig-scores --not-informative={params.species_interest} {params.phylo_params} {input.mod} {input.maf} > {output} 2> {log}
         """
+
 
 rule wig2bed:
     input:

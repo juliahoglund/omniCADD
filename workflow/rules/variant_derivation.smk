@@ -12,6 +12,7 @@
  :Date: 2026-03-17
 """
 
+
 # Generates frequency files form the population variants (vcf files).
 rule freq_files:
     input:
@@ -43,7 +44,7 @@ rule gen_derived:
         script="workflow/scripts/variant_derivation/derive_variants.py",
     params:
         no_chrs=config["chromosomes"]["autosomes"],
-        output_prefix="results/derived_variants/raw/chr{chr}"
+        output_prefix="results/derived_variants/raw/chr{chr}",
     log:
         "results/logs/derive_variants/gen_derived/chr{chr}.log",
     conda:

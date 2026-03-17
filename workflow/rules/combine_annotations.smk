@@ -62,11 +62,7 @@ rule run_vep_combine:
     input:
         script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
-        cache=(
-            rules.vep_cache.output
-            if config["annotation"]["vep"]["cache"]["should_install"] == "True"
-            else []
-        ),
+        cache=(rules.vep_cache.output if config["annotation"]["vep"]["cache"]["should_install"] == "True" else []),
     params:
         cache_dir=config["annotation"]["vep"]["cache"]["directory"],
         species_name=config["species_name"],
@@ -77,9 +73,9 @@ rule run_vep_combine:
     # Parts are at most a few million variants, 2 threads is already fast.
     threads: get_resource("run_vep_combine", "threads")
     resources:
-        mem_mb = get_resource("run_vep_combine", "mem_mb"),
-        time = get_resource("run_vep_combine", "time"),
-        partition = get_resource("run_vep_combine", "partition")
+        mem_mb=get_resource("run_vep_combine", "mem_mb"),
+        time=get_resource("run_vep_combine", "time"),
+        partition=get_resource("run_vep_combine", "partition"),
     output:
         temp("{folder}/{file}_vep_output.tsv"),
     shell:
@@ -104,9 +100,7 @@ rule process_vep_combine:
         genome=config["generate_variants"]["reference_genome_wildcard"],
         grantham=config["annotation"]["grantham_matrix"],
     params:
-        output_type=lambda wildcards: (
-            "derived" if "derived_variants" in wildcards.folder else "simulated"
-        ),
+        output_type=lambda wildcards: ("derived" if "derived_variants" in wildcards.folder else "simulated"),
     log:
         "{folder}/chr{chr}_process_vep.log",
     conda:
@@ -141,9 +135,9 @@ checkpoint split_alignment:
         get_conda_env("alignment")
     threads: get_resource("split_alignment_combine", "threads")
     resources:
-        mem_mb = get_resource("split_alignment_combine", "mem_mb"),
-        time = get_resource("split_alignment_combine", "time"),
-        partition = get_resource("split_alignment_combine", "partition")
+        mem_mb=get_resource("split_alignment_combine", "mem_mb"),
+        time=get_resource("split_alignment_combine", "time"),
+        partition=get_resource("split_alignment_combine", "partition"),
     output:
         directory("results/alignment/splitted/chr{chr}/"),
     shell:
@@ -217,9 +211,9 @@ rule compute_gerp_combine:
         get_conda_env("annotation")
     threads: get_resource("compute_gerp_combine", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("compute_gerp_combine", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("compute_gerp_combine", "time") * attempt,
-        partition = get_resource("compute_gerp_combine", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("compute_gerp_combine", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("compute_gerp_combine", "time") * attempt,
+        partition=get_resource("compute_gerp_combine", "partition"),
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates"),
     params:
@@ -254,9 +248,9 @@ rule gerp2coords_combine:
         "results/logs/chr{chr}_{part}_gerp_coord_log.txt",
     threads: get_resource("gerp2coords_combine", "threads")
     resources:
-        mem_mb = get_resource("gerp2coords_combine", "mem_mb"),
-        time = get_resource("gerp2coords_combine", "time"),
-        partition = get_resource("gerp2coords_combine", "partition")
+        mem_mb=get_resource("gerp2coords_combine", "mem_mb"),
+        time=get_resource("gerp2coords_combine", "time"),
+        partition=get_resource("gerp2coords_combine", "partition"),
     shell:
         "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"
 
@@ -304,9 +298,9 @@ rule run_phastCons_combine:
         get_conda_env("annotation")
     threads: get_resource("run_phastCons_combine", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("run_phastCons_combine", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("run_phastCons_combine", "time") * attempt,
-        partition = get_resource("run_phastCons_combine", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("run_phastCons_combine", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("run_phastCons_combine", "time") * attempt,
+        partition=get_resource("run_phastCons_combine", "partition"),
     output:
         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
     shell:
@@ -329,9 +323,9 @@ rule run_phyloP_combine:
         get_conda_env("annotation")
     threads: get_resource("run_phyloP_combine", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("run_phyloP_combine", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("run_phyloP_combine", "time") * attempt,
-        partition = get_resource("run_phyloP_combine", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("run_phyloP_combine", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("run_phyloP_combine", "time") * attempt,
+        partition=get_resource("run_phyloP_combine", "partition"),
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     shell:
@@ -362,69 +356,74 @@ rule wig2bed_combine:
 # If SNPEff and no GFF: trigger gene prediction before SNPEff
 # If no GFF, trigger gene prediction before summary report
 
+
 # Example conditional rule for gene prediction before SNPEff
 rule gene_prediction_combine:
     input:
-        genome="resources/genome/{file}.fa"
+        genome="resources/genome/{file}.fa",
     output:
-        gff="results/gene_prediction/genes_validated.gff3"
+        gff="results/gene_prediction/genes_validated.gff3",
     log:
-        "results/logs/combine_annotations/gene_prediction_combine.log"
+        "results/logs/combine_annotations/gene_prediction_combine.log",
     conda:
         get_conda_env("annotation")
     shell:
         "augustus --species=human {input.genome} > {output.gff} 2> {log}"
 
+
 rule snpeff_annotation_combine:
     input:
         vcf="results/variants/{type}/chr{chr}.vcf.gz",
-        gff="results/gene_prediction/genes_validated.gff3"
+        gff="results/gene_prediction/genes_validated.gff3",
     output:
-        snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv"
+        snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
     log:
-        "results/logs/combine_annotations/snpeff_annotation_combine_{type}_chr{chr}.log"
+        "results/logs/combine_annotations/snpeff_annotation_combine_{type}_chr{chr}.log",
     conda:
         get_conda_env("annotation")
     shell:
         "snpeff ann -gff {input.gff} {input.vcf} > {output.snpeff} 2> {log}"
 
+
 rule combine_annotations_combine:
     input:
         vep="results/annotation/vep/{type}/chr{chr}_vep.tsv",
         gerp="results/annotation/gerp/chr{chr}/gerp_scores.tsv",
-        phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv"
+        phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv",
     output:
-        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv"
+        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
     log:
-        "results/logs/combine_annotations/combine_annotations_{type}_chr{chr}.log"
+        "results/logs/combine_annotations/combine_annotations_{type}_chr{chr}.log",
     conda:
         get_conda_env("annotation")
     shell:
         "python3 workflow/scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined} 2> {log}"
 
+
 rule combine_annotations_snpeff_combine:
     input:
         snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
         gerp="results/annotation/gerp/chr{chr}/gerp_scores.tsv",
-        phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv"
+        phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv",
     output:
-        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv"
+        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
     log:
-        "results/logs/combine_annotations/combine_annotations_snpeff_{type}_chr{chr}.log"
+        "results/logs/combine_annotations/combine_annotations_snpeff_{type}_chr{chr}.log",
     conda:
         get_conda_env("annotation")
     shell:
         "python3 workflow/scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined} 2> {log}"
 
+
 # Example summary report rule with gene prediction check
 rule summary_report_combine:
     input:
         combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
-        gff="results/gene_prediction/genes_validated.gff3"
+        gff="results/gene_prediction/genes_validated.gff3",
     output:
-        report="results/summary/chr{chr}_summary.html"
+        report="results/summary/chr{chr}_summary.html",
     log:
-        "results/logs/combine_annotations/summary_report_combine_chr{chr}.log"
+        "results/logs/combine_annotations/summary_report_combine_chr{chr}.log",
     conda:
         get_conda_env("report")
     shell:

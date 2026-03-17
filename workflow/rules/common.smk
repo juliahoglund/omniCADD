@@ -14,10 +14,6 @@ import sys
 import glob
 
 
-
-
-
-
 # Global conda environment resolver
 def get_conda_env(env_name):
     """Return path to conda environment file"""
@@ -30,7 +26,7 @@ def get_gene_annotation_file():
     Used by: gene_prediction.smk
     """
     source = config["gene_annotation"]["source"]
-    
+
     if source == "gff":
         return config["gene_annotation"]["gff"]
     elif source == "gtf":
@@ -75,23 +71,20 @@ def gather_part_files():
             parts_filtered.append(part)
 
     # Formulate filenames as output from the previous step
-    infiles = expand(
-        f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered
-    )
+    infiles = expand(f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered)
 
     # Handle the case when no files are found
     if len(infiles) == 0:
         # For linting, return a placeholder
         import sys
+
         if "--lint" in sys.argv:
-            print(
-                f"Warning: No alignment parts found in the form {input_pattern} (linting mode)"
-            )
+            print(f"Warning: No alignment parts found in the form {input_pattern} (linting mode)")
             return ["results/alignment/row_ordered/placeholder.maf.lz4"]
         else:
             # For actual runs, exit with error
             sys.exit(f"No alignment parts found in the form {input_pattern}")
-    
+
     return infiles
 
 
@@ -125,6 +118,7 @@ def gather_scores(wildcards):
     Used by: score_variants.smk
     """
     from natsort import natsorted, ns
+
     checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
     parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.vcf.gz")).part
     parts_sorted = natsorted(parts, alg=ns.INT)  # Natural sort
@@ -141,7 +135,6 @@ Global wildcard constraints, ease matching of wildcards in rules.
 Chr is constrained to only be numbers or letters.
 Name, label and file may not contain /, they may not be sub-folders.
 """
-
 
 
 # Global wildcard constraints for use across modules
@@ -282,13 +275,9 @@ def load_tsv_configuration(file: str) -> dict:
             elements = parts[1:]
         if line.startswith("#") or len(line) == 0:
             continue
-        samples[parts[0]] = dict(
-            [(label, value) for label, value in zip(elements, parts[1:])]
-        )
+        samples[parts[0]] = dict([(label, value) for label, value in zip(elements, parts[1:])])
 
     return samples
-
-
 
 
 def ensure_dir(path):

@@ -85,21 +85,9 @@ rule create_datafiles:
         script="../scripts/summary_report/stats_report.R",
         tree=config["stats_report"]["tree"],
         ideogram="results/visualisation/indexfile.txt",
-        annotation=(
-            "results/visualisation/Ancestor.bed"
-            if config["stats_report"]["annotation"] == "True"
-            else []
-        ),
-        bedfile=(
-            "results/visualisation/CDS.regions.bed"
-            if config["stats_report"]["annotation"] == "True"
-            else []
-        ),
-        coverage=(
-            "results/visualisation/CDS.coverage.bed"
-            if config["stats_report"]["annotation"] == "True"
-            else []
-        ),
+        annotation=("results/visualisation/Ancestor.bed" if config["stats_report"]["annotation"] == "True" else []),
+        bedfile=("results/visualisation/CDS.regions.bed" if config["stats_report"]["annotation"] == "True" else []),
+        coverage=("results/visualisation/CDS.coverage.bed" if config["stats_report"]["annotation"] == "True" else []),
     params:
         ingroup=config["stats_report"]["ingroup"],
         outgroup=config["stats_report"]["outgroup"],
@@ -145,21 +133,9 @@ rule create_stats_report:
         script="../scripts/summary_report/stats_report.R",
         tree=config["stats_report"]["tree"],
         ideogram="results/visualisation/indexfile.txt",
-        annotation=(
-            "results/visualisation/Ancestor.bed"
-            if config["stats_report"]["annotation"] == "True"
-            else []
-        ),
-        bedfile=(
-            "results/visualisation/CDS.regions.bed"
-            if config["stats_report"]["annotation"] == "True"
-            else []
-        ),
-        coverage=(
-            "results/visualisation/CDS.coverage.bed"
-            if config["stats_report"]["annotation"] == "True"
-            else []
-        ),
+        annotation=("results/visualisation/Ancestor.bed" if config["stats_report"]["annotation"] == "True" else []),
+        bedfile=("results/visualisation/CDS.regions.bed" if config["stats_report"]["annotation"] == "True" else []),
+        coverage=("results/visualisation/CDS.coverage.bed" if config["stats_report"]["annotation"] == "True" else []),
     params:
         ingroup=config["stats_report"]["ingroup"],
         outgroup=config["stats_report"]["outgroup"],
@@ -175,28 +151,34 @@ rule create_stats_report:
         Rscript -e "rmarkdown::render('{input.script}', params=list(tree='{input.tree}', ideogram='{input.ideogram}', annotation='{input.annotation}', bedfile='{input.bedfile}', coverage='{input.coverage}', ingroup='{params.ingroup}', outgroup='{params.outgroup}'), output_dir='results/visualisation/')" 2> {log}
         """
 
+
 # Conditional gene prediction for summary report
 rule gene_prediction:
     input:
-        genome="resources/genome/{file}.fa"
+        genome="resources/genome/{file}.fa",
     output:
-        gff="results/gene_prediction/genes_validated.gff3"
+        gff="results/gene_prediction/genes_validated.gff3",
     log:
-        "results/logs/summary_report/gene_prediction.log"
+        "results/logs/summary_report/gene_prediction.log",
     conda:
         get_conda_env("annotation")
     shell:
         "augustus --species=human {input.genome} > {output.gff} 2> {log}"
 
+
 rule summary_report_with_gene_prediction:
     input:
         combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
-        gff=(config["stats_report"].get("gff") if config["stats_report"].get("gff") else "results/gene_prediction/genes_validated.gff3")
+        gff=(
+            config["stats_report"].get("gff")
+            if config["stats_report"].get("gff")
+            else "results/gene_prediction/genes_validated.gff3"
+        ),
     output:
-        report="results/summary/chr{chr}_summary.html"
+        report="results/summary/chr{chr}_summary.html",
     log:
-        "results/logs/summary_report/summary_report_with_gene_prediction_chr{chr}.log"
+        "results/logs/summary_report/summary_report_with_gene_prediction_chr{chr}.log",
     conda:
         get_conda_env("report")
     shell:
-           "Rscript ../scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report} 2> {log}"
+        "Rscript ../scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report} 2> {log}"

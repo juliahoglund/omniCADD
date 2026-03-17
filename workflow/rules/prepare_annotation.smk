@@ -2,12 +2,12 @@
 rule split_fasta_by_chromosome:
     input:
         fasta="resources/genome/{prefix}.fa",
-        index="resources/genome/{prefix}.fa.fai"
+        index="resources/genome/{prefix}.fa.fai",
     params:
         chromosomes=config["chromosomes"]["karyotype"],
-        output_dir="resources/genome/"
+        output_dir="resources/genome/",
     output:
-        expand("resources/genome/{{prefix}}_chr{chr}.fa", chr=config["chromosomes"]["karyotype"])
+        expand("resources/genome/{{prefix}}_chr{chr}.fa", chr=config["chromosomes"]["karyotype"]),
     conda:
         get_conda_env("common")
     shell:
@@ -16,14 +16,19 @@ rule split_fasta_by_chromosome:
             samtools faidx {input.fasta} $chr > {params.output_dir}{wildcards.prefix}_chr${{chr}}.fa
         done
         """
+
+
 # Prepare Annotation Module
 # Shared preprocessing rules for annotation modules
+
 
 wildcard_constraints:
     part="[a-zA-Z0-9-]+",
 
+
 # Example: FASTA/VCF indexing, chunking, format conversion
 # Add rules here that are used by multiple annotation modules
+
 
 # Rule: Index FASTA files
 rule index_fasta:
@@ -36,6 +41,7 @@ rule index_fasta:
     shell:
         "samtools faidx {input.fasta}"
 
+
 # Rule: Linearize FASTA
 rule linearize_fasta:
     input:
@@ -46,6 +52,7 @@ rule linearize_fasta:
         get_conda_env("common")
     shell:
         'awk \'/^>/ {printf("\\n%s\\n",$0); next;} {printf("%s",$0);} END {printf("\\n");}\' {input.fasta} > {output.linearized}'
+
 
 # Rule: Chunk VCF/MAF files
 rule chunk_maf:
@@ -59,5 +66,6 @@ rule chunk_maf:
         get_conda_env("common")
     shell:
         "python workflow/scripts/preprocessing/chunk_maf.py --input {input.maf} --output {output.chunks} --size {params.chunk_size}"
+
 
 # Add more shared preprocessing rules as needed

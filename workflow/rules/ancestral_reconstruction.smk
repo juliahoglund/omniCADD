@@ -17,20 +17,22 @@ ALIGN_DIR = config.get("ancestral_reconstruction", {}).get("align_dir", "results
 OUTPUT_DIR = config.get("ancestral_reconstruction", {}).get("output_dir", "results/ancestral_seq_phast")
 CHROMOSOMES = config.get("chromosomes", {}).get("karyotype", [])
 
+
 rule all_ancestral:
     input:
-        expand(f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa", chr=CHROMOSOMES)
+        expand(f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa", chr=CHROMOSOMES),
+
 
 rule fit_phylo_model:
     input:
         alignment=f"{ALIGN_DIR}/chr{{chr}}_oneline.fa",
-        tree=PHAST_TREE
+        tree=PHAST_TREE,
     output:
-        mod=f"{OUTPUT_DIR}/chr{{chr}}.mod"
+        mod=f"{OUTPUT_DIR}/chr{{chr}}.mod",
     params:
-        output_dir=lambda w, output: os.path.dirname(output.mod)
+        output_dir=lambda w, output: os.path.dirname(output.mod),
     log:
-        f"{OUTPUT_DIR}/logs/fit_phylo_model_chr{{chr}}.log"
+        f"{OUTPUT_DIR}/logs/fit_phylo_model_chr{{chr}}.log",
     conda:
         "../envs/annotation.yml"
     shell:
@@ -40,17 +42,18 @@ rule fit_phylo_model:
         mv {params.output_dir}/chr{wildcards.chr}.mod {output.mod}
         """
 
+
 rule reconstruct_ancestor:
     input:
         alignment=f"{ALIGN_DIR}/chr{{chr}}_oneline.fa",
-        mod=f"{OUTPUT_DIR}/chr{{chr}}.mod"
+        mod=f"{OUTPUT_DIR}/chr{{chr}}.mod",
     output:
-        ancestor=f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa"
+        ancestor=f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa",
     params:
         node=NODE,
-        output_dir=lambda w, output: os.path.dirname(output.ancestor)
+        output_dir=lambda w, output: os.path.dirname(output.ancestor),
     log:
-        f"{OUTPUT_DIR}/logs/ancestor_chr{{chr}}.log"
+        f"{OUTPUT_DIR}/logs/ancestor_chr{{chr}}.log",
     conda:
         "../envs/annotation.yml"
     shell:

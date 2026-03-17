@@ -26,9 +26,7 @@ wildcard_constraints:
 # The dataset is then split into n_folds which are each written to disk
 rule fold_data:
     input:
-        derived=expand(
-            "results/dataset/derived/chr{chr}.npz", chr=config["chromosomes"]["train"]
-        ),
+        derived=expand("results/dataset/derived/chr{chr}.npz", chr=config["chromosomes"]["train"]),
         derived_m=expand(
             "results/dataset/derived/chr{chr}.npz.meta.csv.gz",
             chr=config["chromosomes"]["train"],
@@ -58,12 +56,11 @@ rule fold_data:
     priority: 20
     threads: get_resource("fold_data", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: min(
-            get_resource("fold_data", "mem_mb") * 2, 
-            get_resource("fold_data", "mem_mb") * attempt
+        mem_mb=lambda wildcards, attempt: min(
+            get_resource("fold_data", "mem_mb") * 2, get_resource("fold_data", "mem_mb") * attempt
         ),
-        time = get_resource("fold_data", "time"),
-        partition = get_resource("fold_data", "partition")
+        time=get_resource("fold_data", "time"),
+        partition=get_resource("fold_data", "partition"),
     output:
         test=expand("results/dataset/fold_{fold}.npz", fold=get_folds()),
         test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
@@ -82,9 +79,7 @@ rule train_model:
         test="results/dataset/fold_{fold}.npz",
         test_m="results/dataset/fold_{fold}.npz.meta.csv.gz",
         test_c="results/dataset/fold_{fold}.npz.columns.csv",
-        train=lambda wildcards: expand(
-            "results/dataset/fold_{fold}.npz", fold=get_train_folds(wildcards.fold)
-        ),
+        train=lambda wildcards: expand("results/dataset/fold_{fold}.npz", fold=get_train_folds(wildcards.fold)),
         train_m=lambda wildcards: expand(
             "results/dataset/fold_{fold}.npz.meta.csv.gz",
             fold=get_train_folds(wildcards.fold),
@@ -99,22 +94,17 @@ rule train_model:
         c=config["model"]["test_params"]["c"],
         max_iter=config["model"]["test_params"]["max_iter"],
         file_pattern="results/model/{cols}/fold_{fold}_[C]C_[ITER]iter.mod",
-        sel_cols=lambda wildcards: (
-            "All"
-            if wildcards.cols == "All"
-            else config["model"]["column_subsets"][wildcards.cols]
-        ),
+        sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
     conda:
         get_conda_env("model")
     priority: 20
     threads: get_resource("train_model", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: min(
- get_resource("train_model", "mem_mb") * 2,
-            get_resource("train_model", "mem_mb") * attempt
+        mem_mb=lambda wildcards, attempt: min(
+            get_resource("train_model", "mem_mb") * 2, get_resource("train_model", "mem_mb") * attempt
         ),
-        time = get_resource("train_model", "time"),
-        partition = get_resource("train_model", "partition")
+        time=get_resource("train_model", "time"),
+        partition=get_resource("train_model", "partition"),
     output:
         model=expand(
             "results/model/{{cols}}/fold_{{fold}}_{c}C_{iter}iter.mod.pickle",
@@ -159,22 +149,17 @@ rule final_model:
         c=config["model"]["final_params"]["c"],
         max_iter=config["model"]["final_params"]["max_iter"],
         file_pattern="results/model/{cols}/full.mod",
-        sel_cols=lambda wildcards: (
-            "All"
-            if wildcards.cols == "All"
-            else config["model"]["column_subsets"][wildcards.cols]
-        ),
+        sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
     conda:
         get_conda_env("model")
     priority: 20
     threads: get_resource("final_model", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: min(
-            get_resource("final_model", "mem_mb") * 2,
-            get_resource("final_model", "mem_mb") * attempt
+        mem_mb=lambda wildcards, attempt: min(
+            get_resource("final_model", "mem_mb") * 2, get_resource("final_model", "mem_mb") * attempt
         ),
-        time = get_resource("final_model", "time"),
-        partition = get_resource("final_model", "partition")
+        time=get_resource("final_model", "time"),
+        partition=get_resource("final_model", "partition"),
     output:
         model="results/model/{cols}/full.mod.pickle",
         scaler="results/model/{cols}/full.scaler.pickle",
@@ -209,9 +194,9 @@ rule evaluate_models:
         get_conda_env("model")
     threads: get_resource("evaluate_models", "threads")
     resources:
-        mem_mb = get_resource("evaluate_models", "mem_mb"),
-        time = get_resource("evaluate_models", "time"),
-        partition = get_resource("evaluate_models", "partition")
+        mem_mb=get_resource("evaluate_models", "mem_mb"),
+        time=get_resource("evaluate_models", "time"),
+        partition=get_resource("evaluate_models", "partition"),
     output:
         summary="results/model/{cols}/model_evaluation_summary.tsv",
         best_params="results/model/{cols}/best_parameters.json",

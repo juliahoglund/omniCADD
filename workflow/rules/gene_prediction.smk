@@ -15,9 +15,7 @@ except Exception:  # Fallback if import path changes across versions
 # Example (recommended):
 # containers:
 #   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
-AUGUSTUS_CONTAINER = (
-    config.get("containers", {}).get("augustus")
-)
+AUGUSTUS_CONTAINER = config.get("containers", {}).get("augustus")
 if not AUGUSTUS_CONTAINER:
     raise WorkflowError(
         "Missing containers.augustus. Set a valid Quay.io Biocontainers tag, e.g. "
@@ -28,36 +26,37 @@ if not AUGUSTUS_CONTAINER:
 ### Augustus Gene Prediction #######
 ####################################
 
+
 rule augustus_predict_genes:
     """
     Predict genes using Augustus when no annotation available.
     Runs per chromosome for parallelization.
     """
     input:
-        genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr)
+        genome=lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
     params:
-        species = config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
-        options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on"),
-        config_paths = [
+        species=config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
+        options=config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on"),
+        config_paths=[
             "opt/conda/envs/augustus/share/augustus/config",
             "opt/conda/share/augustus/config",
             "usr/share/augustus/config",
             "usr/local/share/augustus/config",
             "usr/lib/augustus/config",
-            "usr/lib64/augustus/config"
-        ]
+            "usr/lib64/augustus/config",
+        ],
     # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
         AUGUSTUS_CONTAINER
     threads: get_resource("augustus_predict_genes", "threads")
     resources:
-        mem_mb = get_resource("augustus_predict_genes", "mem_mb"),
-        time = get_resource("augustus_predict_genes", "time"),
-        partition = get_resource("augustus_predict_genes", "partition")
+        mem_mb=get_resource("augustus_predict_genes", "mem_mb"),
+        time=get_resource("augustus_predict_genes", "time"),
+        partition=get_resource("augustus_predict_genes", "partition"),
     output:
-        gff = "results/gene_prediction/chr{chr}.gff3"
+        gff="results/gene_prediction/chr{chr}.gff3",
     log:
-        "results/logs/augustus/chr{chr}.log"
+        "results/logs/augustus/chr{chr}.log",
     shell:
         """
         mkdir -p results/logs/augustus
@@ -105,13 +104,12 @@ rule augustus_merge_chromosomes:
     Merge Augustus predictions from all chromosomes into single file.
     """
     input:
-        gff_files=expand("results/gene_prediction/chr{chr}.gff3",
-               chr=config["chromosomes"]["karyotype"])
+        gff_files=expand("results/gene_prediction/chr{chr}.gff3", chr=config["chromosomes"]["karyotype"]),
     output:
-        merged = "results/gene_prediction/genes.gff3",
-        stats = "results/gene_prediction/prediction_stats.txt"
+        merged="results/gene_prediction/genes.gff3",
+        stats="results/gene_prediction/prediction_stats.txt",
     log:
-        "results/logs/gene_prediction/augustus_merge_chromosomes.log"
+        "results/logs/gene_prediction/augustus_merge_chromosomes.log",
     conda:
         "../envs/common.yml"
     shell:
@@ -138,12 +136,12 @@ rule augustus_validate:
     Validate Augustus predictions and check for common issues.
     """
     input:
-        gff = "results/gene_prediction/genes.gff3"
+        gff="results/gene_prediction/genes.gff3",
     output:
-        validated = "results/gene_prediction/genes_validated.gff3",
-        report = "results/gene_prediction/validation_report.txt"
+        validated="results/gene_prediction/genes_validated.gff3",
+        report="results/gene_prediction/validation_report.txt",
     log:
-        "results/logs/gene_prediction/augustus_validate.log"
+        "results/logs/gene_prediction/augustus_validate.log",
     conda:
         "../envs/gene_prediction.yml"
     shell:
@@ -179,17 +177,18 @@ rule augustus_validate:
 ### Conditional Gene Source ########
 ####################################
 
+
 rule convert_gff_to_gtf:
     """
     Convert GFF3 to GTF format if needed (e.g., for SIFT).
     Uses gffread for conversion.
     """
     input:
-        gff = lambda wildcards: get_gene_annotation_file()
+        gff=lambda wildcards: get_gene_annotation_file(),
     output:
-        gtf = "results/gene_annotation/genes.gtf.gz"
+        gtf="results/gene_annotation/genes.gtf.gz",
     log:
-        "results/logs/gene_annotation/convert_gff_to_gtf.log"
+        "results/logs/gene_annotation/convert_gff_to_gtf.log",
     conda:
         "../envs/gene_prediction.yml"
     shell:
@@ -218,17 +217,18 @@ rule convert_gff_to_gtf:
 ### Reference Genome Merge #########
 ####################################
 
+
 rule merge_reference_genome:
     """
     Merge per-chromosome FASTA specified by reference_genome_wildcard into a single FASTA
     containing the configured karyotype chromosomes. Used by SNPEff prep.
     """
     input:
-        expand(config["generate_variants"]["reference_genome_wildcard"], chr=config["chromosomes"]["karyotype"])
+        expand(config["generate_variants"]["reference_genome_wildcard"], chr=config["chromosomes"]["karyotype"]),
     output:
-        merged = "results/genome/merged_genome.fa"
+        merged="results/genome/merged_genome.fa",
     log:
-        "results/logs/genome/merge_reference_genome.log"
+        "results/logs/genome/merge_reference_genome.log",
     conda:
         "../envs/common.yml"
     shell:
@@ -244,11 +244,11 @@ rule compress_merged_reference_genome:
     Keeps the plain .fa for rules that read headers directly.
     """
     input:
-        fa = "results/genome/merged_genome.fa"
+        fa="results/genome/merged_genome.fa",
     output:
-        gz = "results/genome/merged_genome.fa.gz"
+        gz="results/genome/merged_genome.fa.gz",
     log:
-        "results/logs/genome/compress_merged_reference_genome.log"
+        "results/logs/genome/compress_merged_reference_genome.log",
     conda:
         "../envs/common.yml"
     shell:
@@ -263,11 +263,11 @@ rule index_merged_reference_genome:
     Only runs if a downstream rule requires the index.
     """
     input:
-        fa = "results/genome/merged_genome.fa"
+        fa="results/genome/merged_genome.fa",
     output:
-        fai = "results/genome/merged_genome.fa.fai"
+        fai="results/genome/merged_genome.fa.fai",
     log:
-        "results/logs/genome/index_merged_reference_genome.log"
+        "results/logs/genome/index_merged_reference_genome.log",
     conda:
         "../envs/common.yml"
     shell:
@@ -282,12 +282,12 @@ rule prepare_annotation_for_snpeff:
     Ensures chromosome names match between genome and annotation.
     """
     input:
-        annotation = lambda wildcards: get_gene_annotation_file(),
-        genome = config["mark_ancestor"]["reference_genome"]
+        annotation=lambda wildcards: get_gene_annotation_file(),
+        genome=config["mark_ancestor"]["reference_genome"],
     output:
-        prepared = "results/gene_annotation/genes_for_snpeff.gff3"
+        prepared="results/gene_annotation/genes_for_snpeff.gff3",
     log:
-        "results/logs/gene_annotation/prepare_annotation_for_snpeff.log"
+        "results/logs/gene_annotation/prepare_annotation_for_snpeff.log",
     conda:
         "../envs/gene_prediction.yml"
     shell:
@@ -322,25 +322,26 @@ rule prepare_annotation_for_snpeff:
 ### Training Augustus (Optional) ###
 ####################################
 
+
 rule augustus_train_species:
     """
     Optional: Train Augustus on species-specific data.
     Requires training set of genes with known structure.
     """
     input:
-        training_genes = "resources/augustus_training/training_genes.gb",
-        test_genes = "resources/augustus_training/test_genes.gb"
+        training_genes="resources/augustus_training/training_genes.gb",
+        test_genes="resources/augustus_training/test_genes.gb",
     params:
-        species_name = config["species_name"]
+        species_name=config["species_name"],
     conda:
         "../envs/annotation.yml"
     output:
         # Use a concrete path derived from config['species_name'] so outputs/logs
         # do not contain different wildcards. Evaluate at parse time to avoid
         # using functions for outputs/logs (some Snakemake versions restrict this).
-        model = "results/augustus_training/{}_trained".format(config['species_name'])
+        model="results/augustus_training/{}_trained".format(config["species_name"]),
     log:
-        "results/logs/augustus_training_{}.log".format(config['species_name'])
+        "results/logs/augustus_training_{}.log".format(config["species_name"]),
     shell:
         """
         # This is a placeholder for Augustus training
@@ -359,16 +360,17 @@ rule augustus_train_species:
 ### Quality Control ################
 ####################################
 
+
 rule assess_gene_prediction_quality:
     """
     Assess quality of gene predictions by comparing metrics.
     """
     input:
-        predictions = "results/gene_prediction/genes_validated.gff3"
+        predictions="results/gene_prediction/genes_validated.gff3",
     output:
-        qc_report = "results/gene_prediction/quality_report.html"
+        qc_report="results/gene_prediction/quality_report.html",
     log:
-        "results/logs/gene_prediction/assess_quality.log"
+        "results/logs/gene_prediction/assess_quality.log",
     conda:
         "../envs/annotation.yml"
     shell:

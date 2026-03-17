@@ -1,6 +1,7 @@
 # Data Preparation Module
 # Handles imputation, column analysis, and preparation of annotated variant data for model training/testing/scoring
 
+
 rule derive_impute_means:
     input:
         tsv=expand(
@@ -21,6 +22,7 @@ rule derive_impute_means:
         python3 {input.script} -i {input.tsv} -p {input.processing} -o {output.imputation} 2> {log}
         """
 
+
 rule column_analysis:
     input:
         derived=expand(
@@ -39,9 +41,7 @@ rule column_analysis:
     params:
         out_folder=lambda wildcards, output: "results/figures/column_analysis/",
     output:
-        relevance=report(
-            "results/figures/column_analysis/relevance.tsv", category="Column Analysis"
-        ),
+        relevance=report("results/figures/column_analysis/relevance.tsv", category="Column Analysis"),
         derived_cor=report(
             "results/figures/column_analysis/derived_variants_corr.tsv",
             category="Column Analysis",
@@ -60,6 +60,7 @@ rule column_analysis:
         python3 {input.script} -s {input.simulated} -d {input.derived} -o {params.out_folder} 2> {log}
         """
 
+
 rule prepare_data:
     input:
         data="results/dataset/{type}/chr{chr}_annotated.tsv",
@@ -68,15 +69,13 @@ rule prepare_data:
         interactions=config["annotation_config"]["interactions"],
         script="workflow/scripts/combine_annotations/prepare_annotated_data.py",
     params:
-        derived_flag=lambda wildcards: (
-            "--derived" if wildcards.type == "derived" else ""
-        ),
+        derived_flag=lambda wildcards: ("--derived" if wildcards.type == "derived" else ""),
         y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
     threads: get_resource("prepare_data", "threads")
     resources:
-        mem_mb = lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
-        time = lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
-        partition = get_resource("prepare_data", "partition")
+        mem_mb=lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
+        partition=get_resource("prepare_data", "partition"),
     output:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",
