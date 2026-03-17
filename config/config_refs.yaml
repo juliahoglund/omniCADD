@@ -1,0 +1,100 @@
+---
+# Reference data paths for omniCADD pipeline
+# Set OMNICADD_REF_DATA to your base reference directory
+# Example: export OMNICADD_REF_DATA=/path/to/omnicadd/resources
+
+OMNICADD_REF_DATA: "resources"
+
+###################
+### GENOME ########
+###################
+reference:
+  genome: "{{OMNICADD_REF_DATA}}/genome/Sus_scrofa_ref.fa"
+  genome_fai: "{{OMNICADD_REF_DATA}}/genome/Sus_scrofa_ref.fa.fai"
+  genome_wildcard: "{{OMNICADD_REF_DATA}}/genome/Sus_scrofa_ref_{chr}.fa"  # Per-chromosome FASTAs
+  genome_dir: "{{OMNICADD_REF_DATA}}/genome/"
+
+#########################
+### GENE ANNOTATION #####
+#########################
+gene_annotation:
+  gff: "{{OMNICADD_REF_DATA}}/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz"
+  gtf: "{{OMNICADD_REF_DATA}}/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz"
+
+#########################
+### POPULATION VCF ######
+#########################
+population:
+  vcf: "{{OMNICADD_REF_DATA}}/pop-level-VCF/chr{chr}.vcf.gz"  # Per-chromosome VCFs
+  vcf_dir: "{{OMNICADD_REF_DATA}}/pop-level-VCF/"
+
+###########################
+### PHYLOGENETIC TREES ####
+###########################
+phylogeny:
+  tree_newick: "{{OMNICADD_REF_DATA}}/tree_43_mammals.nwk"
+  phast_tree_string: "(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))"
+  phast_tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
+
+####################################
+### MULTI-SPECIES ALIGNMENTS #######
+####################################
+alignment:
+  maf_dir: "{{OMNICADD_REF_DATA}}/alignment/"
+  maf_pattern: "*.maf.gz"  # Files matching this pattern in maf_dir
+  # Alignment metadata
+  43_mammals_epo:
+    path: "{{OMNICADD_REF_DATA}}/alignment/"
+    type: "maf.gz"
+    ancestral_label: "Ancestor_Pig_Cow"
+    filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+    name_species_interest: "sus_scrofa"
+
+################################
+### ANCESTRAL RECONSTRUCTION ###
+################################
+ancestral:
+  input_fasta: "{{OMNICADD_REF_DATA}}/ancestral/Ancestor.fasta"
+  output_dir: "results/ancestral_seq/"
+
+###########################
+### ANNOTATION DATABASES ##
+###########################
+annotation_db:
+  # VEP cache
+  vep_cache: "$VEP_CACHE"  # Or explicit path: "{{OMNICADD_REF_DATA}}/vep_cache/"
+  
+  # SNPEff database
+  snpeff:
+    data_dir: "{{OMNICADD_REF_DATA}}/snpEff/data/"
+    config_file: "{{OMNICADD_REF_DATA}}/snpEff/snpEff.config"
+    genome_fasta: "{{OMNICADD_REF_DATA}}/genome/Sus_scrofa_ref.fa"
+  
+  # SIFT4G database
+  sift4g:
+    parent_dir: "{{OMNICADD_REF_DATA}}/SIFT4G/"
+  
+  # Grantham substitution matrix
+  grantham_matrix: "{{OMNICADD_REF_DATA}}/grantham_matrix/grantham_matrix_formatted_correct.tsv"
+
+############################
+### ANNOTATION CONFIG ######
+############################
+annotation_config:
+  processing: "config/annot_processing_config.tsv"
+  interactions: "config/annot_combination_config.tsv"
+
+###########################
+### SUMMARY REPORT ########
+###########################
+report:
+  annotation_prefix: "{{OMNICADD_REF_DATA}}/Sus_scrofa.Sscrofa11.1.111.chr"
+  tree: "{{OMNICADD_REF_DATA}}/tree_43_mammals.nwk"
+
+#########################
+### CONTAINER IMAGES ####
+#########################
+containers:
+  augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+  snpeff: "docker://biocontainers/snpeff:v5.1.0_cv1"
+  maftools: "docker://juliahoglund/maftools:latest"
