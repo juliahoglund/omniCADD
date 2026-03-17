@@ -86,3 +86,4 @@ genomeBoar/
 # Removed: workflow/rules/5_annotate_vars_unimplemented.smk (if not present)
 docs/DARDEL_SETUP.md
 docs/omniCADD_workflow_dag.pdf
+config/config.yaml.bak_20260316
