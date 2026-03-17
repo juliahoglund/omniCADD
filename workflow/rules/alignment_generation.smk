@@ -32,7 +32,7 @@ CHROMOSOMES = config.get("chromosomes", {}).get("karyotype", [])
 # ======================================
 rule all_alignments:
     input:
-        expand(f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa", chr=CHROMOSOMES)
+        expand(f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa", chr=CHROMOSOMES),
 
 
 # ======================================
@@ -40,9 +40,9 @@ rule all_alignments:
 # ======================================
 rule index_reference:
     input:
-        REFERENCE_GENOME
+        REFERENCE_GENOME,
     output:
-        f"{OUTPUT_DIR}/index/reference.mmi"
+        f"{OUTPUT_DIR}/index/reference.mmi",
     log:
         f"{OUTPUT_DIR}/logs/index_reference.log",
     threads: get_resource("index_reference", "threads")
@@ -64,9 +64,9 @@ rule index_reference:
 rule align_species:
     input:
         reference_index=f"{OUTPUT_DIR}/index/reference.mmi",
-        species_genome=f"{GENOME_DIR}/{{species}}.fa.gz"
+        species_genome=f"{GENOME_DIR}/{{species}}.fa.gz",
     output:
-        bam=temp(f"{OUTPUT_DIR}/alignments/{{species}}.bam")
+        bam=temp(f"{OUTPUT_DIR}/alignments/{{species}}.bam"),
     log:
         f"{OUTPUT_DIR}/logs/align_species/{{species}}.log",
     threads: get_resource("align_species", "threads")
@@ -75,7 +75,7 @@ rule align_species:
         time=lambda wildcards, attempt: get_resource("align_species", "time") * attempt,
         partition=get_resource("align_species", "partition"),
     params:
-        preset=MINIMAP_PRESET
+        preset=MINIMAP_PRESET,
     conda:
         "../envs/alignment.yml"
     shell:
@@ -91,9 +91,9 @@ rule align_species:
 # ======================================
 rule filter_alignments:
     input:
-        f"{OUTPUT_DIR}/alignments/{{species}}.bam"
+        f"{OUTPUT_DIR}/alignments/{{species}}.bam",
     output:
-        bam=temp(f"{OUTPUT_DIR}/filtered/{{species}}.bam")
+        bam=temp(f"{OUTPUT_DIR}/filtered/{{species}}.bam"),
     log:
         f"{OUTPUT_DIR}/logs/filter_alignments/{{species}}.log",
     threads: get_resource("filter_alignments", "threads")
@@ -102,7 +102,7 @@ rule filter_alignments:
         time=get_resource("filter_alignments", "time"),
         partition=get_resource("filter_alignments", "partition"),
     params:
-        mapq=MIN_MAPQ
+        mapq=MIN_MAPQ,
     conda:
         "../envs/alignment.yml"
     shell:
@@ -116,9 +116,9 @@ rule filter_alignments:
 # ======================================
 rule sort_bam:
     input:
-        f"{OUTPUT_DIR}/filtered/{{species}}.bam"
+        f"{OUTPUT_DIR}/filtered/{{species}}.bam",
     output:
-        bam=temp(f"{OUTPUT_DIR}/sorted/{{species}}.sorted.bam")
+        bam=temp(f"{OUTPUT_DIR}/sorted/{{species}}.sorted.bam"),
     log:
         f"{OUTPUT_DIR}/logs/sort_bam/{{species}}.log",
     threads: get_resource("sort_bam", "threads")
@@ -140,9 +140,9 @@ rule sort_bam:
 rule generate_consensus:
     input:
         bam=f"{OUTPUT_DIR}/sorted/{{species}}.sorted.bam",
-        reference=REFERENCE_GENOME
+        reference=REFERENCE_GENOME,
     output:
-        fasta=temp(f"{OUTPUT_DIR}/consensus/{{species}}.fasta")
+        fasta=temp(f"{OUTPUT_DIR}/consensus/{{species}}.fasta"),
     log:
         f"{OUTPUT_DIR}/logs/generate_consensus/{{species}}.log",
     threads: get_resource("generate_consensus", "threads")
@@ -153,7 +153,7 @@ rule generate_consensus:
     params:
         mapq=MIN_MAPQ,
         baseq=MIN_BASEQ,
-        mincov=MIN_COVERAGE
+        mincov=MIN_COVERAGE,
     conda:
         "../envs/alignment.yml"
     shell:
@@ -170,9 +170,9 @@ rule generate_consensus:
 # ======================================
 rule split_by_chromosome:
     input:
-        f"{OUTPUT_DIR}/consensus/{{species}}.fasta"
+        f"{OUTPUT_DIR}/consensus/{{species}}.fasta",
     output:
-        expand(f"{OUTPUT_DIR}/by_chr/{{species}}/chr{{chr}}.fa", chr=CHROMOSOMES, allow_missing=True)
+        expand(f"{OUTPUT_DIR}/by_chr/{{species}}/chr{{chr}}.fa", chr=CHROMOSOMES, allow_missing=True),
     log:
         f"{OUTPUT_DIR}/logs/split_by_chromosome/{{species}}.log",
     threads: get_resource("split_by_chromosome", "threads")
@@ -182,7 +182,7 @@ rule split_by_chromosome:
         partition=get_resource("split_by_chromosome", "partition"),
     params:
         outdir=f"{OUTPUT_DIR}/by_chr/{{species}}",
-        chromosomes=CHROMOSOMES
+        chromosomes=CHROMOSOMES,
     conda:
         "../envs/common.yml"
     script:
@@ -196,10 +196,9 @@ rule split_by_chromosome:
 rule create_multiway_alignment:
     input:
         reference_chr="resources/genome/Wild_Boar_chr{chr}.fa",
-        species_chrs=expand(f"{OUTPUT_DIR}/by_chr/{{species}}/chr{{chr}}.fa",
-                           species=SPECIES_LIST, allow_missing=True)
+        species_chrs=expand(f"{OUTPUT_DIR}/by_chr/{{species}}/chr{{chr}}.fa", species=SPECIES_LIST, allow_missing=True),
     output:
-        multiway=f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa"
+        multiway=f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa",
     log:
         f"{OUTPUT_DIR}/logs/create_multiway/chr{{chr}}.log",
     threads: get_resource("create_multiway_alignment", "threads")
@@ -208,7 +207,7 @@ rule create_multiway_alignment:
         time=get_resource("create_multiway_alignment", "time"),
         partition=get_resource("create_multiway_alignment", "partition"),
     params:
-        species_list=SPECIES_LIST
+        species_list=SPECIES_LIST,
     conda:
         "../envs/common.yml"
     shell:
@@ -231,9 +230,9 @@ rule create_multiway_alignment:
 # ======================================
 rule format_for_gerp:
     input:
-        f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa"
+        f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa",
     output:
-        f"{OUTPUT_DIR}/gerp_ready/chr{{chr}}_oneline.fa"
+        f"{OUTPUT_DIR}/gerp_ready/chr{{chr}}_oneline.fa",
     log:
         f"{OUTPUT_DIR}/logs/format_for_gerp/chr{{chr}}.log",
     threads: get_resource("format_for_gerp", "threads")

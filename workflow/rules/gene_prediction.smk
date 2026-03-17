@@ -37,7 +37,15 @@ rule augustus_predict_genes:
         genome = lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr)
     params:
         species = config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
-        options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on")
+        options = config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on"),
+        config_paths = [
+            "opt/conda/envs/augustus/share/augustus/config",
+            "opt/conda/share/augustus/config",
+            "usr/share/augustus/config",
+            "usr/local/share/augustus/config",
+            "usr/lib/augustus/config",
+            "usr/lib64/augustus/config"
+        ]
     # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
         AUGUSTUS_CONTAINER
@@ -56,14 +64,10 @@ rule augustus_predict_genes:
                 echo "PATH=$(printenv PATH)" >> {log}
                 echo "Detecting AUGUSTUS_CONFIG_PATH..." >> {log}
                 CFG_PATH=""
-                for d in \
-                        "/opt/conda/envs/augustus/share/augustus/config" \
-                        "/opt/conda/share/augustus/config" \
-                        "/usr/share/augustus/config" \
-                        "/usr/local/share/augustus/config" \
-                        "/usr/lib/augustus/config" \
-                        "/usr/lib64/augustus/config"; do
-                    if [ -d "$d" ]; then CFG_PATH="$d"; break; fi
+                ROOT_DIR="/"
+                for d in {params.config_paths}; do
+                    FULL_PATH="${{ROOT_DIR}}$d"
+                    if [ -d "$FULL_PATH" ]; then CFG_PATH="$FULL_PATH"; break; fi
                 done
                 if [ -n "$CFG_PATH" ]; then
                     export AUGUSTUS_CONFIG_PATH="$CFG_PATH"
@@ -101,7 +105,7 @@ rule augustus_merge_chromosomes:
     Merge Augustus predictions from all chromosomes into single file.
     """
     input:
-        expand("results/gene_prediction/chr{chr}.gff3",
+        gff_files=expand("results/gene_prediction/chr{chr}.gff3",
                chr=config["chromosomes"]["karyotype"])
     output:
         merged = "results/gene_prediction/genes.gff3",
@@ -113,11 +117,11 @@ rule augustus_merge_chromosomes:
     shell:
         """
         # Extract header from first file
-        grep "^#" {input[0]} > {output.merged} || true
+        head -1 {input.gff_files} | grep "^#" > {output.merged} 2> {log} || true
         
         # Concatenate all predictions (skip headers)
-        for file in {input}; do
-            grep -v "^#" $file >> {output.merged} || true
+        for file in {input.gff_files}; do
+            grep -v "^#" $file >> {output.merged} 2>> {log} || true
         done
         
         # Generate statistics
@@ -152,9 +156,9 @@ rule augustus_validate:
         # Check for overlapping features
         echo "Checking for issues..." >> {output.report}
         
-        # Sort GFF using awk to avoid non-zero exit on no matches
-        awk 'BEGIN{{OFS="\t"}} /^#/ {{print}}' {input.gff} > {output.validated}
-        awk 'BEGIN{{OFS="\t"}} !/^#/ {{print}}' {input.gff} | sort -k1,1 -k4,4n >> {output.validated}
+        # Sort GFF - extract comments first, then non-comments sorted
+        grep '^#' {input.gff} > {output.validated} || true
+        grep -v '^#' {input.gff} | sort -k1,1 -k4,4n >> {output.validated} || true
         
         echo "Validation complete" >> {output.report}
 
@@ -162,12 +166,12 @@ rule augustus_validate:
         echo "" >> {output.report}
         echo "Summary" >> {output.report}
         echo "-------" >> {output.report}
-        echo "Headers: $(awk '/^#/ {{c++}} END{{print c+0}}' {input.gff})" >> {output.report}
-        echo "Total features: $(awk '!/^#/ {{c++}} END{{print c+0}}' {output.validated})" >> {output.report}
-        echo "Genes: $(awk '!/^#/ && $3==\"gene\" {{c++}} END{{print c+0}}' {output.validated})" >> {output.report}
-        echo "mRNA: $(awk '!/^#/ && $3==\"mRNA\" {{c++}} END{{print c+0}}' {output.validated})" >> {output.report}
-        echo "CDS: $(awk '!/^#/ && $3==\"CDS\" {{c++}} END{{print c+0}}' {output.validated})" >> {output.report}
-        echo "Exons: $(awk '!/^#/ && $3==\"exon\" {{c++}} END{{print c+0}}' {output.validated})" >> {output.report}
+        echo "Headers: $(grep -c '^#' {input.gff} || echo 0)" >> {output.report}
+        echo "Total features: $(grep -cv '^#' {output.validated} || echo 0)" >> {output.report}
+        echo "Genes: $(grep -v '^#' {output.validated} | awk '$3==\"gene\"' | wc -l)" >> {output.report}
+        echo "mRNA: $(grep -v '^#' {output.validated} | awk '$3==\"mRNA\"' | wc -l)" >> {output.report}
+        echo "CDS: $(grep -v '^#' {output.validated} | awk '$3==\"CDS\"' | wc -l)" >> {output.report}
+        echo "Exons: $(grep -v '^#' {output.validated} | awk '$3==\"exon\"' | wc -l)" >> {output.report}
         """
 
 
@@ -230,7 +234,7 @@ rule merge_reference_genome:
     shell:
         """
         mkdir -p results/genome
-        cat {input} > {output.merged}
+        cat {input} > {output.merged} 2> {log}
         """
 
 
@@ -249,7 +253,7 @@ rule compress_merged_reference_genome:
         "../envs/common.yml"
     shell:
         """
-        gzip -c {input.fa} > {output.gz}
+        gzip -c {input.fa} > {output.gz} 2> {log}
         """
 
 
@@ -268,7 +272,7 @@ rule index_merged_reference_genome:
         "../envs/common.yml"
     shell:
         """
-        samtools faidx {input.fa}
+        samtools faidx {input.fa} 2> {log}
         """
 
 

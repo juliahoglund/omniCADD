@@ -27,15 +27,17 @@ rule fit_phylo_model:
         tree=PHAST_TREE
     output:
         mod=f"{OUTPUT_DIR}/chr{{chr}}.mod"
+    params:
+        output_dir=lambda w, output: os.path.dirname(output.mod)
     log:
         f"{OUTPUT_DIR}/logs/fit_phylo_model_chr{{chr}}.log"
     conda:
         "../envs/annotation.yml"
     shell:
         """
-        phyloFit --tree {input.tree} --subst-mod REV --out-root {OUTPUT_DIR}/chr{wildcards.chr} \
+        phyloFit --tree {input.tree} --subst-mod REV --out-root {params.output_dir}/chr{wildcards.chr} \
             {input.alignment} > {log} 2>&1
-        mv {OUTPUT_DIR}/chr{wildcards.chr}.mod {output.mod}
+        mv {params.output_dir}/chr{wildcards.chr}.mod {output.mod}
         """
 
 rule reconstruct_ancestor:
@@ -44,15 +46,16 @@ rule reconstruct_ancestor:
         mod=f"{OUTPUT_DIR}/chr{{chr}}.mod"
     output:
         ancestor=f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa"
+    params:
+        node=NODE,
+        output_dir=lambda w, output: os.path.dirname(output.ancestor)
     log:
         f"{OUTPUT_DIR}/logs/ancestor_chr{{chr}}.log"
-    params:
-        node=NODE
     conda:
         "../envs/annotation.yml"
     shell:
         """
         ancestors --msa-format FASTA --tree {input.mod} --msa {input.alignment} \
-            --out-root {OUTPUT_DIR}/chr{wildcards.chr}_ancestor --node {params.node} > {log} 2>&1
-        mv {OUTPUT_DIR}/chr{wildcards.chr}_ancestor.seqs {output.ancestor}
+            --out-root {params.output_dir}/chr{wildcards.chr}_ancestor --node {params.node} > {log} 2>&1
+        mv {params.output_dir}/chr{wildcards.chr}_ancestor.seqs {output.ancestor}
         """

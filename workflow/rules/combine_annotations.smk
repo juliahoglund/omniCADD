@@ -373,7 +373,7 @@ rule gene_prediction_combine:
     conda:
         get_conda_env("annotation")
     shell:
-        "augustus --species=human {input.genome} > {output.gff}"
+        "augustus --species=human {input.genome} > {output.gff} 2> {log}"
 
 rule snpeff_annotation_combine:
     input:
@@ -386,7 +386,7 @@ rule snpeff_annotation_combine:
     conda:
         get_conda_env("annotation")
     shell:
-        "snpeff ann -gff {input.gff} {input.vcf} > {output.snpeff}"
+        "snpeff ann -gff {input.gff} {input.vcf} > {output.snpeff} 2> {log}"
 
 rule combine_annotations_combine:
     input:
@@ -400,7 +400,7 @@ rule combine_annotations_combine:
     conda:
         get_conda_env("annotation")
     shell:
-        "python3 workflow/scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined}"
+        "python3 workflow/scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined} 2> {log}"
 
 rule combine_annotations_snpeff_combine:
     input:
@@ -414,7 +414,7 @@ rule combine_annotations_snpeff_combine:
     conda:
         get_conda_env("annotation")
     shell:
-        "python3 workflow/scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined}"
+        "python3 workflow/scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined} 2> {log}"
 
 # Example summary report rule with gene prediction check
 rule summary_report_combine:

@@ -9,11 +9,8 @@
  Based upon the work of Seyan Hu.
 
  :Extension and modification: Julia Höglund
- :Date: 01-08-2023
-
- Params can be adjusted for any given species of interest. 
+ :Date: 2026-03-17
 """
-
 
 # Generates frequency files form the population variants (vcf files).
 rule freq_files:
@@ -46,7 +43,7 @@ rule gen_derived:
         script="workflow/scripts/variant_derivation/derive_variants.py",
     params:
         no_chrs=config["chromosomes"]["autosomes"],
-        output_prefix="results/derived_variants/raw/chr{chr}",
+        output_prefix="results/derived_variants/raw/chr{chr}"
     log:
         "results/logs/derive_variants/gen_derived/chr{chr}.log",
     conda:
@@ -59,7 +56,8 @@ rule gen_derived:
             echo "reference already linearized - continuing to analysis"
         else
             echo "Formatting multiline fasta to single line fasta"
-            awk '/^>/ {printf("\n%s\n",$0); next;} {printf("%s",$0);} END {printf("\n");}' {input.reference} > tmp{wildcards.chr}
+            awk 'BEGIN{{RS=">";ORS=""}} NR>1{{printf ">%s\\n", $0}}' {input.reference} | \
+            awk 'NR%2==1{{printf "%s\\n", $0; next}} {{gsub("\\n",""); printf "%s\\n", $0}}' > tmp{wildcards.chr}
             mv tmp{wildcards.chr} {input.reference}
         fi
         python3 {input.script} \

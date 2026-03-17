@@ -181,10 +181,12 @@ rule gene_prediction:
         genome="resources/genome/{file}.fa"
     output:
         gff="results/gene_prediction/genes_validated.gff3"
+    log:
+        "results/logs/summary_report/gene_prediction.log"
     conda:
         get_conda_env("annotation")
     shell:
-        "augustus --species=human {input.genome} > {output.gff}"
+        "augustus --species=human {input.genome} > {output.gff} 2> {log}"
 
 rule summary_report_with_gene_prediction:
     input:
@@ -192,7 +194,9 @@ rule summary_report_with_gene_prediction:
         gff=(config["stats_report"].get("gff") if config["stats_report"].get("gff") else "results/gene_prediction/genes_validated.gff3")
     output:
         report="results/summary/chr{chr}_summary.html"
+    log:
+        "results/logs/summary_report/summary_report_with_gene_prediction_chr{chr}.log"
     conda:
         get_conda_env("report")
     shell:
-           "Rscript ../scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report}"
+           "Rscript ../scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report} 2> {log}"
