@@ -75,7 +75,11 @@ rule run_vep_combine:
     conda:
         get_conda_env("annotation")
     # Parts are at most a few million variants, 2 threads is already fast.
-    threads: 2
+    threads: get_resource("run_vep_combine", "threads")
+    resources:
+        mem_mb = get_resource("run_vep_combine", "mem_mb"),
+        time = get_resource("run_vep_combine", "time"),
+        partition = get_resource("run_vep_combine", "partition")
     output:
         temp("{folder}/{file}_vep_output.tsv"),
     shell:
@@ -135,9 +139,11 @@ checkpoint split_alignment:
         "results/logs/annotate_vars/split_alignment/chr{chr}.log",
     conda:
         get_conda_env("alignment")
+    threads: get_resource("split_alignment_combine", "threads")
     resources:
-        mem_mb=4000,
-        runtime=60,
+        mem_mb = get_resource("split_alignment_combine", "mem_mb"),
+        time = get_resource("split_alignment_combine", "time"),
+        partition = get_resource("split_alignment_combine", "partition")
     output:
         directory("results/alignment/splitted/chr{chr}/"),
     shell:
@@ -209,10 +215,11 @@ rule compute_gerp_combine:
         tree=config["annotation"]["conservation"]["gerp"]["tree"],
     conda:
         get_conda_env("annotation")
+    threads: get_resource("compute_gerp_combine", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(16000, 2000 * attempt),  # GERP can be memory intensive
-        runtime=lambda wildcards, attempt: min(360, 60 * attempt),
-    threads: 4
+        mem_mb = lambda wildcards, attempt: get_resource("compute_gerp_combine", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("compute_gerp_combine", "time") * attempt,
+        partition = get_resource("compute_gerp_combine", "partition")
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates"),
     params:
@@ -245,7 +252,11 @@ rule gerp2coords_combine:
         reference_species=config["species_name"],
     log:
         "results/logs/chr{chr}_{part}_gerp_coord_log.txt",
-    threads: 2
+    threads: get_resource("gerp2coords_combine", "threads")
+    resources:
+        mem_mb = get_resource("gerp2coords_combine", "mem_mb"),
+        time = get_resource("gerp2coords_combine", "time"),
+        partition = get_resource("gerp2coords_combine", "partition")
     shell:
         "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"
 
@@ -291,12 +302,13 @@ rule run_phastCons_combine:
         "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("run_phastCons_combine", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
-        runtime=lambda wildcards, attempt: min(240, 40 * attempt),
+        mem_mb = lambda wildcards, attempt: get_resource("run_phastCons_combine", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("run_phastCons_combine", "time") * attempt,
+        partition = get_resource("run_phastCons_combine", "partition")
     output:
         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
-    threads: 2
     shell:
         """
          mkdir -p $(dirname {output})
@@ -315,10 +327,11 @@ rule run_phyloP_combine:
         "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("run_phyloP_combine", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
-        runtime=lambda wildcards, attempt: min(240, 40 * attempt),
-    threads: 2
+        mem_mb = lambda wildcards, attempt: get_resource("run_phyloP_combine", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("run_phyloP_combine", "time") * attempt,
+        partition = get_resource("run_phyloP_combine", "partition")
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     shell:

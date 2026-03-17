@@ -12,7 +12,7 @@
  :Date: 21-9-2023
 
  :Exttension and modification: Julia Höglund
- :Date: 1-4-2023
+ :Date: 2026-03-17
 """
 
 
@@ -35,9 +35,11 @@ rule clean_ambiguous:
         "results/logs/extract_ancestor/clean_ambiguous/{part}.log",
     conda:
         get_conda_env("alignment")
+    threads: get_resource("clean_ambiguous", "threads")
     resources:
-        runtime=lambda wildcards, attempt: min(480, 60 * attempt),
-    threads: 2
+        mem_mb = get_resource("clean_ambiguous", "mem_mb"),
+        time = lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
+        partition = get_resource("clean_ambiguous", "partition")
     output:
         temp("results/alignment/cleaned_maf/{part}.maf.gz")
     script:
@@ -107,7 +109,11 @@ rule maf_df:
         "docker://juliahoglund/maftools:latest"
     conda:
         get_conda_env("ancestor")
-    threads: 2
+    threads: get_resource("maf_df", "threads")
+    resources:
+        mem_mb = get_resource("maf_df", "mem_mb"),
+        time = get_resource("maf_df", "time"),
+        partition = get_resource("maf_df", "partition")
     output:
         temp("results/alignment/dedup/{part}.maf.lz4")
     shell:
@@ -186,16 +192,17 @@ rule sort_by_chr:
         species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
-        directory="results/alignment/merged/"
+        directory=lambda w, output: os.path.dirname(output[0])
     log:
         "results/logs/extract_ancestor/sort_by_chr/chr{chr}.log"
     conda:
         get_conda_env("alignment")
+    threads: get_resource("sort_by_chr", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(64000, 8000 * attempt),
-        runtime=lambda wildcards, attempt: min(720, 120 * attempt),
+        mem_mb = lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
+        partition = get_resource("sort_by_chr", "partition"),
         tmpdir="results/tmp/sort_chr"
-    threads: 8
     output:
         "results/alignment/merged/chr{chr}.maf"
     shell:
@@ -214,7 +221,11 @@ rule maf_str:
         get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
-    threads: 6
+    threads: get_resource("maf_str", "threads")
+    resources:
+        mem_mb = get_resource("maf_str", "mem_mb"),
+        time = get_resource("maf_str", "time"),
+        partition = get_resource("maf_str", "partition")
     output:
         temp("results/alignment/stranded/chr{chr}.maf.gz"),
     shell:
@@ -233,7 +244,11 @@ rule maf_sorter:
         get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
-    threads: 6
+    threads: get_resource("maf_sorter", "threads")
+    resources:
+        mem_mb = get_resource("maf_sorter", "mem_mb"),
+        time = get_resource("maf_sorter", "time"),
+        partition = get_resource("maf_sorter", "partition")
     output:
         "results/alignment/sorted/chr{chr}.maf.gz",
     shell:

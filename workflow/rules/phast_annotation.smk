@@ -36,12 +36,13 @@ rule run_phastCons:
         "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("run_phastCons", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
-        runtime=lambda wildcards, attempt: min(240, 40 * attempt),
+        mem_mb = lambda wildcards, attempt: get_resource("run_phastCons", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("run_phastCons", "time") * attempt,
+        partition = get_resource("run_phastCons", "partition")
     output:
         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
-    threads: 2
     shell:
         """
          mkdir -p $(dirname {output})
@@ -59,10 +60,11 @@ rule run_phyloP:
         "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("run_phyloP", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(12000, 1500 * attempt),
-        runtime=lambda wildcards, attempt: min(240, 40 * attempt),
-    threads: 2
+        mem_mb = lambda wildcards, attempt: get_resource("run_phyloP", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("run_phyloP", "time") * attempt,
+        partition = get_resource("run_phyloP", "partition")
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     shell:

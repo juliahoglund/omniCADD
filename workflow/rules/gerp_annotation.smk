@@ -14,9 +14,11 @@ checkpoint split_alignment:
         "results/logs/annotate_vars/split_alignment/chr{chr}.log",
     conda:
         get_conda_env("alignment")
+    threads: get_resource("split_alignment", "threads")
     resources:
-        mem_mb=4000,
-        runtime=60,
+        mem_mb = get_resource("split_alignment", "mem_mb"),
+        time = get_resource("split_alignment", "time"),
+        partition = get_resource("split_alignment", "partition")
     output:
         directory("results/alignment/splitted/chr{chr}/"),
     shell:
@@ -71,10 +73,11 @@ rule compute_gerp:
         tree=config["annotation"]["conservation"]["gerp"]["tree"],
     conda:
         get_conda_env("annotation")
+    threads: get_resource("compute_gerp", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(16000, 2000 * attempt),
-        runtime=lambda wildcards, attempt: min(360, 60 * attempt),
-    threads: 4
+        mem_mb = lambda wildcards, attempt: min(get_resource("compute_gerp", "mem_mb"), 2000 * attempt),
+        time = get_resource("compute_gerp", "time"),
+        partition = get_resource("compute_gerp", "partition")
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates"),
     params:
@@ -99,6 +102,10 @@ rule gerp2coords:
         reference_species=config["species_name"],
     log:
         "results/logs/chr{chr}_{part}_gerp_coord_log.txt",
-    threads: 2
+    threads: get_resource("gerp2coords", "threads")
+    resources:
+        mem_mb = get_resource("gerp2coords", "mem_mb"),
+        time = get_resource("gerp2coords", "time"),
+        partition = get_resource("gerp2coords", "partition")
     shell:
         "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"

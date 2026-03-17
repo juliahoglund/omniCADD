@@ -32,7 +32,11 @@ rule run_vep:
         "{folder}/{file}_vep.log",
     conda:
         get_conda_env("annotation")
-    threads: 2
+    threads: get_resource("run_vep", "threads")
+    resources:
+        mem_mb = get_resource("run_vep", "mem_mb"),
+        time = get_resource("run_vep", "time"),
+        partition = get_resource("run_vep", "partition")
     output:
         temp("{folder}/{file}_vep_output.tsv"),
     shell:

@@ -72,9 +72,11 @@ rule prepare_data:
             "--derived" if wildcards.type == "derived" else ""
         ),
         y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
+    threads: get_resource("prepare_data", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(20000, 2500 * attempt),  # Data preparation can be memory intensive
-        runtime=lambda wildcards, attempt: min(120, 20 * attempt),
+        mem_mb = lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
+        time = lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
+        partition = get_resource("prepare_data", "partition")
     output:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",

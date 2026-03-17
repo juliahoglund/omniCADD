@@ -14,7 +14,7 @@
  but written for scikit-learn instead of turi create.
 
  :Extension and modification: Julia Höglund
- :Date: 30-4-2024
+ :Date: 2026-03-17
 """
 
 
@@ -70,13 +70,14 @@ rule fold_data:
     conda:
         get_conda_env("model")
     priority: 20
-    threads: 4
+    threads: get_resource("fold_data", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(
-            128000, int(config["memory"]["dataset_mb"] * attempt)
+        mem_mb = lambda wildcards, attempt: min(
+            get_resource("fold_data", "mem_mb") * 2, 
+            get_resource("fold_data", "mem_mb") * attempt
         ),
-        # Aggressive scaling for large datasets
-        runtime=lambda wildcards, attempt: min(960, 120 * attempt),  # Up to 16 hours for large datasets
+        time = get_resource("fold_data", "time"),
+        partition = get_resource("fold_data", "partition")
     output:
         test=expand("results/dataset/fold_{fold}.npz", fold=get_folds()),
         test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
@@ -127,15 +128,14 @@ rule train_model:
     conda:
         get_conda_env("model")
     priority: 20
+    threads: get_resource("train_model", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(
-            64000, config["memory"]["dataset_mb"] * attempt
+        mem_mb = lambda wildcards, attempt: min(
+ get_resource("train_model", "mem_mb") * 2,
+            get_resource("train_model", "mem_mb") * attempt
         ),
-        runtime=lambda wildcards, attempt: min(720, 60 * attempt),
-    threads:
-        len(config["model"]["test_params"]["c"]) * len(
-            config["model"]["test_params"]["max_iter"]
-        )
+        time = get_resource("train_model", "time"),
+        partition = get_resource("train_model", "partition")
     output:
         model=expand(
             "results/model/{{cols}}/fold_{{fold}}_{c}C_{iter}iter.mod.pickle",
@@ -188,12 +188,14 @@ rule final_model:
     conda:
         get_conda_env("model")
     priority: 20
+    threads: get_resource("final_model", "threads")
     resources:
-        mem_mb=lambda wildcards, attempt: min(
-            96000, config["memory"]["dataset_mb"] * attempt
+        mem_mb = lambda wildcards, attempt: min(
+            get_resource("final_model", "mem_mb") * 2,
+            get_resource("final_model", "mem_mb") * attempt
         ),
-        # Final model needs lots of memory
-        runtime=lambda wildcards, attempt: min(1440, 180 * attempt),  # Up to 24 hours
+        time = get_resource("final_model", "time"),
+        partition = get_resource("final_model", "partition")
     output:
         model="results/model/{cols}/full.mod.pickle",
         scaler="results/model/{cols}/full.scaler.pickle",
@@ -226,9 +228,11 @@ rule evaluate_models:
         script="workflow/scripts/train_test_model/evaluate_models.py",
     conda:
         get_conda_env("model")
+    threads: get_resource("evaluate_models", "threads")
     resources:
-        mem_mb=4000,
-        runtime=60,
+        mem_mb = get_resource("evaluate_models", "mem_mb"),
+        time = get_resource("evaluate_models", "time"),
+        partition = get_resource("evaluate_models", "partition")
     output:
         summary="results/model/{cols}/model_evaluation_summary.tsv",
         best_params="results/model/{cols}/best_parameters.json",

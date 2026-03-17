@@ -366,7 +366,11 @@ rule snpeff_build_database:
         "results/logs/snpeff_build_database.log"
     container:
         SNPEFF_CONTAINER
-    threads: 4
+    threads: get_resource("snpeff_build_database", "threads")
+    resources:
+        mem_mb = get_resource("snpeff_build_database", "mem_mb"),
+        time = get_resource("snpeff_build_database", "time"),
+        partition = get_resource("snpeff_build_database", "partition")
     shell:
         """
         set -euo pipefail
@@ -430,7 +434,11 @@ rule run_snpeff:
         data_dir = config["annotation"]["snpeff"]["database"]["path"]
     container:
         SNPEFF_CONTAINER
-    threads: 2
+    threads: get_resource("run_snpeff", "threads")
+    resources:
+        mem_mb = get_resource("run_snpeff", "mem_mb"),
+        time = get_resource("run_snpeff", "time"),
+        partition = get_resource("run_snpeff", "partition")
     output:
         vcf = temp("{folder}/chr{chr}_snpeff_output.vcf"),
         stats = "{folder}/chr{chr}_snpeff_stats.html"
@@ -580,7 +588,11 @@ rule run_genome_snpeff:
         data_dir = config["annotation"]["snpeff"]["database"]["path"]
     container:
         SNPEFF_CONTAINER
-    threads: 2
+    threads: get_resource("run_genome_snpeff", "threads")
+    resources:
+        mem_mb = get_resource("run_genome_snpeff", "mem_mb"),
+        time = get_resource("run_genome_snpeff", "time"),
+        partition = get_resource("run_genome_snpeff", "partition")
     priority: 1
     output:
         temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf")

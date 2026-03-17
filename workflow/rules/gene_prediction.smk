@@ -41,7 +41,11 @@ rule augustus_predict_genes:
     # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
         AUGUSTUS_CONTAINER
-    threads: 2
+    threads: get_resource("augustus_predict_genes", "threads")
+    resources:
+        mem_mb = get_resource("augustus_predict_genes", "mem_mb"),
+        time = get_resource("augustus_predict_genes", "time"),
+        partition = get_resource("augustus_predict_genes", "partition")
     output:
         gff = "results/gene_prediction/chr{chr}.gff3"
     log:
