@@ -3,10 +3,11 @@
 ----
 
 [![Documentation Status](https://readthedocs.org/projects/omnicadd/badge/?version=latest)](https://omnicadd.readthedocs.io/en/latest/?badge=latest)
-[![Snakefmt Check](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt-check.yml/badge.svg)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt-check.yml)
-[![Pycodestyle Check](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle-check.yml/badge.svg)](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle-check.yml)
-[![Snakemake Lint](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-lint.yml/badge.svg)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-lint.yml)
-[![Quick Check](https://github.com/juliahoglund/omniCADD/actions/workflows/quick-check.yml/badge.svg)](https://github.com/juliahoglund/omniCADD/actions/workflows/quick-check.yml)
+[![Snakefmt Check](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt-check.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt-check.yml)
+[![Pycodestyle Check](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle-check.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle-check.yml)
+[![Snakemake Lint](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-lint.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-lint.yml)
+[![Quick Check](https://github.com/juliahoglund/omniCADD/actions/workflows/quick-check.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/quick-check.yml)
+[![Build Augustus Docker](https://github.com/juliahoglund/omniCADD/actions/workflows/build-augustus-dockerhub.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/build-augustus-dockerhub.yml)
 
 ## Overview
 
