@@ -49,6 +49,67 @@ if "data_tier" in config:
 
 
 ####################################
+### Resource Helper Functions ######
+####################################
+
+def get_resource(rule_name, resource_type, default_override=None):
+    """
+    Get resource value for a rule with fallback to defaults.
+    
+    Args:
+        rule_name: Name of the rule
+        resource_type: Type of resource ("threads", "mem_mb", "time", "partition", "mem_per_cpu")
+        default_override: Optional override value if not in config
+    
+    Returns:
+        Resource value (falls back to default_resources if rule not specified)
+    
+    Example usage in a rule:
+        threads: get_resource("my_rule", "threads")
+        resources:
+            mem_mb = get_resource("my_rule", "mem_mb"),
+            time = get_resource("my_rule", "time")
+    """
+    # Load resources config if not already loaded
+    if "resources_config" not in config:
+        import yaml
+        resources_path = config.get("resources", "config/resources.yaml")
+        try:
+            with open(resources_path, 'r') as f:
+                config["resources_config"] = yaml.safe_load(f)
+        except FileNotFoundError:
+            print(f"Warning: Resources file not found: {resources_path}")
+            config["resources_config"] = {"default_resources": {}}
+    
+    resources = config["resources_config"]
+    
+    # Try to get rule-specific resource
+    rule_resources = resources.get(rule_name, {})
+    if resource_type in rule_resources:
+        return rule_resources[resource_type]
+    
+    # Fall back to default_resources
+    default_resources = resources.get("default_resources", {})
+    if resource_type in default_resources:
+        return default_resources[resource_type]
+    
+    # Use provided override or hardcoded fallback
+    if default_override is not None:
+        return default_override
+    
+    # Hardcoded fallbacks as last resort
+    fallbacks = {
+        "threads": 1,
+        "mem_mb": 8192,
+        "mem_per_cpu": 8192,
+        "time": "04:00:00",
+        "partition": "core"
+    }
+    
+    return fallbacks.get(resource_type, 1)
+
+
+####################################
 ### Conditional Rule Inclusion #####
 ####################################
 
@@ -119,11 +180,11 @@ def get_variant_annotation_input(wildcards, variant_type):
     base_path = f"results/annotation/{{}}/{variant_type}"
     
     if annotator == "vep":
-        return base_path.format("vep") + f"/chr{wildcards.chr}_vep.tsv"
+        return base_path.format("vep") + f"chr{wildcards.chr}_vep.tsv"
     elif annotator == "snpeff":
-        return base_path.format("snpeff") + f"/chr{wildcards.chr}_snpeff.tsv"
+        return base_path.format("snpeff") + f"chr{wildcards.chr}_snpeff.tsv"
     elif annotator == "both":
-        return base_path.format("combined") + f"/chr{wildcards.chr}_combined.tsv"
+        return base_path.format("combined") + f"chr{wildcards.chr}_combined.tsv"
     else:
         raise ValueError(f"Unknown variant_annotator: {annotator}")
 
