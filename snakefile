@@ -3,13 +3,41 @@ from glob import glob
 import os
 
 ##### pipeline version ######
-omniCADD_version = "0.1.0"  # Updated for enhanced configuration
+omniCADD_version = "0.1.0"
 
 ##### set minimum snakemake version #####
 min_version("7.21.0")
 
-##### Load config #####
+##### Load config files #####
 configfile: "config/config.yaml"
+
+# Load references config
+import yaml
+with open(config.get("references", "config/config_refs.yaml"), 'r') as f:
+    references = yaml.safe_load(f)
+    
+# Merge references into config for backward compatibility
+# but also make them available as separate 'references' dict
+config["references"] = references
+
+# Process OMNICADD_REF_DATA variable in references
+import re
+def expand_ref_paths(d, base_path):
+    """Recursively expand {{OMNICADD_REF_DATA}} placeholders"""
+    if isinstance(d, dict):
+        return {k: expand_ref_paths(v, base_path) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [expand_ref_paths(item, base_path) for item in d]
+    elif isinstance(d, str):
+        return re.sub(r'\{\{OMNICADD_REF_DATA\}\}', base_path, d)
+    else:
+        return d
+
+# Get base path from environment or config
+import os
+base_ref_path = os.environ.get('OMNICADD_REF_DATA', references.get('OMNICADD_REF_DATA', 'resources'))
+references = expand_ref_paths(references, base_ref_path)
+config["references"] = references
 
 ##### setup report #####
 report: "report/workflow.rst"
