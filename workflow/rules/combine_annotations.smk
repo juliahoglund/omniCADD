@@ -368,6 +368,8 @@ rule gene_prediction_combine:
         genome="resources/genome/{file}.fa"
     output:
         gff="results/gene_prediction/genes_validated.gff3"
+    log:
+        "results/logs/combine_annotations/gene_prediction_combine.log"
     conda:
         get_conda_env("annotation")
     shell:
@@ -379,6 +381,8 @@ rule snpeff_annotation_combine:
         gff="results/gene_prediction/genes_validated.gff3"
     output:
         snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv"
+    log:
+        "results/logs/combine_annotations/snpeff_annotation_combine_{type}_chr{chr}.log"
     conda:
         get_conda_env("annotation")
     shell:
@@ -391,6 +395,8 @@ rule combine_annotations_combine:
         phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv"
     output:
         combined="results/annotation/combined/{type}/chr{chr}_combined.tsv"
+    log:
+        "results/logs/combine_annotations/combine_annotations_{type}_chr{chr}.log"
     conda:
         get_conda_env("annotation")
     shell:
@@ -403,6 +409,8 @@ rule combine_annotations_snpeff_combine:
         phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv"
     output:
         combined="results/annotation/combined/{type}/chr{chr}_combined.tsv"
+    log:
+        "results/logs/combine_annotations/combine_annotations_snpeff_{type}_chr{chr}.log"
     conda:
         get_conda_env("annotation")
     shell:
@@ -415,6 +423,8 @@ rule summary_report_combine:
         gff="results/gene_prediction/genes_validated.gff3"
     output:
         report="results/summary/chr{chr}_summary.html"
+    log:
+        "results/logs/combine_annotations/summary_report_combine_chr{chr}.log"
     conda:
         get_conda_env("report")
     shell:

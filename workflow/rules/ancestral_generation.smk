@@ -264,6 +264,8 @@ rule gen_ancestor_seq:
         species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
         reference=config["mark_ancestor"]["reference_genome"],
+    log:
+        "results/logs/ancestral_generation/gen_ancestor_seq/chr{chr}.log"
     conda:
         get_conda_env("ancestor")
     output:

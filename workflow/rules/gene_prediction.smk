@@ -106,6 +106,10 @@ rule augustus_merge_chromosomes:
     output:
         merged = "results/gene_prediction/genes.gff3",
         stats = "results/gene_prediction/prediction_stats.txt"
+    log:
+        "results/logs/gene_prediction/augustus_merge_chromosomes.log"
+    conda:
+        "../envs/common.yml"
     shell:
         """
         # Extract header from first file
@@ -134,6 +138,8 @@ rule augustus_validate:
     output:
         validated = "results/gene_prediction/genes_validated.gff3",
         report = "results/gene_prediction/validation_report.txt"
+    log:
+        "results/logs/gene_prediction/augustus_validate.log"
     conda:
         "../envs/gene_prediction.yml"
     shell:
@@ -194,10 +200,12 @@ rule convert_gff_to_gtf:
     """
     input:
         gff = lambda wildcards: get_gene_annotation_file()
-    conda:
-        "../envs/gene_prediction.yml"
     output:
         gtf = "results/gene_annotation/genes.gtf.gz"
+    log:
+        "results/logs/gene_annotation/convert_gff_to_gtf.log"
+    conda:
+        "../envs/gene_prediction.yml"
     shell:
         """
         # Decompress if needed
@@ -233,6 +241,10 @@ rule merge_reference_genome:
         expand(config["generate_variants"]["reference_genome_wildcard"], chr=config["chromosomes"]["karyotype"])
     output:
         merged = "results/genome/merged_genome.fa"
+    log:
+        "results/logs/genome/merge_reference_genome.log"
+    conda:
+        "../envs/common.yml"
     shell:
         """
         mkdir -p results/genome
@@ -249,6 +261,10 @@ rule compress_merged_reference_genome:
         fa = "results/genome/merged_genome.fa"
     output:
         gz = "results/genome/merged_genome.fa.gz"
+    log:
+        "results/logs/genome/compress_merged_reference_genome.log"
+    conda:
+        "../envs/common.yml"
     shell:
         """
         gzip -c {input.fa} > {output.gz}
@@ -264,6 +280,8 @@ rule index_merged_reference_genome:
         fa = "results/genome/merged_genome.fa"
     output:
         fai = "results/genome/merged_genome.fa.fai"
+    log:
+        "results/logs/genome/index_merged_reference_genome.log"
     conda:
         "../envs/common.yml"
     shell:
@@ -282,6 +300,8 @@ rule prepare_annotation_for_snpeff:
         genome = config["mark_ancestor"]["reference_genome"]
     output:
         prepared = "results/gene_annotation/genes_for_snpeff.gff3"
+    log:
+        "results/logs/gene_annotation/prepare_annotation_for_snpeff.log"
     conda:
         "../envs/gene_prediction.yml"
     shell:
@@ -361,6 +381,8 @@ rule assess_gene_prediction_quality:
         predictions = "results/gene_prediction/genes_validated.gff3"
     output:
         qc_report = "results/gene_prediction/quality_report.html"
+    log:
+        "results/logs/gene_prediction/assess_quality.log"
     conda:
         "../envs/annotation.yml"
     shell:
