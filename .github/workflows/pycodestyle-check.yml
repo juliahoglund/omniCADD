@@ -1,0 +1,48 @@
+name: Pycodestyle Check
+
+on:
+  push:
+    paths:
+      - 'workflow/scripts/**.py'
+      - '.github/workflows/pycodestyle-check.yml'
+  pull_request:
+    paths:
+      - 'workflow/scripts/**.py'
+
+jobs:
+  style-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pycodestyle
+        run: |
+          python -m pip install --upgrade pip
+          pip install pycodestyle
+
+      - name: Check Python code style
+        run: |
+          set -e
+          echo "Running pycodestyle on workflow/scripts/..."
+          pycodestyle --max-line-length=130 --statistics workflow/scripts/ || FAILED=$?
+          
+          if [ -n "$FAILED" ]; then
+            echo ""
+            echo "❌ Code style check failed!"
+            echo "Run the following to check locally:"
+            echo "  pycodestyle --max-line-length=130 --statistics workflow/scripts/"
+            exit $FAILED
+          fi
+          
+          echo ""
+          echo "✅ All Python files comply with PEP 8 style guidelines!"
+
+      - name: Show pycodestyle version
+        if: always()
+        run: pycodestyle --version

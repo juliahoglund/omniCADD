@@ -20,6 +20,7 @@ import pandas
 from joblib import Parallel, delayed
 from scipy.sparse import load_npz, vstack, save_npz
 
+
 def filter_matrix(desired: list[str], columns: list[str], data_matrix) -> tuple:
     """
     Returns desired columns from a scipy data matrix.
@@ -37,6 +38,7 @@ def filter_matrix(desired: list[str], columns: list[str], data_matrix) -> tuple:
     id_cols = dict(sorted(id_cols.items()))
     return data_matrix[:, list(id_cols.keys())], list(id_cols.values())
 
+
 def read_columns(file: str) -> list[str]:
     """
     Read column csv, return list of columns
@@ -53,6 +55,7 @@ def read_columns(file: str) -> list[str]:
     if len(columns) == 0:
         sys.exit(f"Read columns file {columns} and found no columns!")
     return columns
+
 
 def load_data(file: str, cols: list[str], desired: Union[list[str], None], log: bool) -> tuple:
     """
@@ -78,57 +81,14 @@ def load_data(file: str, cols: list[str], desired: Union[list[str], None], log: 
     return npz, meta_data, selected_cols
 
 
-
 def load_npz_with_meta(files: list[str], desired: Union[list[str], None] = None,
                        log: bool = True, n_jobs: int = 3) -> tuple:
     """
     Loads data in npz format to scipy sparse matrix and metadata in csv
-    # FASTA/MAF conversion utilities
-    from Bio import AlignIO, SeqIO
-    from collections import defaultdict
-    from Bio.SeqRecord import SeqRecord
-    from Bio.Seq import Seq
-
     format to a pandas dataframe, column list is also returned and it is
-        """
-        Convert MAF file to FASTA format.
-        """
-        with open(maffile, "r") as input_handle, open(fastafile, "w") as output_handle:
-            alignments = AlignIO.parse(input_handle, "maf")
-            AlignIO.write(alignments, output_handle, "fasta")
-
     verified that this is the same for each file.
-        """
-        Format FASTA file to ensure each sequence line is 60 characters long.
-        """
-        with open(fastafile, 'r') as ifile, open(formattedfile, 'w') as ofile:
-            for line in ifile:
-                if line.startswith('>'):
-                    ofile.write('\n' + line.strip() + '\n')
-                else:
-                    line = line.strip()
-                    ofile.write(line + '-' * (60 - len(line)) + '\n')
 
     :param files: list of str, files to load the data from
-        """
-        Linearize FASTA file by concatenating sequences of the same species.
-        """
-        species = defaultdict(list)
-        with open(formattedfile, 'r') as ifile:
-            for record in SeqIO.parse(ifile, "fasta"):
-                record.id = record.id.split('.')[0]
-                species[record.id].append(record)
-        with open(linearizedfile, 'w') as ofile:
-            ik = {i: k for i, k in enumerate(species)}
-            for i in range(len(ik)):
-                for j in range(len(species[ik[0]])):
-                    if j == 0:
-                        if i == 0:
-                            ofile.write('>' + ik[i] + '\n')
-                        else:
-                            ofile.write('\n>' + ik[i] + '\n')
-                    else:
-                        ofile.write(str(species[ik[i]][j].seq))
     :param desired: list of str, column names to load (def None -> load all)
     :param log: bool (def True), write progress to stderr
     :param n_jobs: int (def 3), number of threads to use for reading data

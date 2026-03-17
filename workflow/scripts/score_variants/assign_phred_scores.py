@@ -66,6 +66,7 @@ def open_file(mask: str, chrom: str) -> TextIO:
     phred_out.write("#Chrom\tPos\tRef\tAlt\tRAW\tPHRED\n")
     return phred_out
 
+
 def main():
     count = args.line_counts
     if count == 0 and not args.count_file:
@@ -101,6 +102,7 @@ def main():
     # Verify that the amount of variants is as expected
     if idx != line_counts:
         sys.exit(f"Ended at index: {idx} but expected {line_counts:.0f} variants!")
+
 
 if __name__ == "__main__":
     main()

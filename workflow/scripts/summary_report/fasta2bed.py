@@ -5,6 +5,7 @@ import sys
 
 NUCLEOTIDES = {"A", "T", "C", "G"}
 
+
 def process_fasta(infile: str) -> None:
     chrom = ""
     pos = -1
@@ -34,6 +35,7 @@ def process_fasta(infile: str) -> None:
 
     if in_sequence_region:  # last sequence region in last chrom
         print(f'{chrom}\t{start}\t{pos}')
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

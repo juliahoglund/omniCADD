@@ -20,6 +20,6 @@ if __name__ == "__main__":
     input_fasta = snakemake.input[0]
     output_dir = snakemake.params.outdir
     chromosomes = snakemake.params.chromosomes
-    
+
     # Split FASTA
     split_fasta_by_chromosome(input_fasta, output_dir, chromosomes)

@@ -8,6 +8,7 @@ from collections import defaultdict
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
+
 def convert_maf_to_fasta(maffile: str, fastafile: str) -> None:
     """
     Convert MAF file to FASTA format.
@@ -15,6 +16,7 @@ def convert_maf_to_fasta(maffile: str, fastafile: str) -> None:
     with open(maffile, "r") as input_handle, open(fastafile, "w") as output_handle:
         alignments = AlignIO.parse(input_handle, "maf")
         AlignIO.write(alignments, output_handle, "fasta")
+
 
 def format_fasta(fastafile: str, formattedfile: str) -> None:
     """
@@ -27,6 +29,7 @@ def format_fasta(fastafile: str, formattedfile: str) -> None:
             else:
                 line = line.strip()
                 ofile.write(line + '-' * (60 - len(line)) + '\n')
+
 
 def linearize_fasta(formattedfile: str, linearizedfile: str) -> None:
     """
@@ -50,6 +53,7 @@ def linearize_fasta(formattedfile: str, linearizedfile: str) -> None:
                 else:
                     ofile.write(str(species[ik[i]][j].seq))
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         sys.exit("usage: format_pairwise_alignments.py MAF_MSA INTERMEDIATE_FASTA INTERMEDIATE_FORMATTED_FASTA OUTPUT_FASTA")
@@ -63,5 +67,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error processing files: {e}")
         sys.exit(1)
-
-
