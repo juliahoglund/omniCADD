@@ -1,0 +1,60 @@
+name: Snakefmt Format Check
+
+on:
+  push:
+    paths:
+      - '**.smk'
+      - 'Snakefile'
+      - 'snakefile'
+      - '.github/workflows/snakefmt-check.yml'
+  pull_request:
+    paths:
+      - '**.smk'
+      - 'Snakefile'
+      - 'snakefile'
+
+jobs:
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install snakefmt
+        run: |
+          python -m pip install --upgrade pip
+          pip install snakefmt
+
+      - name: Check formatting with snakefmt
+        run: |
+          set -e
+          echo "Checking Snakefile formatting..."
+          snakefmt --check --line-length 130 Snakefile || FAILED=1
+          
+          echo ""
+          echo "Checking workflow rules formatting..."
+          find workflow/rules -name "*.smk" -type f | while read file; do
+            echo "Checking $file"
+            snakefmt --check --line-length 130 "$file" || FAILED=1
+          done
+          
+          if [ -n "$FAILED" ]; then
+            echo ""
+            echo "❌ Formatting check failed!"
+            echo "Run the following to fix formatting:"
+            echo "  snakefmt -l 130 Snakefile"
+            echo "  snakefmt -l 130 workflow/rules/*.smk"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All files are properly formatted!"
+
+      - name: Show snakefmt version
+        if: always()
+        run: snakefmt --version

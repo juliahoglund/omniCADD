@@ -1,0 +1,51 @@
+name: Quick Syntax Check
+
+on:
+  push:
+    branches:
+      - '**'  # Run on all branches
+    paths:
+      - 'workflow/**/*.smk'
+      - 'snakefile'
+  pull_request:
+    paths:
+      - 'workflow/**/*.smk'
+      - 'snakefile'
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+    name: Python Syntax Validation
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Snakemake (minimal)
+        run: |
+          pip install snakemake-minimal>=7.21.0
+          snakemake --version
+      
+      - name: Check Python syntax
+        run: |
+          # Check syntax of all Python and Snakemake files
+          python -m py_compile snakefile
+          find workflow/rules -name "*.smk" -exec python -m py_compile {} \;
+          find workflow/scripts -name "*.py" -exec python -m py_compile {} \;
+          echo "✓ All Python/Snakemake files have valid syntax"
+      
+      - name: Quick lint check
+        run: |
+          # Prepare minimal configs for linting
+          cp config/config.default.yaml config/config.yaml
+          cp config/config_refs.default.yaml config/config_refs.yaml
+          cp config/resources.default.yaml config/resources.yaml
+          
+          # Run lint
+          snakemake --lint --configfile config/config.yaml
+          echo "✓ Snakemake lint check passed"

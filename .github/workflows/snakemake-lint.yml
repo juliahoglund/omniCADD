@@ -1,0 +1,84 @@
+name: Snakemake Lint
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+    paths:
+      - 'workflow/**'
+      - 'snakefile'
+      - 'config/*.yaml'
+      - 'config/*.default.yaml'
+      - '.github/workflows/snakemake-lint.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - dev
+    paths:
+      - 'workflow/**'
+      - 'snakefile'
+      - 'config/*.yaml'
+      - 'config/*.default.yaml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Snakemake Workflow Validation
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: '3.11'
+          channels: conda-forge,bioconda,defaults
+          channel-priority: strict
+      
+      - name: Install Snakemake
+        shell: bash -l {0}
+        run: |
+          conda install -y -c conda-forge -c bioconda snakemake>=7.21.0
+          snakemake --version
+      
+      - name: Prepare config files for linting
+        run: |
+          # Use default configs if user configs don't exist
+          if [ ! -f config/config.yaml ]; then
+            echo "Using default config.yaml"
+            cp config/config.default.yaml config/config.yaml
+          fi
+          if [ ! -f config/config_refs.yaml ]; then
+            echo "Using default config_refs.yaml"
+            cp config/config_refs.default.yaml config/config_refs.yaml
+          fi
+          if [ ! -f config/resources.yaml ]; then
+            echo "Using default resources.yaml"
+            cp config/resources.default.yaml config/resources.yaml
+          fi
+          
+          # Show which configs are being used
+          echo "Configuration files:"
+          ls -lh config/*.yaml
+      
+      - name: Lint Snakemake workflow
+        shell: bash -l {0}
+        run: |
+          snakemake --lint --configfile config/config.yaml
+      
+      - name: Dry-run workflow (optional validation)
+        shell: bash -l {0}
+        run: |
+          # This validates that the workflow can be parsed and planned
+          # It won't execute anything, just checks DAG construction
+          snakemake --dry-run --configfile config/config.yaml || echo "Dry-run failed (expected if input files missing)"

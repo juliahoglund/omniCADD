@@ -1,0 +1,27 @@
+# Snakemake Lint Ignore Configuration
+# This file suppresses false positive warnings from snakemake --lint
+
+# FALSE POSITIVES - AWK patterns flagged as "absolute paths"
+# These are regex patterns in AWK commands, NOT file paths
+ignore:
+  - pattern: "Absolute path.*in line.*"
+    reason: "AWK regex patterns and inline strings with leading / are not absolute paths"
+    files:
+      - workflow/rules/config_helpers.smk  # /chr{wildcards.chr}_vep.tsv is a string pattern
+      - workflow/rules/gene_prediction.smk  # /^#/ is AWK regex, Augustus paths are system detection
+      - workflow/rules/variant_derivation.smk  # /^>/ is AWK regex for FASTA headers
+
+# STYLE WARNINGS - Intentional design choices
+  - pattern: "Mixed rules and functions"
+    reason: "Helper functions are kept with related rules for readability and context"
+    files:
+      - Snakefile
+      - workflow/rules/common.smk
+      - workflow/rules/gene_prediction.smk
+      - workflow/rules/ancestral_generation.smk
+      - workflow/rules/train_test_model.smk
+      - workflow/rules/score_variants.smk
+
+# Note: This YAML format is for documentation only.
+# Snakemake does not natively support lint ignore files.
+# To suppress warnings, use: snakemake --lint 2>&1 | grep -v "pattern_to_ignore"
