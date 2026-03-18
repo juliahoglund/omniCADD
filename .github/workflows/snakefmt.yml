@@ -32,25 +32,12 @@ jobs:
 
       - name: Check formatting with snakefmt
         run: |
-          set -e
           echo "Checking Snakefile formatting..."
-          snakefmt --check --line-length 130 Snakefile || FAILED=1
+          snakefmt --check --line-length 130 snakefile
           
           echo ""
           echo "Checking workflow rules formatting..."
-          find workflow/rules -name "*.smk" -type f | while read file; do
-            echo "Checking $file"
-            snakefmt --check --line-length 130 "$file" || FAILED=1
-          done
-          
-          if [ -n "$FAILED" ]; then
-            echo ""
-            echo "❌ Formatting check failed!"
-            echo "Run the following to fix formatting:"
-            echo "  snakefmt -l 130 Snakefile"
-            echo "  snakefmt -l 130 workflow/rules/*.smk"
-            exit 1
-          fi
+          snakefmt --check --line-length 130 workflow/rules/*.smk
           
           echo ""
           echo "✅ All files are properly formatted!"
