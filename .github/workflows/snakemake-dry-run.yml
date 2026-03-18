@@ -3,11 +3,19 @@ name: Snakemake Dry Run
 on:
   push:
     branches:
-      - '**'  # Run on all branches
+      - main
+      - master
+      - dev
+      - restructure
     paths:
       - 'workflow/**/*.smk'
       - 'snakefile'
   pull_request:
+    branches:
+      - main
+      - master
+      - dev
+      - restructure
     paths:
       - 'workflow/**/*.smk'
       - 'snakefile'

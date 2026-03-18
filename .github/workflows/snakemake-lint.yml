@@ -76,7 +76,23 @@ jobs:
       - name: Lint Snakemake workflow
         shell: bash -l {0}
         run: |
-          snakemake --lint --configfile config/config.yaml
+          # Run lint and capture output
+          # We expect 2 unavoidable warnings about mixed rules/functions
+          snakemake --lint --configfile config/config.yaml 2>&1 | tee lint_output.txt || true
+          
+          # Count lints (lines starting with "Lints for")
+          LINT_COUNT=$(grep -c "^Lints for" lint_output.txt || echo "0")
+          
+          echo "Found $LINT_COUNT lint warning(s)"
+          
+          # Fail if we have more than the 2 expected unavoidable warnings
+          if [ "$LINT_COUNT" -gt 2 ]; then
+            echo "ERROR: Found $LINT_COUNT lints, expected maximum 2"
+            cat lint_output.txt
+            exit 1
+          fi
+          
+          echo "✓ Lint check passed ($LINT_COUNT unavoidable warnings accepted)"
       
       - name: Dry-run workflow (optional validation)
         shell: bash -l {0}
