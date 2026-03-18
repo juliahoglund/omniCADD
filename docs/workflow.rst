@@ -441,5 +441,4 @@ See Also
 --------
 
 * :doc:`configuration` - Configure pipeline parameters
-* :doc:`cluster_execution` - Run on HPC clusters
-* :doc:`troubleshooting` - Common issues and solutions
+* :doc:`DOCKER_SLURM_GUIDE` - Container usage and HPC setup

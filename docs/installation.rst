@@ -177,10 +177,9 @@ Next Steps
 
 After successful installation:
 
-1. ✅ Proceed to :doc:`quickstart` for a quick tutorial
-2. ✅ Read :doc:`input_data` to prepare your genomic resources
-3. ✅ Configure the pipeline in :doc:`configuration`
-4. ✅ Run the workflow following the user guide
+1. ✅ Read :doc:`input_data` to prepare your genomic resources
+2. ✅ Configure the pipeline in :doc:`configuration`
+3. ✅ Run the workflow following the user guide
 
 Additional Resources
 --------------------

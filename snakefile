@@ -130,9 +130,11 @@ include: "workflow/rules/score_variants.smk"
 rule preprocessing_only:
     """Run only preprocessing steps"""
     input:
-        expand("resources/genome/Sus_scrofa_ref_chr{chr}.fa", chr=config["chromosomes"]["karyotype"])
-        if should_include_preprocessing()
-        else [],
+        (
+            expand("resources/genome/Sus_scrofa_ref_chr{chr}.fa", chr=config["chromosomes"]["karyotype"])
+            if should_include_preprocessing()
+            else []
+        ),
         "results/preprocessing_validation/validation_report.txt" if should_include_preprocessing() else [],
 
 

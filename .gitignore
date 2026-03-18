@@ -87,3 +87,8 @@ genomeBoar/
 docs/DARDEL_SETUP.md
 docs/omniCADD_workflow_dag.pdf
 config/config.yaml.bak_20260316
+.venv/
+
+# Sphinx build output
+docs/_build/
+__pycache__/
