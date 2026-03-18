@@ -1,10 +1,10 @@
-name: Pycodestyle Check
+name: Pycodestyle
 
 on:
   push:
     paths:
       - 'workflow/scripts/**.py'
-      - '.github/workflows/pycodestyle-check.yml'
+      - '.github/workflows/pycodestyle.yml'
   pull_request:
     paths:
       - 'workflow/scripts/**.py'

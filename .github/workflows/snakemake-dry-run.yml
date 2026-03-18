@@ -1,4 +1,4 @@
-name: Quick Syntax Check
+name: Snakemake Dry Run
 
 on:
   push:

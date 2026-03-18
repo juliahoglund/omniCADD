@@ -2,12 +2,12 @@
 #### A CADD scoring system to assess variant deleteriousness in non-model organisms
 ----
 
-[![Documentation Status](https://readthedocs.org/projects/omnicadd/badge/?version=latest)](https://omnicadd.readthedocs.io/en/latest/?badge=latest)
-[![Snakefmt Check](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt-check.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt-check.yml)
-[![Pycodestyle Check](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle-check.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle-check.yml)
+[![Documentation](https://readthedocs.org/projects/omnicadd/badge/?version=latest)](https://omnicadd.readthedocs.io/en/latest/?badge=latest)
+[![Snakefmt](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakefmt.yml)
 [![Snakemake Lint](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-lint.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-lint.yml)
-[![Quick Check](https://github.com/juliahoglund/omniCADD/actions/workflows/quick-check.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/quick-check.yml)
-[![Build Augustus Docker](https://github.com/juliahoglund/omniCADD/actions/workflows/build-augustus-dockerhub.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/build-augustus-dockerhub.yml)
+[![Pycodestyle](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/pycodestyle.yml)
+[![Docs](https://github.com/juliahoglund/omniCADD/actions/workflows/docs.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/docs.yml)
+[![Snakemake Dry Run](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-dry-run.yml/badge.svg?branch=restructure)](https://github.com/juliahoglund/omniCADD/actions/workflows/snakemake-dry-run.yml)
 
 ## Overview
 

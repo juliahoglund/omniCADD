@@ -1,4 +1,4 @@
-name: Snakefmt Format Check
+name: Snakefmt
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - '**.smk'
       - 'Snakefile'
       - 'snakefile'
-      - '.github/workflows/snakefmt-check.yml'
+      - '.github/workflows/snakefmt.yml'
   pull_request:
     paths:
       - '**.smk'
