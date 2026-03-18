@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 from natsort import natsorted
 
+
 def main():
     parser = argparse.ArgumentParser(description="Convert wig files to bed format.")
     parser.add_argument("-d", "--directory", type=str, default="results/annotation/phast/phastCons/chr1/",
@@ -35,6 +36,7 @@ def main():
 
         # Update last_row to the last end position
         last_row = part['end'].iloc[-1]
+
 
 if __name__ == "__main__":
     main()

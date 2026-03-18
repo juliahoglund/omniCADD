@@ -31,8 +31,8 @@ DELETIONS SINCE SEQUENCES UNIQUE TO THE ANCESTRAL SEQUENCE HAVE BEEN REMOVED
 IN ALIGNING IT TO THE REFERENCE GENOME.
 
 :Sanity check:
-anc = 'GAAGCCGTGGAGCAGGG----------------------------AGCACCAGCGGGCGACGGTG'
-ref = 'AAAGCTGCAGATCGGACGGGTGAGAGGGTGGGGGTCAGAGGTCAGAGCGTTTACGGGCGACGGTG'
+anc='GAAGCCGTGGAGCAGGG----------------------------AGCACCAGCGGGCGACGGTG'
+ref='AAAGCTGCAGATCGGACGGGTGAGAGGGTGGGGGTCAGAGGTCAGAGCGTTTACGGGCGACGGTG'
 
 anc += 'GAGGACATGGG--------GCTGGCCGGGCAGAGG-ACGCAAA'
 ref += 'GAGGACATAGGCCGGGGTAGCTGGTGGGGCTGCGANNCGANNA'
@@ -42,8 +42,8 @@ ref += 'GAGGACATAGGCCGGGGTAGCTGGTGGGGCTGCGANNCGANNA'
 50 totalrefG 	14 mutations			1 gap in both			2 ATn		0 TAn		2 CT		2 CTn		1 GT		0 GTn
 15 totalrefT	6 CpG mutations
 
-Insertion: 	length = 28, count = 1;		length = 8, count = 1
-Deletion:	length = 1, count = 1; 		lenght = 2, count = 1
+Insertion: 	length=28, count=1;		length=8, count=1
+Deletion:	length=1, count=1; 		lenght=2, count=1
 
 """
 
@@ -349,6 +349,7 @@ def main():
     except Exception as e:
         print(f"An error occurred: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

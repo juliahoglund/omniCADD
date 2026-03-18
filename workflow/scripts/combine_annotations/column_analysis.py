@@ -22,16 +22,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Create and process cli
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-d", "--derived",
-                    help="annotated infile(s) containing derived variants to process", 
-                    nargs="+", 
+                    help="annotated infile(s) containing derived variants to process",
+                    nargs="+",
                     required=True)
 parser.add_argument("-s", "--simulated",
-                    help="annotated infile(s) containing simulated variants to process", 
-                    nargs="+", 
+                    help="annotated infile(s) containing simulated variants to process",
+                    nargs="+",
                     required=True)
 parser.add_argument("-o", "--outfolder",
                     help="Output folder for correlation tsv files",
-                    type=str, 
+                    type=str,
                     default="None")
 
 args = parser.parse_args()

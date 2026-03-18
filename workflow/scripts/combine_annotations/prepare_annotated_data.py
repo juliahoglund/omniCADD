@@ -40,13 +40,13 @@ from scipy.sparse import csr_matrix, save_npz
 # Create and process cli
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-i", "--input",
-                    help="annotated infile containing annotated variants to process", 
-                    type=str, 
+                    help="annotated infile containing annotated variants to process",
+                    type=str,
                     required=True)
 
 parser.add_argument("-c", "--csv",
                     help="output file, processed dataset in csv format (default None, not written)",
-                    type=str, 
+                    type=str,
                     default="None")
 
 parser.add_argument("-n", "--npz",
@@ -54,34 +54,34 @@ parser.add_argument("-n", "--npz",
                          "already present. Metadata is stored seperately in "
                          ".meta.csv.gz and the columns in columns.csv (default"
                          " None, not written)",
-                    type=str, 
+                    type=str,
                     default="None")
 
 parser.add_argument("--processing-config",
                     help="configuration tsv file indicating how to dataset should be processed",
-                    type=str, 
+                    type=str,
                     required=True)
 
 parser.add_argument("--interaction-config",
-                 help="Configuration tsv file indicating which "
-                      "interaction terms should be generated in the dataset",
-                 type=str, 
-                 required=True)
+                    help="Configuration tsv file indicating which "
+                         "interaction terms should be generated in the dataset",
+                    type=str,
+                    required=True)
 
 parser.add_argument("--imputation-dict",
                     help="dictionary file to read/write imputation values to.",
-                    type=str, 
+                    type=str,
                     default="impute_dict.txt")
 
 parser.add_argument("-d", "--derived",
                     help="Is this derived data? Some columns are renamed"
                          "(default: False)",
-                    default=False, 
+                    default=False,
                     action="store_true")
 
 parser.add_argument("-y", "--y-value",
                     help="Y_value of data, added in new column y, must be float (default None, column not added)",
-                    type=float, 
+                    type=float,
                     default=None)
 
 args = parser.parse_args()
@@ -91,7 +91,7 @@ if args.csv == "None" and args.npz == "None":
                      "trial data preparation but not saving results.")
 
 
-######## functions
+# functions
 ##################
 
 def load_tsv_configuration(file: str) -> dict:
@@ -118,6 +118,7 @@ def load_tsv_configuration(file: str) -> dict:
                 [(key, value) for key, value in zip(elements, parts[1:])])
     return samples
 
+
 def class_encoded_check(classlabel: str, selection: list, data: pandas.DataFrame) -> pandas.DataFrame:
     """
     Checks whether one-hot encoding resulted in all variants, since missing
@@ -133,6 +134,7 @@ def class_encoded_check(classlabel: str, selection: list, data: pandas.DataFrame
             data[col] = np.zeros(data.shape[0], dtype=float)
     return data
 
+
 def is_float(pot_float: str) -> bool:
     """
     Tries to convert str to float to see if a string is a float.
@@ -145,8 +147,9 @@ def is_float(pot_float: str) -> bool:
     except ValueError:
         return False
 
-######## main script
+# main script
 ####################
+
 
 if __name__ == "__main__":
     try:
@@ -161,7 +164,7 @@ if __name__ == "__main__":
         # Open DF in pandas.
         df = pandas.read_csv(args.input, sep='\t', na_values=['-'], dtype=dtypes)
 
-        #### CHECK but julia does it
+        # CHECK but julia does it
         # Rename columns starting with # and switch ref/alt nt/aa for derived variants
         renames = {'Alt': 'Ref', 'Ref': 'Alt', 'nAA': 'oAA', 'oAA': 'nAA'} \
             if args.derived else {}
@@ -190,7 +193,6 @@ if __name__ == "__main__":
                 "ERROR: The imputation_dict.txt file which contains the mean "
                 "imputed values from the simulated data is missing. This "
                 "information is necessary to continue.")
-
 
         # Process the data following the configuration file
         for key, value in ANNOTATIONS.items():
@@ -268,7 +270,6 @@ if __name__ == "__main__":
                 print(categories)
                 df = class_encoded_check(key, categories, df)
 
-
         # Sorting dataframe columns, to ensure consistent order. Notably the
         # class_encoded_check step, that adds missing columns for when this specific
         # block did not include a possible values will have a different order
@@ -293,12 +294,10 @@ if __name__ == "__main__":
                         index=df.index, dtype=SPARSE_FLOAT))
             df = pandas.concat(columns, axis=1)
 
-
         # If write to csv, do so
         if args.csv != "None":
             print("Writing to csv")
             df.to_csv(args.csv, index=False, na_rep="-")
-
 
         # If sparse output is desired, save metadata that doesn't fit in sparse
         # matrix separately and store both files

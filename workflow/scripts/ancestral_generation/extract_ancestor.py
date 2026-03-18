@@ -20,10 +20,10 @@ true, this sequence will be skipped.
 :Modified by: Julia Höglund and Julia Beets
 :Date 22-3-2023
 
-Added: 
-1) It removes ancestral sequences that are not of the same length as stated in their annotation. 
+Added:
+1) It removes ancestral sequences that are not of the same length as stated in their annotation.
 2) It checks whenever the start position of the to be added sub sequence is located in the previous added sub sequence.
-	If true, this sequence will be skipped. 
+    If true, this sequence will be skipped.
 
 :Edited by: Job van Schipstal :Date: 19-9-2023
 :Example Usage: python scripts/gen_ancestor_seq.py
@@ -48,23 +48,26 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 parser = ArgumentParser(description=__doc__)
-parser.add_argument("-i", "--input",
-	help="maf alignment file from which the ancestral sequence is to be extracted. It is expected that it has been filtered and sorted.", 
-	required=True)
-parser.add_argument("-o", "--output", 
-	help="Ancestral sequence output file, fasta format", 
-	required=True)
-parser.add_argument("-a", "--ancestor", 
-	help="Name/label of the ancestral sequence", 
-	required=True)
-parser.add_argument("-n", "--interest", 
-	help="Name/label of the species of interest",
-	required=True)
-parser.add_argument("-r", "--reference", 
-	help="Name of the genomewide reference species fasta sequence file",
-	required=True)
+parser.add_argument(
+    "-i", "--input",
+    help="maf alignment file from which the ancestral sequence is to be extracted. "
+         "It is expected that it has been filtered and sorted.",
+    required=True)
+parser.add_argument("-o", "--output",
+                    help="Ancestral sequence output file, fasta format",
+                    required=True)
+parser.add_argument("-a", "--ancestor",
+                    help="Name/label of the ancestral sequence",
+                    required=True)
+parser.add_argument("-n", "--interest",
+                    help="Name/label of the species of interest",
+                    required=True)
+parser.add_argument("-r", "--reference",
+                    help="Name of the genomewide reference species fasta sequence file",
+                    required=True)
 
 args = parser.parse_args()
+
 
 def ancestor_finder(alignment_instance, anc_identifer):
     """
@@ -82,6 +85,7 @@ def ancestor_finder(alignment_instance, anc_identifer):
     logging.debug("Ancestor sequence not found in this alignment block.")
     return None
 
+
 def sequence_processing(g_seq, ancestor_seq):
     """
     Removes gaps that are present in both the sequence of the given species and its ancestor.
@@ -90,7 +94,15 @@ def sequence_processing(g_seq, ancestor_seq):
     :return: Processed ancestor sequence or 'Removed' if length mismatch
     """
     logging.debug(f"Processing sequences: {g_seq.id}, {ancestor_seq.id}")
-    anc_out_seq = SeqIO.SeqRecord(id=ancestor_seq.id, seq=Seq(''), name=ancestor_seq.name, annotations={'start': ancestor_seq.annotations['start'], 'srcSize': ancestor_seq.annotations['srcSize'], 'strand': ancestor_seq.annotations['strand'], 'size': ancestor_seq.annotations['size']})
+    anc_out_seq = SeqIO.SeqRecord(
+        id=ancestor_seq.id, seq=Seq(''), name=ancestor_seq.name,
+        annotations={
+            'start': ancestor_seq.annotations['start'],
+            'srcSize': ancestor_seq.annotations['srcSize'],
+            'strand': ancestor_seq.annotations['strand'],
+            'size': ancestor_seq.annotations['size']
+        }
+    )
     for g_char, anc_char in zip(g_seq, ancestor_seq):
         if g_char != '-':
             anc_out_seq.seq = anc_out_seq.seq + Seq(anc_char)
@@ -99,6 +111,7 @@ def sequence_processing(g_seq, ancestor_seq):
         return 'Removed'
     else:
         return anc_out_seq
+
 
 def get_alignment_generator(input_f):
     """
@@ -113,6 +126,7 @@ def get_alignment_generator(input_f):
     handle = gzip.open(input_f, "rt") if str(input_f).endswith(".gz") else open(input_f, "r")
     return AlignIO.parse(handle, "maf")
 
+
 def get_ancestral_sequences(alignment_gen, ancestral_n, interest_n):
     """
     Get dict of ancestral sequences with key start_pos.
@@ -126,9 +140,13 @@ def get_ancestral_sequences(alignment_gen, ancestral_n, interest_n):
     for alignment in alignment_gen:
         sp_seq = alignment[0]
         anc_seq = ancestor_finder(alignment, ancestral_n)
-        if (not isinstance(anc_seq, SeqIO.SeqRecord)) or (str(interest_n) + '.' not in sp_seq.id):
-            if (isinstance(anc_seq, SeqIO.SeqRecord)) and (str(interest_n) + '.' not in sp_seq.id):
-                logging.warning(f"Alignment block contains ancestor sequence but not {interest_n} at first position. Skipping block.")
+        sp_seq_valid = str(interest_n) + '.' not in sp_seq.id
+        if (not isinstance(anc_seq, SeqIO.SeqRecord)) or sp_seq_valid:
+            if (isinstance(anc_seq, SeqIO.SeqRecord)) and sp_seq_valid:
+                logging.warning(
+                    f"Alignment block contains ancestor sequence but not {interest_n} "
+                    "at first position. Skipping block."
+                )
                 continue
             else:
                 continue
@@ -158,6 +176,7 @@ def get_ancestral_sequences(alignment_gen, ancestral_n, interest_n):
                 anc_dict[ref_start] = anc_seq_processed
     return anc_dict
 
+
 def get_chr(input_n):
     """
     Get chromosome from input filename.
@@ -170,6 +189,7 @@ def get_chr(input_n):
     else:
         chromosome = 'N'
     return chromosome
+
 
 def get_chr_lengths(reference_fai):
     """
@@ -221,8 +241,8 @@ for key, value in list(anc_pos_seq_dict.items()):
     if str(value) == 'Removed':
         del anc_pos_seq_dict[key]
 
-# The genomic positions are stored and then sorted, such as the smallest comes first. 
-# It will then iterate over this list and fill up a SeqRecord. 
+# The genomic positions are stored and then sorted, such as the smallest comes first.
+# It will then iterate over this list and fill up a SeqRecord.
 # Before filling of that seqrecord it will insert as many "-" as current_loc - (previous_loc+previous_size)
 pos_list = anc_pos_seq_dict.keys()
 pos_list_s = sorted(pos_list)
@@ -236,7 +256,11 @@ ancestor_record.seq = ancestor_record.seq + anc_pos_seq_dict[list(pos_list_s)[0]
 
 for i, position in enumerate(list(pos_list_s)[1:]):
     if position + 1 < len(ancestor_record):
-        logging.warning(f"The start position of {anc_pos_seq_dict[position].annotations['start']} is located in the previously added sub sequence that is already appended to the ancestral sequence!")
+        logging.warning(
+            f"The start position of {anc_pos_seq_dict[position].annotations['start']} "
+            "is located in the previously added sub sequence that is already "
+            "appended to the ancestral sequence!"
+        )
         prev_position = list(pos_list_s)[i]
         prev_seq = anc_pos_seq_dict[prev_position].seq
         curr_seq = anc_pos_seq_dict[position].seq

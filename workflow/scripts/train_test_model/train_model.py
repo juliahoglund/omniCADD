@@ -113,7 +113,7 @@ args = parser.parse_args()
 # have to enable importing from another folder
 if args.module:
     sys.path.append(Path(args.module).parent)
-from data_helper import load_dataset
+from data_helper import load_dataset  # noqa: E402
 
 
 def fit_model(c, max_iter, train_x, train_y):

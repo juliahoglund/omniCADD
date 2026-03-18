@@ -14,6 +14,7 @@ __version__ = "0.1"
 __email__ = "andreas.wilm@gmail.com"
 __license__ = "The MIT License (MIT)"
 
+
 def prune_aln(ofile, fh_out):
     """Prune columns from alignment and print result."""
     keep_cols = []
@@ -29,6 +30,7 @@ def prune_aln(ofile, fh_out):
     except Exception as e:
         print(f"Error processing alignment: {e}")
 
+
 def main():
     """Main function to handle file input and output."""
     mfile = sys.argv[1]  # fasta file
@@ -36,6 +38,7 @@ def main():
 
     with (gzip.open(mfile, "rt") if mfile.endswith('.gz') else open(mfile, "r")) as ofile, open(file_h, 'w') as outfile:
         prune_aln(ofile, outfile)
+
 
 if __name__ == "__main__":
     main()

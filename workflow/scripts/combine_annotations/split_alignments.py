@@ -14,6 +14,7 @@ import Bio
 from Bio import AlignIO
 import os
 
+
 def batch_iterator(iterator, batch_size):
     """
     This is a generator function, and it returns lists of the
@@ -35,6 +36,7 @@ def batch_iterator(iterator, batch_size):
             batch.append(entry)
         if batch:
             yield batch
+
 
 if len(sys.argv) != 5:
     sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_MAF REF_SPECIES")

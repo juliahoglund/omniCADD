@@ -27,21 +27,21 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument('-i', '--input',
-    help='Input vcf file of variants to trim',
-    type=str, 
-    required=True)
+                    help='Input vcf file of variants to trim',
+                    type=str,
+                    required=True)
 parser.add_argument('-o', '--output',
-    help='output filename, vcf format, can be gzipped',
-    type=str,
-    required=True)
+                    help='output filename, vcf format, can be gzipped',
+                    type=str,
+                    required=True)
 parser.add_argument('-c', '--current',
-    help='Current amount of variants',
-    type=str, 
-    required=True)
+                    help='Current amount of variants',
+                    type=str,
+                    required=True)
 parser.add_argument('-d', '--desired',
-    help='Desired amount of variants',
-    type=str, 
-    required=True)
+                    help='Desired amount of variants',
+                    type=str,
+                    required=True)
 
 
 def trim_vcf(in_h: 'file', out_h: 'file', current: int, desired: int) -> None:

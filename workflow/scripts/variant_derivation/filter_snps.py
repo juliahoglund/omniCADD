@@ -110,6 +110,7 @@ def separate_snp(infile, snp_outfile, series_outfile) -> None:
     except Exception as e:
         logging.error(f"An error occurred: {e}")
 
+
 if __name__ == '__main__':
     args = parser.parse_args()
     logging.info("Starting the SNP separation process.")

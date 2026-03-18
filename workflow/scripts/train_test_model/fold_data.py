@@ -55,7 +55,7 @@ args = parser.parse_args()
 # have to enable importing from another folder
 if args.module:
     sys.path.append(Path(args.module).parent)
-from data_helper import load_npz_with_meta, save_npz_with_meta
+from data_helper import load_npz_with_meta, save_npz_with_meta  # noqa: E402
 
 
 def fold_data(infiles: list[str], outfiles: list[str]) -> None:

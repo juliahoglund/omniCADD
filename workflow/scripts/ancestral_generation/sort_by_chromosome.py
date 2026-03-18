@@ -11,7 +11,7 @@ if available.
 When finished all alignments with the sequence of interest are in the relevant
 chromosome output file.
 
-:Edited by: Job van Schipstal 
+:Edited by: Job van Schipstal
  :Date: 26-9-2023
 :Example: python chr_sorting.py --species mm39 -i file1 ... file_n -o file...
 - Removed redundant code
@@ -31,23 +31,23 @@ import lz4.frame
 
 PARSER = ArgumentParser(description=__doc__)
 PARSER.add_argument("-i", "--input",
-    help = "maf alignment file(s) which are to be sorted by chromosome", 
-    type = str, 
-    required = True, 
-    nargs = "+")
+                    help="maf alignment file(s) which are to be sorted by chromosome",
+                    type=str,
+                    required=True,
+                    nargs="+")
 PARSER.add_argument("-s", "--species",
-    help = "name/label of the species by which the alignments should be sorted", 
-    type = str, 
-    required = True)
+                    help="name/label of the species by which the alignments should be sorted",
+                    type=str,
+                    required=True)
 PARSER.add_argument("-a", "--ancestor",
-    help = "name/label of the ancestor to keep in the alignment", 
-    type = str, 
-    required = True)
+                    help="name/label of the ancestor to keep in the alignment",
+                    type=str,
+                    required=True)
 PARSER.add_argument("-c", "--chromosomes",
-    help = "list of chromosome(s) based on which the alignments will be sorted", 
-    type = str, 
-    required = True,
-    nargs = "+")
+                    help="list of chromosome(s) based on which the alignments will be sorted",
+                    type=str,
+                    required=True,
+                    nargs="+")
 
 if __name__ == '__main__':
     args = PARSER.parse_args()

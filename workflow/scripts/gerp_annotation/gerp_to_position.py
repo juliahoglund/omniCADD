@@ -11,6 +11,7 @@ from typing import List
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def parse_gerp(fasta_file: str, gerp_file: str, species_name: str) -> None:
     try:
         sequence = ""
@@ -41,14 +42,15 @@ def parse_gerp(fasta_file: str, gerp_file: str, species_name: str) -> None:
                     gerp_position += 1
                 else:
                     if (position - gerp_position - 1) < len(neutral_scores):
-                        outputfile.write(neutral_scores[position - gerp_position - 1] + "\t" + 
-                                        rs_scores[position - gerp_position - 1] + "\n")
+                        outputfile.write(neutral_scores[position - gerp_position - 1] + "\t" +
+                                         rs_scores[position - gerp_position - 1] + "\n")
 
         logging.info('File %s processed successfully.', fasta_file)
 
     except Exception as e:
         logging.error('Error processing file: %s', e)
         exit(1)
+
 
 if __name__ == "__main__":
     if len(argv) != 4:

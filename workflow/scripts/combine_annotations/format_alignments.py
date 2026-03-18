@@ -9,6 +9,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 from collections import defaultdict
 
+
 def main():
     parser = ArgumentParser(description="Format alignments")
     parser.add_argument("ffile", help="Converted multi-fasta file")
@@ -73,6 +74,7 @@ def main():
                 'start: ' + str(species[ik[0]][j].description.split(" ")[1]) +
                 ', size: ' + str(species[ik[0]][j].description.split(" ")[2]) + '\n'
             )
+
 
 if __name__ == "__main__":
     main()

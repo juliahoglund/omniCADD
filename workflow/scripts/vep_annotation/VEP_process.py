@@ -455,7 +455,7 @@ def dist_to_spl(output_dict, vepfields, fVfeature, ref_id):
                         minscore = val
                         if minscore[0] == 1:
                             break
-        except:
+        except Exception:
             pass
 
     if minscore is not None:

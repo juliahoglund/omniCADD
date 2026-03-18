@@ -33,22 +33,22 @@ logger = logging.getLogger(__name__)
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-n", "--number",
-    help="Approximate number of substitution events to simulate (default: 1000)", 
-    type=str, 
-    default="1000")
+                    help="Approximate number of substitution events to simulate (default: 1000)",
+                    type=str,
+                    default="1000")
 parser.add_argument("-p", "--params",
-    help="Input parameter log files, 1 or more files",
-    type=str, 
-    required=True, 
-    nargs="+")
+                    help="Input parameter log files, 1 or more files",
+                    type=str,
+                    required=True,
+                    nargs="+")
 parser.add_argument("-l", "--logfile",
-    help="logfile (default process_parameters.txt)", 
-    type=str,
-    default="process_parameters.txt")
+                    help="logfile (default process_parameters.txt)",
+                    type=str,
+                    default="process_parameters.txt")
 parser.add_argument("-o", "--outfile",
-    help="Output pickle file containing the needed simulation parameters for simulate_variants.py",
-    type=str, 
-    required=True)
+                    help="Output pickle file containing the needed simulation parameters for simulate_variants.py",
+                    type=str,
+                    required=True)
 
 args = parser.parse_args()
 
@@ -88,7 +88,7 @@ try:
                 elif line == "#y\tN\tAC\tAG\tAT\tCA\tCG\tCT\tGA\tGC\tGT\tTA\tTC\tTG\n":
                     line = infile.readline()
                     cmut, ctotal, cAC, cAG, cAT, cCA, cCG, cCT, cGA, cGC, \
-                    cGT, cTA, cTC, cTG = list(map(int, line.split()))
+                        cGT, cTA, cTC, cTG = list(map(int, line.split()))
                     mut += cmut
                     total += ctotal
                     nAC += cAC
@@ -183,7 +183,7 @@ with open(args.logfile, 'w') as logfile:
     totalrefT = float(totalrefT)
 
     # SUBSTITUTION MATRIX NON-CpG
-    GTR_nonCpG = {'A': [              0, nAC / totalrefA, nAG / totalrefA, nAT / totalrefA],
+    GTR_nonCpG = {'A': [0, nAC / totalrefA, nAG / totalrefA, nAT / totalrefA],
                   'C': [nCA / totalrefC,               0, nCG / totalrefC, nCT / totalrefC],
                   'G': [nGA / totalrefG, nGC / totalrefG,               0, nGT / totalrefG],
                   'T': [nTA / totalrefT, nTC / totalrefT, nTG / totalrefT,               0]}
@@ -248,4 +248,3 @@ try:
     logger.info(f"Pickle file created successfully: {args.outfile}")
 except Exception as e:
     logger.error(f"Error creating pickle file: {e}")
-

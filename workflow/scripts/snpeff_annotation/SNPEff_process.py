@@ -2,40 +2,40 @@
 # -*- coding: utf-8 -*-
 
 """
-Updated script to process VCF input format with `ANN` annotations while retaining all functionality, including GC% and CpG% calculations.
+Updated script to process VCF input format with `ANN` annotations
+while retaining all functionality, including GC% and CpG% calculations.
 """
 
 import csv
 from argparse import ArgumentParser
 import pysam
-import sys, os
+import sys
+import os
 import gzip
 
 # OptionParser for input files.
 parser = ArgumentParser(description=__doc__)
 
 parser.add_argument("-i", "--input",
-    help="Path to the VCF input file",
-    type=str,
-    required=True)
+                    help="Path to the VCF input file",
+                    type=str,
+                    required=True)
 parser.add_argument("-r", "--reference",
-    help="Path to the reference genome (FASTA file)",
-    type=str,
-    required=True)
+                    help="Path to the reference genome (FASTA file)",
+                    type=str,
+                    required=True)
 parser.add_argument("-g", "--grantham",
-    help="Path to the Grantham scores file",
-    type=str,
-    required=True)
+                    help="Path to the Grantham scores file",
+                    type=str,
+                    required=True)
 parser.add_argument("-o", "--output",
-    help="Output file (default: vep_annotated.tsv)",
-    type=str,
-    default="vep_annotated.tsv")
+                    help="Output file (default: vep_annotated.tsv)",
+                    type=str,
+                    default="vep_annotated.tsv")
 
 args = parser.parse_args()
 
-##########################################
-############### VARIABLES ################
-##########################################
+# VARIABLES
 
 # Define headers for output file.
 ELIST = ['#Chrom', 'Pos', 'Ref', 'Alt', 'isTv', 'Consequence', 'GC', 'CpG',
@@ -60,9 +60,8 @@ HIERARCHY = [
     "intergenic_variant"
 ]
 
-##########################################
-############### FUNCTIONS ################
-##########################################
+# FUNCTIONS
+
 
 def open_file(filename, mode='r'):
     """
@@ -78,22 +77,22 @@ def open_file(filename, mode='r'):
     except (UnicodeDecodeError, UnicodeError):
         # File is likely compressed, continue with compression detection
         pass
-    except:
+    except Exception:
         pass
-    
+
     # If that fails, try bgzipped (most common for VCF.gz files)
     if filename.endswith('.gz') or filename.endswith('.bgz'):
         try:
             # Try pysam for bgzipped files
             tabix_file = pysam.TabixFile(filename, mode='r')
             return tabix_file
-        except:
+        except Exception:
             # Try regular gzip if pysam fails
             try:
                 return gzip.open(filename, mode + 't')
-            except:
+            except Exception:
                 pass
-    
+
     # Check magic number for compressed files without proper extension
     try:
         with open(filename, 'rb') as f:
@@ -103,13 +102,14 @@ def open_file(filename, mode='r'):
                     # Try bgzipped first
                     tabix_file = pysam.TabixFile(filename, mode='r')
                     return tabix_file
-                except:
+                except Exception:
                     return gzip.open(filename, mode + 't')
-    except:
+    except Exception:
         pass
-    
+
     # Fall back to regular file
     return open(filename, mode)
+
 
 def detect_compression_type(filename):
     """
@@ -118,20 +118,21 @@ def detect_compression_type(filename):
     """
     if not filename.endswith('.gz'):
         return 'none'
-    
+
     try:
         # Try to open with pysam (bgzip)
         tabix_file = pysam.TabixFile(filename, mode='r')
         tabix_file.close()
         return 'bgzip'
-    except:
+    except Exception:
         try:
             # Try regular gzip
             with gzip.open(filename, 'rt') as f:
                 f.readline()
             return 'gzip'
-        except:
+        except Exception:
             return 'none'
+
 
 def open_output_file(filename, mode='w', compression_type='none'):
     """
@@ -139,7 +140,7 @@ def open_output_file(filename, mode='w', compression_type='none'):
     """
     if not filename.endswith('.gz'):
         return open(filename, mode)
-    
+
     if compression_type == 'bgzip':
         # For bgzip output, we'll use regular gzip since pysam doesn't support writing
         # BGZ files directly in a simple way. The file will still be compressed.
@@ -150,22 +151,23 @@ def open_output_file(filename, mode='w', compression_type='none'):
         # If input wasn't compressed but output has .gz extension, use gzip
         return gzip.open(filename, mode + 't')
 
+
 def validate_chromosome_naming(vcf_file, ref_fasta):
     """
     Validate that chromosome naming is consistent between VCF and reference FASTA.
     Returns True if compatible, False otherwise. Also prints diagnostic information.
     """
     print("Validating chromosome naming between VCF and reference FASTA...")
-    
+
     # Get chromosome names from reference FASTA
     ref_chroms = set(ref_fasta.references)
     print(f"Reference FASTA chromosomes (first 10): {list(ref_chroms)[:10]}")
-    
+
     # Sample chromosome names from VCF
     vcf_chroms = set()
     sample_count = 0
     max_samples = 100  # Sample first 100 variants to check chromosome naming
-    
+
     try:
         with open_file(vcf_file, "r") as infile:
             # Skip metadata lines and find the header
@@ -182,26 +184,26 @@ def validate_chromosome_naming(vcf_file, ref_fasta):
                     header_line = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO"
                     # Reset file pointer by reopening
                     break
-            
+
             if not header_line:
                 print("Error: Could not find VCF header line")
                 return False
-            
+
             header = header_line.split("\t")
             print(f"VCF header found: {header[:8]}...")  # Show first 8 columns
-            
+
             # Check if we have the required CHROM column
             chrom_col = None
             for i, col in enumerate(header):
                 if col in ['#CHROM', 'CHROM']:
                     chrom_col = i
                     break
-            
+
             if chrom_col is None:
                 print("Error: No chromosome column found in VCF header")
                 print(f"Available columns: {header}")
                 return False
-            
+
             # If we broke out early to reset file pointer, reopen the file
             if not line.startswith('#'):
                 infile.close()
@@ -210,66 +212,66 @@ def validate_chromosome_naming(vcf_file, ref_fasta):
                 for line in infile:
                     if not line.startswith('#'):
                         break
-            
+
             # Process data lines
             line_count = 0
             while line and sample_count < max_samples:
                 if line.startswith('#'):
                     line = next(infile, '')
                     continue
-                
+
                 fields = line.strip().split("\t")
                 if len(fields) > chrom_col:
                     vcf_chroms.add(fields[chrom_col])
                     sample_count += 1
                 else:
                     print(f"Warning: Malformed VCF line (insufficient columns): {line.strip()}")
-                
+
                 line = next(infile, '')
                 line_count += 1
-                
+
                 # Safety check to prevent infinite loop
                 if line_count > max_samples * 2:
                     break
-    
+
     except Exception as e:
         print(f"Error reading VCF file: {e}")
         return False
-    
+
     if not vcf_chroms:
         print("Error: No chromosome names found in VCF file")
         return False
-    
+
     print(f"VCF chromosomes found: {sorted(vcf_chroms)}")
-    
+
     # Check for direct matches
     direct_matches = vcf_chroms.intersection(ref_chroms)
     if direct_matches:
         print(f"✓ Found direct chromosome matches: {sorted(direct_matches)}")
         return True
-    
+
     # Check for potential naming pattern mismatches
     vcf_has_chr_prefix = any(chrom.startswith('chr') for chrom in vcf_chroms)
     ref_has_chr_prefix = any(chrom.startswith('chr') for chrom in ref_chroms)
-    
+
     print(f"VCF uses 'chr' prefix: {vcf_has_chr_prefix}")
     print(f"Reference uses 'chr' prefix: {ref_has_chr_prefix}")
-    
+
     # Test if we can map between naming conventions
     mappable_chroms = 0
     for vcf_chrom in vcf_chroms:
         # Try different naming conventions
         test_chroms = [vcf_chrom]
-        
+
         if vcf_chrom.startswith('chr'):
             test_chroms.append(vcf_chrom[3:])  # Remove chr prefix
         else:
             test_chroms.append(f'chr{vcf_chrom}')  # Add chr prefix
             test_chroms.append(f'chr_{vcf_chrom}')  # Add chr_ prefix
-        
+
         if any(test_chrom in ref_chroms for test_chrom in test_chroms):
             mappable_chroms += 1
-    
+
     if mappable_chroms == len(vcf_chroms):
         print(f"✓ All {len(vcf_chroms)} VCF chromosomes can be mapped to reference chromosomes")
         print("✓ Chromosome naming validation passed - automatic conversion will be applied")
@@ -277,18 +279,19 @@ def validate_chromosome_naming(vcf_file, ref_fasta):
     else:
         print(f"✗ Only {mappable_chroms}/{len(vcf_chroms)} VCF chromosomes can be mapped to reference")
         print("✗ Chromosome naming validation FAILED")
-        
+
         # Show what chromosomes couldn't be mapped
         unmappable = []
         for vcf_chrom in vcf_chroms:
             test_chroms = [vcf_chrom, vcf_chrom[3:] if vcf_chrom.startswith('chr') else f'chr{vcf_chrom}']
             if not any(test_chrom in ref_chroms for test_chrom in test_chroms):
                 unmappable.append(vcf_chrom)
-        
+
         if unmappable:
             print(f"Unmappable VCF chromosomes: {unmappable}")
-        
+
         return False
+
 
 # Function for reading the Grantham file and returning it as a dictionary.
 def read_grantham(filename):
@@ -309,6 +312,7 @@ def read_grantham(filename):
         sys.stderr.write("Grantham scores input file does not exist: %s\n" % filename)
     return grantham
 
+
 def extract_alleles_locs(output_dict, fVCoord, fVallele, fVName, vepfields):
     """
     Extract chromosome, position, Ref, and Alt alleles from the new input format.
@@ -318,6 +322,7 @@ def extract_alleles_locs(output_dict, fVCoord, fVallele, fVName, vepfields):
     output_dict['Alt'] = vepfields[fVallele].upper()
     output_dict['Ref'] = vepfields[fVName].split('/')[0][-1]  # Assuming Ref is in this format
     return output_dict
+
 
 def parse_annotation(info_field):
     """
@@ -340,11 +345,13 @@ def parse_annotation(info_field):
                     return consequence  # Return the full consequence description
     return "Unknown"  # Default to "Unknown" if no known consequence is found
 
+
 def is_transversion(ref, alt):
     """
     Check if the variant is a transversion.
     """
     return (ref, alt) in TRANSVERSIONS
+
 
 def count_GC_CpG(chrom, start, end, window, seq_tabix):
     """
@@ -368,15 +375,21 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
     # Calculate the fetch coordinates
     fetch_start = max(0, start - window)
     fetch_end = end + window
-    
+
     # Check if coordinates are within chromosome bounds
     try:
         chrom_length = seq_tabix.get_reference_length(chrom)
         if fetch_start >= chrom_length:
-            print(f"Warning: Start position {fetch_start} is beyond chromosome {chrom} length {chrom_length}")
+            print(
+                f"Warning: Start position {fetch_start} is beyond chromosome {chrom} "
+                f"length {chrom_length}"
+            )
             return '-', '-'
         if fetch_end > chrom_length:
-            print(f"Warning: End position {fetch_end} is beyond chromosome {chrom} length {chrom_length}, adjusting to {chrom_length}")
+            print(
+                f"Warning: End position {fetch_end} is beyond chromosome {chrom} "
+                f"length {chrom_length}, adjusting to {chrom_length}"
+            )
             fetch_end = chrom_length
     except Exception as e:
         print(f"Warning: Could not get chromosome length for {chrom}: {e}")
@@ -384,11 +397,11 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
     try:
         # Fetch sequence from the reference genome
         sequence = seq_tabix.fetch(chrom, fetch_start, fetch_end)
-        
+
         if not sequence:
             print(f"Warning: Empty sequence retrieved for {chrom}:{fetch_start}-{fetch_end}")
             return '-', '-'
-            
+
         CpG, GC = 0, 0
         count = 0
         lbase = ''
@@ -409,6 +422,7 @@ def count_GC_CpG(chrom, start, end, window, seq_tabix):
         print(f"Original coordinates: {original_chrom}:{start}-{end}")
         print(f"Reference file: {seq_tabix.filename}")
         return '-', '-'
+
 
 def extract_transcript_coding_prot_feature(output_dict, annotation, position, label1, label2):
     """
@@ -446,7 +460,8 @@ def extract_transcript_coding_prot_feature(output_dict, annotation, position, la
         return output_dict
     except ValueError:
         sys.exit("Error processing annotation. Location: %s %s %s" % (
-            output_dict['#Chrom'], output_dict['Pos'], annotation[position])) 
+            output_dict['#Chrom'], output_dict['Pos'], annotation[position]))
+
 
 def extract_consequences(output_dict, vepfields, fVconseq):
     """
@@ -520,6 +535,7 @@ def extract_consequences(output_dict, vepfields, fVconseq):
 
     return output_dict
 
+
 # Function for returning the most deleterious annotation for the same variant,
 # when there are two annotations given for a single variant.
 def indexing(previous, current):
@@ -532,7 +548,8 @@ def indexing(previous, current):
         return current
     else:
         return previous
-    
+
+
 def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
     """
     Extract the original and resulting amino acids from the VEP annotation.
@@ -576,7 +593,7 @@ def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
             output_dict['Grantham'] = "-"  # No Grantham score for synonymous changes
         elif "*" in (oAA, nAA):  # Handle stop codon changes; as of now also set to missing
             output_dict['Grantham'] = "-"  # Assign a default score for stop codon changes
-            
+
         else:
             # Look up the Grantham score
             grantham_key = (oAA, nAA)
@@ -593,6 +610,7 @@ def extract_Aminoacids(output_dict, vepfields, fVAA, grantham_scores):
         output_dict['Grantham'] = "-"
 
     return output_dict
+
 
 def extract_extra(output_dict, vepfields, fVExtra):
     """
@@ -678,9 +696,7 @@ def extract_extra(output_dict, vepfields, fVExtra):
     return output_dict
 
 
-##########################################
-############### MAIN SCRIPT ##############
-##########################################
+# MAIN SCRIPT
 
 # Quick check: if VCF has no variants, write an empty TSV and exit cleanly
 def vcf_has_variants(vcf_file: str) -> bool:
@@ -693,6 +709,7 @@ def vcf_has_variants(vcf_file: str) -> bool:
     except Exception as e:
         print(f"Warning: Could not read VCF to check variants: {e}")
         return False
+
 
 # Open the reference genome (FASTA file).
 ref_fasta = pysam.FastaFile(args.reference)
@@ -732,11 +749,11 @@ with open_file(args.input, "r") as infile, open_output_file(args.output, "w", in
     reader = (line for line in infile if not line.startswith("##"))  # Skip metadata lines.
     header = next(reader).strip().split("\t")  # Read the header line.
     writer = csv.DictWriter(outfile, fieldnames=ELIST, delimiter="\t")
-    
+
     # Write the header to the output file.
     writer.writeheader()
-    
-   # Process each row in the input file.
+
+    # Process each row in the input file.
     for line in reader:
         row = dict(zip(header, line.strip().split("\t")))
         output_dict = {}
@@ -745,34 +762,34 @@ with open_file(args.input, "r") as infile, open_output_file(args.output, "w", in
         output_dict['Ref'] = row['REF']
         output_dict['Alt'] = row['ALT']
         output_dict['isTv'] = is_transversion(row['REF'], row['ALT'])
-        
+
         # Calculate GC% and CpG% using the `count_GC_CpG` function.
         output_dict['GC'], output_dict['CpG'] = count_GC_CpG(
             output_dict['#Chrom'], output_dict['Pos'], output_dict['Pos'], 75, ref_fasta
         )
-        
+
         # Extract transcript-related features and consequences from the `ANN` field.
         for annotation in row['INFO'].split(";"):
             if annotation.startswith("ANN="):
                 annotations = annotation[4:].split(",")  # Extract annotations after "ANN="
                 for ann in annotations:
                     vepfields = ann.split("|")  # Split annotation into fields
-                    
+
                     # Extract transcript-related features
                     output_dict = extract_transcript_coding_prot_feature(output_dict, vepfields, 10, 'cDNApos', 'relcDNApos')
                     output_dict = extract_transcript_coding_prot_feature(output_dict, vepfields, 11, 'CDSpos', 'relCDSpos')
                     output_dict = extract_transcript_coding_prot_feature(output_dict, vepfields, 12, 'protPos', 'relprotPos')
-                    
+
                     # Extract consequences
                     output_dict = extract_consequences(output_dict, vepfields, 1)  # Use the correct index for consequences
-                    
+
                     # Extract amino acids
                     output_dict = extract_Aminoacids(output_dict, vepfields, 10, grantham_scores)  # Assuming index 10 for HGVS.p
-                    
+
                     break  # Process only the first annotation for simplicity
-        
+
         # Fill in placeholders for other fields (e.g., motifECount, Domain, etc.).
         output_dict.update({key: "-" for key in ELIST if key not in output_dict})
-        
+
         # Write the formatted row to the output file.
         writer.writerow(output_dict)

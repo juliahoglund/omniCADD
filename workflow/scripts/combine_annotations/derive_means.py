@@ -24,16 +24,16 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Create and process 
+# Create and process
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("-i", "--input",
                     help="Fully annotated input file(s), at least 1 should "
                          "be provided. Additional files will be merged.",
-                    type=str, nargs="+", default="chr1_annotations.tsv") # required=True, 
+                    type=str, nargs="+", default="chr1_annotations.tsv")  # required=True,
 parser.add_argument("-p", "--processing-config",
                     help="Configuration tsv file indicating how the dataset "
                          "should be processed",
-                    type=str, default="annot_processing_config.tsv") # required=True, 
+                    type=str, default="annot_processing_config.tsv")  # required=True,
 parser.add_argument("-o", "--output",
                     help="Dictionary file to write imputation values to.",
                     type=str, default="impute_dict.txt")
