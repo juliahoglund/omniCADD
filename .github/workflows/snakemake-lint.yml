@@ -6,6 +6,7 @@ on:
       - main
       - master
       - dev
+      - restructure
     paths:
       - 'workflow/**'
       - 'snakefile'
@@ -17,6 +18,7 @@ on:
       - main
       - master
       - dev
+      - restructure
     paths:
       - 'workflow/**'
       - 'snakefile'
