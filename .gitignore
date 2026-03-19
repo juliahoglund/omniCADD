@@ -92,3 +92,6 @@ config/config.yaml.bak_20260316
 # Sphinx build output
 docs/_build/
 __pycache__/
+
+# Test resources - exclude large full-genome files
+.tests/resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz

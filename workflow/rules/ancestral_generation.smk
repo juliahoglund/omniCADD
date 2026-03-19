@@ -26,7 +26,7 @@ from snakemake.io import expand, glob_wildcards
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
     input:
-        "resources/alignment/{part}.maf.gz",
+        lambda wildcards: f"{config['ancestral_sequence']['alignment']['alignments']['43_mammals.epo']['path']}{wildcards.part}.maf.gz",
     params:
         name_ancestor=config["mark_ancestor"]["name_ancestor"],
         name_reference=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
@@ -57,7 +57,7 @@ rule clean_ambiguous:
 #    				(how it is named in the alignment file alignment section)
 rule mark_ancestor:
     input:
-        maf=lambda wildcards: get_df_input_maf(),
+        maf=lambda wildcards: get_mark_ancestor_input_maf(),
         script="workflow/scripts/ancestral_generation/mark_ancestor.py",
     params:
         sp1_ab=config["mark_ancestor"]["sp1_tree_ab"],
@@ -127,6 +127,59 @@ rule maf_ro:
         "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 
+# Reorder species for conservation annotations (keeps ALL species, just reorders with reference first)
+# This preserves the full phylogenetic tree for GERP/phastCons/phyloP
+rule maf_ro_conservation:
+    input:
+        "results/alignment/dedup/{part}.maf.lz4",
+    params:
+        order=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"].get(
+            "conservation_species_order",
+            config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["filter_order"]
+        ),
+    log:
+        "results/logs/extract_ancestor/maf_ro_conservation/{part}.log",
+    conda:
+        get_conda_env("ancestor")
+    container:
+        "docker://juliahoglund/maftools:latest"
+    threads: get_resource("maf_ro", "threads")
+    resources:
+        mem_mb=get_resource("maf_ro", "mem_mb"),
+        time=get_resource("maf_ro", "time"),
+        partition=get_resource("maf_ro", "partition"),
+    output:
+        temp("results/alignment/row_ordered_conservation/{part}.maf.lz4"),
+    shell:
+        "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
+
+
+# Sort conserv alignment blocks by chromosome (preserves all species)
+rule sort_by_chr_conservation:
+    input:
+        maf=gather_part_files_conservation(),
+        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
+    params:
+        species_name=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["name_species_interest"],
+        chromosomes=config["chromosomes"]["karyotype"],
+        ancestor=config["mark_ancestor"]["name_ancestor"],
+        directory=lambda w, output: os.path.dirname(output[0]),
+    log:
+        "results/logs/extract_ancestor/sort_by_chr_conservation/chr{chr}.log",
+    conda:
+        get_conda_env("alignment")
+    threads: get_resource("sort_by_chr", "threads")
+    resources:
+        mem_mb=lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
+        partition=get_resource("sort_by_chr", "partition"),
+        tmpdir="results/tmp/sort_chr_conservation",
+    output:
+        "results/alignment/merged_conservation/chr{chr}.maf",
+    shell:
+        "mkdir -p results/alignment/merged_conservation && python3 {input.script} --species {params.species_name} --ancestor {params.ancestor} --chromosomes {params.chromosomes} --outdir {params.directory} > {log} 2>&1"
+
+
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
 rule sort_by_chr:
     input:
@@ -148,7 +201,7 @@ rule sort_by_chr:
         partition=get_resource("sort_by_chr", "partition"),
         tmpdir="results/tmp/sort_chr",
     output:
-        "results/alignment/merged/chr{chr}.maf",
+        "results/alignment/merged/chr{chr}.maf.gz",
     shell:
         "mkdir -p results/alignment/merged && python3 {input.script} --species {params.species_name} --ancestor {params.ancestor} --chromosomes {params.chromosomes} --outdir {params.directory} > {log} 2>&1"
 

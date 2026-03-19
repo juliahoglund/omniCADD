@@ -12,11 +12,27 @@ containers:
 ###################
 ### DATA TIER #####
 ###################
-# Quick preset configurations for common scenarios
-data_tier: "limited"  # Options: "standard", "limited", "custom"
-# - standard: Well-annotated species (human, mouse, domestic pig)
-# - limited: Poorly annotated species (wild boar, non-model organisms)
-# - custom: Manual configuration (ignores tier presets)
+# Preset configurations for different resource availability scenarios
+# Choose based on what genomic resources are available for your species
+#
+# OPTIONS:
+#   "standard" - Well-annotated model organisms
+#                Uses: Existing GFF, VEP cache, MAF alignment
+#                Examples: Human, mouse, domestic pig, cattle
+#                Resources: Fast, low disk space, pre-built databases
+#
+#   "limited"  - Poorly-annotated non-model organisms  
+#                Uses: Augustus prediction, SNPEff, builds alignment with minimap2
+#                Examples: Wild boar, exotic animals, newly-sequenced genomes
+#                Resources: Slow, high disk space, builds everything from scratch
+#
+#   "custom"   - Manual configuration (ignores presets)
+#                Uses: Explicit settings from this config file
+#                Examples: Hybrid workflows, testing, specialized analyses
+#
+# See docs/DATA_TIERS.md for detailed comparison
+#
+data_tier: "limited"  # Change to: "standard", "limited", or "custom"
 
 ###################
 ### SPECIES INFO ##
@@ -87,9 +103,9 @@ gene_annotation:
 ### ANCESTRAL SEQUENCE ####
 ###########################
 ancestral_sequence:
-  source: "alignment"  # Options: "alignment", "reconstruct", "outgroup"
+  source: "alignment"  # Options: "alignment", "build_alignment", "reconstruct", "outgroup"
   
-  # Alignment-based extraction (standard method)
+  # Alignment-based extraction (standard method - pre-existing MAF)
   alignment:
     enabled: true
     alignments:
@@ -98,12 +114,60 @@ ancestral_sequence:
         type: 'maf.gz'
         clean_maf: true
         ancestral_label: "Ancestor_Pig_Cow"
+        # Species order for ancestral extraction (filters to only these species)
         filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+        # Species order for conservation annotations (keeps ALL species, just reorders)
+        # IMPORTANT: List all species from your phylogenetic tree to preserve full tree for GERP/phastCons/phyloP
+        # Put your target species first, then all others from the alignment
+        conservation_species_order: "sus_scrofa,bos_taurus,ovis_aries_rambouillet,homo_sapiens,mus_musculus"  # Add all your species here
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: "chr"
+  
+  # Build alignment from scratch (for species not in EPO alignments)
+  # Creates multi-species alignment with minimap2 for conservation analysis
+  build_alignment:
+    enabled: false
+    method: "minimap2"
+    
+    # Download genomes from public databases
+    download_genomes:
+      enabled: true
+      source: "ensembl"  # Options: "ensembl", "ncbi", "ucsc", "local"
+      # Example: Download phylogenetically relevant species
+      species_list:
+        - name: "bos_taurus"
+          ensembl_name: "Bos_taurus"
+          version: "ARS-UCD1.2"
+        - name: "ovis_aries"
+          ensembl_name: "Ovis_aries_rambouillet"
+          version: "Oar_rambouillet_v1.0"
+      local_genomes: []
+    
+    # Minimap2 alignment parameters
+    minimap2:
+      preset: "asm5"  # For closely related species (asm5, asm10, asm20)
+      threads: 32
+      params: "-x asm5 --cs -t 32"
+      output_format: "paf"
+      
+    # Convert to MAF for pipeline compatibility
+    convert_to_maf:
+      enabled: true
+      tool: "paf2maf"
+      reference_species: "sus_scrofa"
+      
+    # Reconstruct ancestors from built alignment
+    reconstruct_ancestor:
+      enabled: true
+      method: "phast"
+      tree: "(sus_scrofa,(bos_taurus,ovis_aries))"
+      outgroup: "homo_sapiens"
+      
+    # Use for conservation scores
+    use_for_conservation: true
         
-  # Reconstruction from reference (for species without alignments)
+  # Reconstruction from reference (for species without alignments OR related genomes)
   reconstruct:
     enabled: true
     method: "align_to_reference"  # Align ancestral sequence to reference genome
@@ -284,7 +348,7 @@ profiles:
     annotation:
       variant_annotator: "snpeff"
     ancestral_sequence:
-      source: "reconstruct"
+      source: "build_alignment"  # Build alignment from related species with minimap2
     preprocessing:
       reference_genome:
         needs_formatting: true

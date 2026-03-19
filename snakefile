@@ -80,8 +80,9 @@ if should_include_gene_prediction():
 
 
 ##### Load core workflow modules #####
-# Only include alignment-based ancestor extraction if not using pre-computed sequences
-if not config.get("ancestral_sequence", {}).get("skip_extraction", False):
+# Only include alignment-based ancestor extraction if using pre-existing MAF files
+ancestral_source = config.get("ancestral_sequence", {}).get("source", "alignment")
+if ancestral_source == "alignment" and not config.get("ancestral_sequence", {}).get("skip_extraction", False):
 
     include: "workflow/rules/ancestral_generation.smk"
 
@@ -161,6 +162,25 @@ rule model_only:
         "results/model/All/full.mod.pickle",
         "results/model/All/full.scaler.pickle",
         "results/model/All/full.mod.weights.csv",
+
+
+rule test_dag:
+    """CI target: validates DAG for fully-implemented core modules (1-4).
+    Modules 5-8 (annotation, combine, train, score) have ongoing development.
+    """
+    input:
+        # Module 1: Extract ancestor
+        expand(
+            "results/ancestral_seq/{ancestor}/chr{chr}.fa",
+            ancestor=config["mark_ancestor"]["name_ancestor"],
+            chr=config["chromosomes"]["karyotype"],
+        ),
+        # Module 2: Derive variants
+        expand("results/derived_variants/singletons/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
+        # Module 3: Simulate variants
+        expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
+        # Module 4: Summary report
+        "results/visualisation/stats_report.html",
 
 
 ##### target rules #####

@@ -1,6 +1,6 @@
-# Test configuration: LIMITED (limited data available)
-# Scenario: Poorly-annotated species requiring gene prediction, reconstruction, etc.
-# Use this to test workflows that build databases, predict genes, reconstruct ancestors
+# Test configuration: STANDARD (all data available)
+# Scenario: Well-annotated species with full resources
+# Use this to test workflows with existing GFF, VEP cache, MAF alignments, etc.
 
 containers:
   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
@@ -10,15 +10,15 @@ containers:
 ###################
 ### DATA TIER #####
 ###################
-# Test configuration using "limited" tier preset
+# Test configuration using "standard" tier preset
 # 
 # TIER OPTIONS:
-#   "standard" - GFF annotation, VEP, pre-existing MAF alignment
-#   "limited"  - Augustus prediction, SNPEff, minimap2 alignment building (this config)
+#   "standard" - GFF annotation, VEP, pre-existing MAF alignment (this config)
+#   "limited"  - Augustus prediction, SNPEff, minimap2 alignment building
 #   "custom"   - Manual settings (ignores presets)
 #
 # See docs/DATA_TIERS.md for details
-data_tier: "limited"
+data_tier: "standard"
 
 ###################
 ### SPECIES INFO ##
@@ -36,41 +36,35 @@ chromosomes:
     convention: "numeric"
     include_scaffolds: false
     standardize:
-      enabled: true  # Need to standardize chromosome names
-      patterns:
-        - from: "chr_"
-          to: ""
-        - from: "_pilon"
-          to: ""
-        - from: "chromosome_"
-          to: ""
+      enabled: false  # Pre-formatted genome
+      patterns: []
 
 #######################
 ### PREPROCESSING #####
 #######################
 preprocessing:
   reference_genome:
-    needs_formatting: true   # Linearize FASTA
-    needs_filtering: true    # Remove scaffolds
+    needs_formatting: false
+    needs_filtering: false
     needs_indexing: true
     
   population_vcf:
-    needs_processing: true
+    needs_processing: false
     chromosome_prefix: "chr"
 
 ########################
 ### GENE ANNOTATION ####
 ########################
 gene_annotation:
-  source: "augustus"  # Must predict genes (no existing annotation)
+  source: "gff"  # Existing annotation available
   
-  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
+  gff: '.tests/resources/Sus_scrofa.Sscrofa11.1.111.chr18.gff3.gz'  # Test file: chr18 only
   gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
   
-  predict_genes: true
+  predict_genes: false
   ancestral_mode: "alignment"
   augustus:
-    enabled: true
+    enabled: false
     species_model: "human"
     species: "human"
     output_format: "gff3"
@@ -82,76 +76,27 @@ gene_annotation:
 ### ANCESTRAL SEQUENCE ####
 ###########################
 ancestral_sequence:
-  source: "alignment"  # Test uses pre-existing MAF (build_alignment not testable via dry-run)
+  source: "alignment"  # MAF alignments available
   
   alignment:
     enabled: true
     alignments:
       43_mammals.epo:
-        path: '.tests/resources/alignment/'
+        path: '.tests/resources/alignment/'  # Test data: minimal chr18 alignment
         type: 'maf.gz'
         clean_maf: true
         ancestral_label: "Ancestor_Pig_Cow"
         # Species order for ancestral extraction (filters to only these species)
         filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
-        # Note: conservation_species_order not needed when alignment.enabled = false
+        # Species order for conservation (keeps ALL species, just reorders with reference first)
+        # IMPORTANT: List all species from your phylogenetic tree to preserve full tree for GERP
+        conservation_species_order: "sus_scrofa,bos_taurus,ovis_aries_rambouillet,camelus_dromedarius,catagonus_wagneri,sus_barbatus,sus_cebifrons,sus_celebensis,sus_verrucosus,babyrousa_babyrussa,phacochoerus_africanus,potamochoerus_porcus,tayassu_pecari,pecari_tajacu,hippopotamus_amphibius,cervus_hanglu_yarkandensis,bos_indicus_hybrid,bos_grunniens,bos_mutus,bison_bison_bison,bubalus_bubalis,capra_hircus,ovis_canadensis,ammotragus_lervia,pantholops_hodgsonii,antilocapra_americana,giraffa_tippelskirchi,vicugna_pacos,equus_caballus,equus_asinus,ceratotherium_simum_simum,rhinolophus_ferrumequinum,canis_lupus_familiaris,felis_catus,tursiops_truncatus,orcinus_orca,physeter_catodon,balaenoptera_musculus,loxodonta_africana,homo_sapiens,mus_musculus"
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: "chr"
-  
-  # Build multi-species alignment with minimap2 for conservation
-  build_alignment:
-    enabled: true
-    method: "minimap2"
-    
-    # Download relevant EPO 43 mammals species
-    download_genomes:
-      enabled: true
-      source: "ensembl"
-      # Select phylogenetically relevant species from EPO 43 mammals
-      species_list:
-        - name: "bos_taurus"
-          ensembl_name: "Bos_taurus"
-          version: "ARS-UCD1.2"
-        - name: "ovis_aries_rambouillet"
-          ensembl_name: "Ovis_aries_rambouillet"
-          version: "Oar_rambouillet_v1.0"
-        - name: "camelus_dromedarius"
-          ensembl_name: "Camelus_dromedarius"
-          version: "CamDro2"
-        - name: "catagonus_wagneri"
-          ensembl_name: "Catagonus_wagneri"
-          version: "CatWag_v2_BIUU_UU"
-        - name: "equus_caballus"
-          ensembl_name: "Equus_caballus"
-          version: "EquCab3.0"
-      local_genomes: []
-    
-    # Minimap2 parameters for genome alignment
-    minimap2:
-      preset: "asm5"  # For closely related species
-      threads: 32
-      params: "-x asm5 --cs -t 32"
-      output_format: "paf"
-      
-    # Convert alignments to MAF
-    convert_to_maf:
-      enabled: true
-      tool: "paf2maf"
-      reference_species: "sus_scrofa"
-      
-    # Reconstruct ancestral sequences from the built alignment using phast
-    phast_reconstruction:
-      enabled: true
-      method: "phast"
-      tree: "(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))"
-      outgroup: "equus_caballus"
-      
-    # Use this built alignment for GERP, phastCons, phyloP
-    use_for_conservation: true
         
-  # Alternative method: Simple reconstruction from FASTA (only used when source: "simple_reconstruction")
-  simple_reconstruction:
+  reconstruct:
+    enabled: false
     method: "align_to_reference"
     input_fasta: "resources/ancestral/Ancestor.fasta"
     tools:
@@ -178,13 +123,13 @@ mark_ancestor:
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
-  reference_genome: 'resources/genome/Sus_scrofa_ref.fa'
+  reference_genome: '.tests/resources/genome/Sus_scrofa_ref.fa'  # Test data
 
 ###########################
 ### VARIANT GENERATION ####
 ###########################
 generate_variants:
-  reference_genome_wildcard: ".tests/resources/genome/Sus_scrofa_ref_{chr}.fa"  # Test data
+  reference_genome_wildcard: ".tests/resources/genome/Sus_scrofa_ref_18.fa"  # Test: chr18 only
   population_vcf: ".tests/resources/population/chr{chr}.vcf.gz"  # Test data
   
   derive:
@@ -197,10 +142,10 @@ generate_variants:
 ### VARIANT ANNOTATION #####
 ############################
 annotation:
-  variant_annotator: "snpeff"  # Must build database (no VEP cache)
+  variant_annotator: "vep"  # VEP cache available
   
   vep:
-    enabled: false
+    enabled: true
     cache:
       directory: '$VEP_CACHE'
       should_install: false
@@ -208,9 +153,9 @@ annotation:
     options: "--everything --fork 2"
     
   snpeff:
-    enabled: true
+    enabled: false
     database:
-      exists: false  # Build database from scratch
+      exists: false
       name: "sus_scrofa_custom"
       path: "resources/snpEff/data/"
     build:
@@ -229,19 +174,18 @@ annotation:
     
   conservation:
     gerp:
-      enabled: true  # Use built multi-species alignment
-      alignment: 'build_alignment'  # References the minimap2-built alignment
+      enabled: true
+      alignment: '43_mammals.epo'
       n_chunks: 30
-      tree: 'resources/tree_custom.nwk'  # Tree matching downloaded species
+      tree: 'resources/tree_43_mammals.nwk'
       
     phast:
       enabled: true
       phastCons: true
       phyloP: true
-      # Tree matching the species downloaded and aligned with minimap2
       tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))'
       tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
-      train_precision: "MEDIUM"  # Medium precision for custom alignment
+      train_precision: "HIGH"
       phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
       phyloP_params: "--method=LRT --mode=CONACC"
       
@@ -256,8 +200,8 @@ annotation_config:
 ########################
 stats_report:
   enabled: true
-  annotation: false
-  prefix: ''
+  annotation: true
+  prefix: '.tests/resources/Sus_scrofa.Sscrofa11.1.111.chr'
   tree: '.tests/resources/tree_43_mammals.nwk'  # Test data
   ingroup: 'sus scrofa'
   outgroup: 'bos taurus'
@@ -266,12 +210,12 @@ stats_report:
 ### MODEL TRAINING ###
 ######################
 model:
-  n_folds: 5  # Fewer folds for faster testing
+  n_folds: 10
   test_params:
-    c: [1.0]  # Single parameter for faster testing
+    c: [0.1, 1.0, 10.0]
     max_iter: [100]
   final_params:
-    c: 1.0
+    c: 10.0
     max_iter: 100
   column_subsets:
     All: "SPECIAL KEY, uses all columns"
@@ -286,7 +230,6 @@ parallelization:
   memory: 60000
 
 dataset_memory_mb: 60000
-
 
 ###########################
 ### WORKFLOW PROFILES #####
@@ -312,7 +255,7 @@ profiles:
     annotation:
       variant_annotator: "snpeff"
     ancestral_sequence:
-      source: "alignment"  # Test: use pre-existing MAF (build_alignment not testable via dry-run)
+      source: "build_alignment"
     preprocessing:
       reference_genome:
         needs_formatting: true

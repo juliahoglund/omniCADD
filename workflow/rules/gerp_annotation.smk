@@ -9,7 +9,8 @@ wildcard_constraints:
 checkpoint split_alignment:
     input:
         script="../scripts/combine_annotations/split_alignments.py",
-        maf="results/alignment/merged/chr{chr}.maf",
+        # Use conservation alignment that preserves all species for GERP
+        maf="results/alignment/merged_conservation/chr{chr}.maf",
     params:
         blocksize=config["parallelization"]["alignment_positions_per_file"],
     log:

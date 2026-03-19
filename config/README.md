@@ -2,11 +2,35 @@
 
 This directory contains all configuration files for the omniCADD pipeline.
 
+## Quick Start: Choose Your Data Tier
+
+Choose based on available genomic resources for your species:
+
+| Setting | Use Case | Resources Needed | Examples |
+|---------|----------|------------------|----------|
+| **`standard`** | Well-annotated model organisms | GFF, VEP cache, MAF alignment | Human, mouse, pig, cattle |
+| **`limited`** | Poorly-annotated species | Reference genome, related species | Wild boar, exotic animals |
+| **`custom`** | Manual configuration | Depends on settings | Hybrid/specialized workflows |
+
+### Example Configuration
+
+```yaml
+# In config.yaml, set one of:
+data_tier: "standard"  # Model organisms with full resources
+data_tier: "limited"   # Non-model organisms, build from scratch
+data_tier: "custom"    # Manual settings, ignore presets
+```
+
+**📖 Full documentation:** See [`docs/DATA_TIERS.md`](../docs/DATA_TIERS.md) for detailed comparison
+
+---
+
 ## Directory Structure
 
 ```
 config/
-├── config.yaml                    # Main pipeline configuration
+├── config.yaml                    # Main pipeline configuration ⭐
+├── config.default.yaml            # Template with all options
 ├── annot_combinations_config.tsv  # Annotation combination settings  
 ├── annot_processing_config.tsv    # Annotation processing parameters
 ├── slurm/                         # SLURM cluster profiles
@@ -16,21 +40,81 @@ config/
 └── README.md                      # This file
 ```
 
+---
+
 ## Main Configuration: `config.yaml`
 
 The primary configuration file controls all aspects of the pipeline.
 
-### Species Configuration
+### Data Tier Presets
+
+The `data_tier` setting automatically configures the workflow for your species:
+
+#### Standard Tier (Model Organisms)
+```yaml
+data_tier: "standard"
+
+# Automatically enables:
+# - gene_annotation.source: "gff"        (uses existing annotation)
+# - annotation.variant_annotator: "vep"  (Ensembl VEP)
+# - ancestral_sequence.source: "alignment" (pre-existing MAF)
+# - preprocessing: minimal
+```
+
+**Required resources:**
+- Reference genome FASTA
+- GFF3 or GTF annotation file
+- Population VCF
+- Multi-species MAF alignment (e.g., EPO)
+- VEP cache
+
+#### Limited Tier (Non-Model Organisms)
+```yaml
+data_tier: "limited"
+
+# Automatically enables:
+# - gene_annotation.source: "augustus"        (predict genes)
+# - annotation.variant_annotator: "snpeff"    (build database)
+# - ancestral_sequence.source: "build_alignment" (minimap2)
+# - preprocessing: format, filter, standardize
+```
+
+**Required resources:**
+- Reference genome FASTA (any format)
+- Population VCF
+- Genomes of 3-10 related species (downloads from Ensembl)
+
+**Builds automatically:**
+- Gene predictions (Augustus)
+- SNPEff annotation database
+- Multi-species alignment (minimap2)
+- Phylogenetic tree
+- Ancestral sequence reconstruction
+- Conservation scores (GERP, phastCons, phyloP)
+
+#### Custom Tier (Manual Configuration)
+```yaml
+data_tier: "custom"
+
+# All settings must be explicitly defined in config.yaml
+# Ignores preset profiles
+```
+
+---
+
+## Species Configuration
 Configuration examples stated below is how the pipeline was build and tested. 
 
 ```yaml
 species_name: "sus_scrofa"  # Reference species
-comparison: "cow"           # For ancestral reconstruction
+comparison: "cow"           # For ancestral reconstruction (deprecated - use data_tier)
 ```
 
 **Important**: Species names must match those in alignment and phylogenetic tree exactly.
 
-### Chromosome Configuration
+---
+
+## Chromosome Configuration
 
 ```yaml
 chromosomes:

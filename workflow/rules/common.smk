@@ -41,20 +41,40 @@ def get_gene_annotation_file():
 
 def get_df_input_maf():
     """
-    Input based on configuration. If ancestor must be marked that rule is input, if not and also no cleaning is needed,
-    the source maf file is taken as input instead. If cleaning is needed that rule is added instead.
-    Otherwise the input MAF file is required directly, skipping the other two steps and saving some time.
-    Used by: ancestral_generation.smk
-    :return: str, input file
+    Input for maf_df rule (duplicate filter step), which follows after marking.
+    Pipeline: clean_ambiguous → mark_ancestor → maf_df → maf_ro
+    If mark_ancestor is configured, maf_df takes marked_ancestor output.
+    If only cleaning is configured, maf_df takes cleaned_maf output.
+    Otherwise maf_df takes raw alignment files directly.
+    Used by: ancestral_generation.smk (maf_df input)
+    :return: str, input file pattern
     """
-    # Since we only have one alignment now, check if marking is needed
+    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
+
     if "name_ancestor" in config["mark_ancestor"]:
         return "results/alignment/marked_ancestor/{part}.maf.gz"
 
-    if config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["clean_maf"]:
+    if alignment_config["clean_maf"]:
         return "results/alignment/cleaned_maf/{part}.maf.gz"
 
-    return f"{config['ancestral_sequence']['alignment']['alignments']['43_mammals.epo']['path']}{{part}}.maf.gz"
+    return f"{alignment_config['path']}{{part}}.maf.gz"
+
+
+def get_mark_ancestor_input_maf():
+    """
+    Input for mark_ancestor rule (the step before maf_df).
+    Pipeline: clean_ambiguous → mark_ancestor
+    If cleaning is configured, mark_ancestor takes cleaned_maf as input.
+    Otherwise mark_ancestor takes raw alignment files directly.
+    Used by: ancestral_generation.smk (mark_ancestor input)
+    :return: str, input file pattern
+    """
+    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
+
+    if alignment_config["clean_maf"]:
+        return "results/alignment/cleaned_maf/{part}.maf.gz"
+
+    return f"{alignment_config['path']}{{part}}.maf.gz"
 
 
 def gather_part_files():
@@ -75,17 +95,38 @@ def gather_part_files():
 
     # Handle the case when no files are found
     if len(infiles) == 0:
-        # For linting, return a placeholder
+        # For linting or dry-run, return a placeholder
         import sys
 
-        if "--lint" in sys.argv:
-            print(f"Warning: No alignment parts found in the form {input_pattern} (linting mode)")
+        if "--lint" in sys.argv or "--dry-run" in sys.argv or "-n" in sys.argv:
+            mode = "lint/dry-run" if any(arg in sys.argv for arg in ["--lint", "--dry-run", "-n"]) else "lint"
+            print(f"Warning: No alignment parts found in the form {input_pattern} ({mode} mode)")
             return ["results/alignment/row_ordered/placeholder.maf.lz4"]
         else:
             # For actual runs, exit with error
             sys.exit(f"No alignment parts found in the form {input_pattern}")
 
     return infiles
+
+
+def gather_part_files_conservation():
+    """
+    Gather all alignment part files for conservation analysis (preserves all species).
+    Used by: ancestral_generation.smk (sort_by_chr_conservation rule)
+    """
+    alignment_dir = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["path"]
+    parts = glob_wildcards(os.path.join(alignment_dir, "{part}.maf.gz")).part
+    
+    # Handle the case when no files are found
+    if len(parts) == 0:
+        import sys
+        if "--lint" in sys.argv or "--dry-run" in sys.argv or "-n" in sys.argv:
+            print(f"Warning: No conservation alignment parts found in {alignment_dir} (dry-run mode)")
+            return ["results/alignment/row_ordered_conservation/placeholder.maf.lz4"]
+        else:
+            sys.exit(f"No conservation alignment parts found in {alignment_dir}")
+    
+    return expand("results/alignment/row_ordered_conservation/{part}.maf.lz4", part=parts)
 
 
 def get_folds(excluding=None) -> list:

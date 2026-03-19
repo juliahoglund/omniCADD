@@ -113,14 +113,14 @@ rule simulate_indels:
 rule filter_variants:
     input:
         script="workflow/scripts/variant_simulation/filter_variants.py",
-        variants="results/simulated_variants/raw_{type}/chr{chr}.vcf",
+        variants="results/simulated_variants/raw_{sim_type}/chr{chr}.vcf",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
     log:
-        "results/logs/simulate_variants/filter_variants/{type}_chr{chr}.log",
+        "results/logs/simulate_variants/filter_variants/{sim_type}_chr{chr}.log",
     conda:
         get_conda_env("simulation")
     output:
-        "results/simulated_variants/filtered_{type}/chr{chr}.vcf",
+        "results/simulated_variants/filtered_{sim_type}/chr{chr}.vcf",
     shell:
         "python3 {input.script} " "-i {input.variants} " "-a {input.ancestral} " "-o {output} 2> {log}"
 
@@ -134,18 +134,18 @@ Trimming is done for the whole variant set so they are first merged into one
 rule chrom_to_all:
     input:
         raw=expand(
-            "results/simulated_variants/raw_{{type}}/chr{chr}.vcf",
+            "results/simulated_variants/raw_{{sim_type}}/chr{chr}.vcf",
             chr=config["chromosomes"]["karyotype"],
         ),
         filtered=expand(
-            "results/simulated_variants/filtered_{{type}}/chr{chr}.vcf",
+            "results/simulated_variants/filtered_{{sim_type}}/chr{chr}.vcf",
             chr=config["chromosomes"]["karyotype"],
         ),
     log:
-        "results/logs/simulate_variants/chrom_to_all/{type}.log",
+        "results/logs/simulate_variants/chrom_to_all/{sim_type}.log",
     output:
-        raw="results/simulated_variants/raw_{type}/all_chr.vcf",
-        filtered="results/simulated_variants/filtered_{type}/all_chr.vcf",
+        raw="results/simulated_variants/raw_{sim_type}/all_chr.vcf",
+        filtered="results/simulated_variants/filtered_{sim_type}/all_chr.vcf",
     conda:
         get_conda_env("common")
     shell:
@@ -224,12 +224,12 @@ with each thread requiring less memory.
 
 rule split_by_chrom:
     input:
-        vcf="results/simulated_variants/trimmed_{type}/all_chr.vcf.gz",
-        index="results/simulated_variants/trimmed_{type}/all_chr.vcf.gz.tbi",
+        vcf="results/simulated_variants/trimmed_{sim_type}/all_chr.vcf.gz",
+        index="results/simulated_variants/trimmed_{sim_type}/all_chr.vcf.gz.tbi",
     log:
-        "results/logs/simulate_variants/split_by_chrom/{type}_chr{chr}.log",
+        "results/logs/simulate_variants/split_by_chrom/{sim_type}_chr{chr}.log",
     output:
-        "results/simulated_variants/trimmed_{type}/chr{chr}.vcf",
+        "results/simulated_variants/trimmed_{sim_type}/chr{chr}.vcf",
     conda:
         get_conda_env("common")
     shell:
