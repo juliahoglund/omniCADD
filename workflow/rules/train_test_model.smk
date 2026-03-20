@@ -48,7 +48,7 @@ rule fold_data:
             chr=config["chromosomes"]["train"],
         ),
         script="workflow/scripts/train_test_model/fold_data.py",
-        lib="workflow/scripts/data_helper.py",
+        lib="workflow/scripts/utilities/data_helper.py",
     log:
         "results/logs/train_test_model/fold_data.log",
     conda:
@@ -89,7 +89,7 @@ rule train_model:
             fold=get_train_folds(wildcards.fold),
         ),
         script="workflow/scripts/train_test_model/train_model.py",
-        lib="workflow/scripts/data_helper.py",
+        lib="workflow/scripts/utilities/data_helper.py",
     params:
         c=config["model"]["test_params"]["c"],
         max_iter=config["model"]["test_params"]["max_iter"],
@@ -144,7 +144,7 @@ rule final_model:
         train_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
         train_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
         script="workflow/scripts/train_test_model/train_model.py",
-        lib="workflow/scripts/data_helper.py",
+        lib="workflow/scripts/utilities/data_helper.py",
     params:
         c=config["model"]["final_params"]["c"],
         max_iter=config["model"]["final_params"]["max_iter"],

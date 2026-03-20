@@ -21,7 +21,7 @@ rule vep_cache:
 
 rule run_vep:
     input:
-        script="../scripts/vep_annotation/vep.sh",
+        script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
         cache=(rules.vep_cache.output if config["annotation"]["vep"]["cache"]["should_install"] == "True" else []),
     params:
@@ -47,24 +47,20 @@ rule run_vep:
 
 rule process_vep:
     input:
-        script="../scripts/vep_annotation/VEP_process.py",
-        vcf="{folder}/chr{chr}.vcf.gz",
-        index="{folder}/chr{chr}.vcf.gz.tbi",
-        vep="{folder}/chr{chr}_vep_output.tsv",
+        script="workflow/scripts/vep_annotation/VEP_process.py",
+        vcf=get_vep_source_vcf,
+        index=get_vep_source_index,
+        vep=get_vep_source_vep_output,
         genome=config["generate_variants"]["reference_genome_wildcard"],
-        grantham=[
-            config["annotation"]["grantham_matrix"],
-        ],
-    params:
-        output_type=lambda wildcards: ("derived" if "derived_variants" in wildcards.folder else "simulated"),
+        grantham=config["annotation"]["grantham_matrix"],
     log:
-        "{folder}/chr{chr}_process_vep.log",
+        "results/logs/annotate_vars/process_vep_{type}_chr{chr}.log",
     conda:
         get_conda_env("common")
     output:
-        vep_tsv="{folder}/chr{chr}_vep.tsv",
+        vep_tsv="results/annotation/vep/{type}/chr{chr}_vep.tsv",
     shell:
         """
-         mkdir -p $(dirname {output}) results/annotation/vep/{params.output_type}
-         python3 {input.script} -v {input.vep} -s {input.vcf} -r {input.genome} -g {input.grantham} -o {output.vep_tsv} 2>> {log} && cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv 2>> {log}
+         mkdir -p $(dirname {output.vep_tsv})
+         python3 {input.script} -v {input.vep} -s {input.vcf} -r {input.genome} -g {input.grantham} -o {output.vep_tsv} 2>> {log}
          """

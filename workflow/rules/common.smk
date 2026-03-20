@@ -157,15 +157,16 @@ def gather_scores(wildcards):
     """
     Gather all score files from generate_all_variants checkpoint.
     Used by: score_variants.smk
+    cols defaults to "All" when not present in wildcards (e.g. sort_raw_scores).
+    Parts are always numeric (wildcard_constraints part="[0-9]+"), so sorted(key=int) suffices.
     """
-    from natsort import natsorted, ns
-
-    checkpoint_output = checkpoints.generate_all_variants.get(**wildcards).output[0]
+    cols = getattr(wildcards, "cols", "All")
+    checkpoint_output = checkpoints.generate_all_variants.get(chr=wildcards.chr).output[0]
     parts = glob_wildcards(os.path.join(checkpoint_output, "{part}.vcf.gz")).part
-    parts_sorted = natsorted(parts, alg=ns.INT)  # Natural sort
+    parts_sorted = sorted(parts, key=int)
     return expand(
         "results/whole_genome_scores/raw_parts/{cols}/chr{chr}/{part}.csv",
-        cols=wildcards.cols,
+        cols=cols,
         chr=wildcards.chr,
         part=parts_sorted,
     )
