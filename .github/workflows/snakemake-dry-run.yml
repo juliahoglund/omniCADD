@@ -10,6 +10,8 @@ on:
     paths:
       - 'workflow/**/*.smk'
       - 'snakefile'
+      - '.tests/config/**'
+      - 'workflow/scripts/**'
   pull_request:
     branches:
       - main
@@ -19,6 +21,8 @@ on:
     paths:
       - 'workflow/**/*.smk'
       - 'snakefile'
+      - '.tests/config/**'
+      - 'workflow/scripts/**'
 
 jobs:
   syntax-check:
@@ -52,24 +56,18 @@ jobs:
           done
           echo "✓ All Python scripts have valid syntax"
       
-      - name: Check Snakemake syntax
+      - name: Prepare config files
         run: |
-          # Prepare minimal configs for syntax checking
-          cp config/config.default.yaml config/config.yaml || true
-          cp config/config_refs.default.yaml config/config_refs.yaml || true
-          cp config/resources.default.yaml config/resources.yaml || true
-          
-          # Snakemake dry-run will validate syntax of snakefile and all rules
-          snakemake --dry-run --configfile config/config.yaml 2>&1 | head -20 || echo "Dry-run validation completed"
-          echo "✓ Snakemake workflow syntax is valid"
+          cp config/config_refs.default.yaml config/config_refs.yaml
+          cp config/resources.default.yaml config/resources.yaml
+      
+      - name: Run dry-run CI tests (both configs)
+        run: |
+          bash .tests/test_configs.sh
       
       - name: Quick lint check
         run: |
-          # Prepare minimal configs for linting
-          cp config/config.default.yaml config/config.yaml
-          cp config/config_refs.default.yaml config/config_refs.yaml
-          cp config/resources.default.yaml config/resources.yaml
-          
-          # Run lint
+          # Use standard test config for linting
+          cp .tests/config/config_standard.yaml config/config.yaml
           snakemake --lint --configfile config/config.yaml
           echo "✓ Snakemake lint check passed"

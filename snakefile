@@ -165,9 +165,7 @@ rule model_only:
 
 
 rule test_dag:
-    """CI target: validates DAG for fully-implemented core modules (1-4).
-    Modules 5-8 (annotation, combine, train, score) have ongoing development.
-    """
+    """CI target: validates DAG for all core modules (1-8)."""
     input:
         # Module 1: Extract ancestor
         expand(
@@ -181,6 +179,35 @@ rule test_dag:
         expand("results/simulated_variants/trimmed_snps/chr{chr}.vcf", chr=config["chromosomes"]["karyotype"]),
         # Module 4: Summary report
         "results/visualisation/stats_report.html",
+        # Module 5: Annotate variants (VEP or SNPEff depending on config)
+        expand(
+            "results/annotation/vep/{type}/chr{chr}_vep.tsv",
+            type=["simulated", "derived"],
+            chr=config["chromosomes"]["karyotype"],
+        ) if should_include_vep() else [],
+        expand(
+            "results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
+            type=["simulated", "derived"],
+            chr=config["chromosomes"]["karyotype"],
+        ) if should_include_snpeff() else [],
+        # Module 6: Combine variant annotations with conservation constraint
+        expand(
+            "results/annotation/constraint/constraint_chr{chr}.bed",
+            chr=config["chromosomes"]["karyotype"],
+        ),
+        expand(
+            "results/dataset/{type}/chr{chr}_annotated.tsv",
+            type=["simulated", "derived"],
+            chr=config["chromosomes"]["karyotype"],
+        ),
+        # Module 7: Train test model
+        "results/model/All/full.mod.pickle",
+        "results/model/All/full.scaler.pickle",
+        "results/model/All/full.mod.weights.csv",
+        # Module 8: Score variants (CADD scores)
+        expand("results/cadd_scores/chr{chr}.tsv.gz", chr=config["chromosomes"]["score"]),
+        expand("results/cadd_scores/chr{chr}.tsv.gz.tbi", chr=config["chromosomes"]["score"]),
+        "results/cadd_scores/scoring_summary.txt",
 
 
 ##### target rules #####
@@ -203,12 +230,15 @@ rule all:
             "results/annotation/vep/{type}/chr{chr}_vep.tsv",
             chr=config["chromosomes"]["karyotype"],
             type=["simulated", "derived"],
-        ),
+        ) if should_include_vep() else [],
+        expand(
+            "results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
+            chr=config["chromosomes"]["karyotype"],
+            type=["simulated", "derived"],
+        ) if should_include_snpeff() else [],
         # Module 6: Combine annotations (required for Module 7)
         expand("results/annotation/constraint/constraint_chr{chr}.bed", chr=config["chromosomes"]["karyotype"]),
-        expand("results/dataset/{type}/chr{chr}.npz", type=["simulated", "derived"], chr=config["chromosomes"]["karyotype"]),
-        "results/dataset/imputation_dict.txt",
-        "results/figures/column_analysis/relevance.tsv",
+        expand("results/dataset/{type}/chr{chr}_annotated.tsv", type=["simulated", "derived"], chr=config["chromosomes"]["karyotype"]),
         # Module 7: Train test model (required for Module 8)
         "results/model/All/full.mod.pickle",
         "results/model/All/full.scaler.pickle",
