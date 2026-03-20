@@ -189,7 +189,7 @@ annotation:
       phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
       phyloP_params: "--method=LRT --mode=CONACC"
       
-  grantham_matrix: "resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"
+  grantham_matrix: "resources/grantham_matrix/grantham_table.tsv"
 
 annotation_config:
   processing: "config/annot_processing_config.tsv"
