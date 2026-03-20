@@ -135,7 +135,7 @@ rule maf_ro_conservation:
     params:
         order=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"].get(
             "conservation_species_order",
-            config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["filter_order"]
+            config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["filter_order"],
         ),
     log:
         "results/logs/extract_ancestor/maf_ro_conservation/{part}.log",

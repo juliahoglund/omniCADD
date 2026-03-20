@@ -184,12 +184,16 @@ rule test_dag:
             "results/annotation/vep/{type}/chr{chr}_vep.tsv",
             type=["simulated", "derived"],
             chr=config["chromosomes"]["karyotype"],
-        ) if should_include_vep() else [],
+        )
+        if should_include_vep()
+        else [],
         expand(
             "results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
             type=["simulated", "derived"],
             chr=config["chromosomes"]["karyotype"],
-        ) if should_include_snpeff() else [],
+        )
+        if should_include_snpeff()
+        else [],
         # Module 6: Combine variant annotations with conservation constraint
         expand(
             "results/annotation/constraint/constraint_chr{chr}.bed",
@@ -230,15 +234,23 @@ rule all:
             "results/annotation/vep/{type}/chr{chr}_vep.tsv",
             chr=config["chromosomes"]["karyotype"],
             type=["simulated", "derived"],
-        ) if should_include_vep() else [],
+        )
+        if should_include_vep()
+        else [],
         expand(
             "results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
             chr=config["chromosomes"]["karyotype"],
             type=["simulated", "derived"],
-        ) if should_include_snpeff() else [],
+        )
+        if should_include_snpeff()
+        else [],
         # Module 6: Combine annotations (required for Module 7)
         expand("results/annotation/constraint/constraint_chr{chr}.bed", chr=config["chromosomes"]["karyotype"]),
-        expand("results/dataset/{type}/chr{chr}_annotated.tsv", type=["simulated", "derived"], chr=config["chromosomes"]["karyotype"]),
+        expand(
+            "results/dataset/{type}/chr{chr}_annotated.tsv",
+            type=["simulated", "derived"],
+            chr=config["chromosomes"]["karyotype"],
+        ),
         # Module 7: Train test model (required for Module 8)
         "results/model/All/full.mod.pickle",
         "results/model/All/full.scaler.pickle",

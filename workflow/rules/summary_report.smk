@@ -28,7 +28,7 @@ rule create_summary:
         raw_log="results/visualisation/raw_summary.log",
         filtered_log="results/visualisation/filtered_summary.log",
     params:
-        ancestral_dir=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/",
+        ancestral_dir=lambda wildcards, input: os.path.dirname(input.ancestral_files[0]) + "/",
     log:
         "results/logs/summary_report/create_summary.log",
     conda:

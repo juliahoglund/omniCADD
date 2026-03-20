@@ -116,16 +116,17 @@ def gather_part_files_conservation():
     """
     alignment_dir = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["path"]
     parts = glob_wildcards(os.path.join(alignment_dir, "{part}.maf.gz")).part
-    
+
     # Handle the case when no files are found
     if len(parts) == 0:
         import sys
+
         if "--lint" in sys.argv or "--dry-run" in sys.argv or "-n" in sys.argv:
             print(f"Warning: No conservation alignment parts found in {alignment_dir} (dry-run mode)")
             return ["results/alignment/row_ordered_conservation/placeholder.maf.lz4"]
         else:
             sys.exit(f"No conservation alignment parts found in {alignment_dir}")
-    
+
     return expand("results/alignment/row_ordered_conservation/{part}.maf.lz4", part=parts)
 
 
@@ -170,6 +171,13 @@ def gather_scores(wildcards):
         chr=wildcards.chr,
         part=parts_sorted,
     )
+
+
+def get_alignment_parts(wildcards):
+    """Resolve chunk part IDs for a chromosome using the split_alignment checkpoint."""
+    cp = checkpoints.split_alignment.get(chr=wildcards.chr)
+    (parts,) = glob_wildcards(os.path.join(cp.output[0], f"chr{wildcards.chr}-{{part}}.maf"))
+    return parts
 
 
 """

@@ -30,13 +30,7 @@ wildcard_constraints:
 ################
 
 
-def get_alignment_parts(wildcards):
-    """Resolve chunk part IDs for a chromosome using the split_alignment checkpoint."""
-    cp = checkpoints.split_alignment.get(chr=wildcards.chr)
-    parts, = glob_wildcards(
-        os.path.join(cp.output[0], "chr" + wildcards.chr + "-{part}.maf")
-    )
-    return parts
+# get_alignment_parts is defined in common.smk alongside other gather functions
 
 
 checkpoint split_alignment:
@@ -354,4 +348,3 @@ if should_include_snpeff():
             get_conda_env("annotation")
         shell:
             "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"
-
