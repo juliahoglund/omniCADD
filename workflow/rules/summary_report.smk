@@ -133,20 +133,6 @@ rule raw_singleton_stats:
         """
 
 
-# Conditional gene prediction for summary report
-rule gene_prediction:
-    input:
-        genome="resources/genome/{file}.fa",
-    output:
-        gff="results/gene_prediction/genes_validated.gff3",
-    log:
-        "results/logs/summary_report/gene_prediction.log",
-    conda:
-        get_conda_env("annotation")
-    shell:
-        "augustus --species=human {input.genome} > {output.gff} 2> {log}"
-
-
 rule summary_report_with_gene_prediction:
     input:
         combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",

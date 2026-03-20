@@ -363,34 +363,60 @@ rule assign_phred_scores:
         """
 
 
-rule sort_and_merge_scores:
+rule merge_all_raw_scores:
+    """Merge all per-chromosome sorted score files into a single genome-wide file."""
     input:
-        gather_scores,
-    log:
-        "results/logs/score_variants/sort_and_merge_scores.log",
-    threads: get_resource("sort_and_merge_scores", "threads")
-    resources:
-        mem_mb=get_resource("sort_and_merge_scores", "mem_mb"),
-        time=get_resource("sort_and_merge_scores", "time"),
-        partition=get_resource("sort_and_merge_scores", "partition"),
-        tmpdir="results/tmp/sort_merge",
+        expand(
+            "results/whole_genome_scores/RAW_scores_chr{chr}.csv",
+            chr=config["chromosomes"]["score"],
+        ),
     output:
-        "results/whole_genome_scores/full_RAW_scores.csv.gz",  # Direct to final compressed
+        "results/whole_genome_scores/full_RAW_scores.csv",
+    log:
+        "results/logs/score_variants/merge_all_raw_scores.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("merge_all_raw_scores", "threads")
+    resources:
+        mem_mb=lambda wildcards, attempt: get_resource("merge_all_raw_scores", "mem_mb") * attempt,
+        time=get_resource("merge_all_raw_scores", "time"),
+        partition=get_resource("merge_all_raw_scores", "partition"),
+        tmpdir="results/tmp/sort_merge",
+    benchmark:
+        "logs/benchmarks/merge_all_raw_scores.tsv"
     shell:
         """
-        mkdir -p {resources.tmpdir} 2>> {log}
-        
-        # Pipe directly from sort to compression
-        LC_ALL=C sort \
-        --merge \
+        mkdir -p $(dirname {output}) {resources.tmpdir} logs/benchmarks
+        LC_ALL=C sort --merge \
         -t "," \
         -k5gr \
         -S {resources.mem_mb}M \
-        --parallel={threads} \
         --temporary-directory={resources.tmpdir} \
-         {input} 2>> {log} | gzip > {output}
+        {input} > {output} 2> {log}
+        """
+
+
+rule format_cadd_scores:
+    """Sort PHRED scores by position and bgzip for tabix indexing."""
+    input:
+        "results/whole_genome_scores/phred/chr{chr}.tsv",
+    output:
+        "results/cadd_scores/chr{chr}.tsv.gz",
+    log:
+        "results/logs/score_variants/format_cadd_scores/chr{chr}.log",
+    conda:
+        get_conda_env("common")
+    threads: get_resource("format_cadd_scores", "threads")
+    resources:
+        mem_mb=get_resource("format_cadd_scores", "mem_mb"),
+        time=get_resource("format_cadd_scores", "time"),
+        partition=get_resource("format_cadd_scores", "partition"),
+    benchmark:
+        "logs/benchmarks/format_cadd_scores_chr{chr}.tsv"
+    shell:
+        """
+        mkdir -p $(dirname {output}) logs/benchmarks
+        (grep "^#" {input}; grep -v "^#" {input} | sort -k2,2n) | bgzip > {output} 2> {log}
         """
 
 

@@ -25,108 +25,29 @@ wildcard_constraints:
     part="[a-zA-Z0-9-]+",
 
 
-###############
-##### VEP #####
-###############
-
-"""
-Optional rule that installs the needed VEP cache using the vep_install tool
-included with VEP. It is used with the -n no update flag and a set version for reproducibility.
-The VEP cache and program should be from the same release, hence care should be taken to update them together.
-"""
-
-
-rule vep_cache_combine:
-    params:
-        version_species=config["annotation"]["vep"]["cache"]["install_params"],
-    log:
-        "results/logs/annotate_vars/vep_cache.log",
-    output:
-        directory(config["annotation"]["vep"]["cache"]["directory"]),
-    conda:
-        get_conda_env("annotation")
-    shell:
-        "vep_install -a cf -n {params.version_species} -c {output} --CONVERT 2> {log}"
-
-
-"""
-Annotate a vcf file using Ensembl-VEP.
-The VEP cache can automatically be downloaded if should_install is True in the config, 
-otherwise a path to an existing cache should be given.
-An indexed cache is faster than the standard one, so that is what the vep_cache rule provides.
-This rule expects SIFT scores to be available but this is not the case for many species,
-"""  # TODO make sift a config option
-
-
-rule run_vep_combine:
-    input:
-        script="workflow/scripts/vep_annotation/vep.sh",
-        vcf="{folder}/{file}.vcf.gz",
-        cache=(rules.vep_cache.output if config["annotation"]["vep"]["cache"]["should_install"] == "True" else []),
-    params:
-        cache_dir=config["annotation"]["vep"]["cache"]["directory"],
-        species_name=config["species_name"],
-    log:
-        "{folder}/{file}_vep.log",
-    conda:
-        get_conda_env("annotation")
-    # Parts are at most a few million variants, 2 threads is already fast.
-    threads: get_resource("run_vep_combine", "threads")
-    resources:
-        mem_mb=get_resource("run_vep_combine", "mem_mb"),
-        time=get_resource("run_vep_combine", "time"),
-        partition=get_resource("run_vep_combine", "partition"),
-    output:
-        temp("{folder}/{file}_vep_output.tsv"),
-    shell:
-        """
-         mkdir -p $(dirname {output})
-         chmod +x {input.script} 2>> {log} && {input.script} {input.vcf} {output} {params.cache_dir} {params.species_name} {threads} 2>> {log} && [[ -s {output} ]] 2>> {log}
-         """
-
-
-"""
-Processes VEP output into the tsv format used by the later steps.
-The VEP consequences are summarised and basic annotations are calculated here as well.
-"""
-
-
-rule process_vep_combine:
-    input:
-        script="workflow/scripts/vep_annotation/VEP_process.py",
-        vcf="{folder}/chr{chr}.vcf.gz",
-        index="{folder}/chr{chr}.vcf.gz.tbi",
-        vep="{folder}/chr{chr}_vep_output.tsv",
-        genome=config["generate_variants"]["reference_genome_wildcard"],
-        grantham=config["annotation"]["grantham_matrix"],
-    params:
-        output_type=lambda wildcards: ("derived" if "derived_variants" in wildcards.folder else "simulated"),
-    log:
-        "{folder}/chr{chr}_process_vep.log",
-    conda:
-        get_conda_env("common")
-    output:
-        vep_tsv="{folder}/chr{chr}_vep.tsv",
-    shell:
-        """
-         mkdir -p $(dirname {output}) results/annotation/vep/{params.output_type}
-         python3 {input.script} -v {input.vep} -s {input.vcf} -r {input.genome} -g {input.grantham} -o {output.vep_tsv} 2>> {log} && cp {output.vep_tsv} results/annotation/vep/{params.output_type}/chr{wildcards.chr}_vep.tsv 2>> {log}
-         """
-
-
 ################
 ##### GERP #####
 ################
 
 
+def get_alignment_parts(wildcards):
+    """Resolve chunk part IDs for a chromosome using the split_alignment checkpoint."""
+    cp = checkpoints.split_alignment.get(chr=wildcards.chr)
+    parts, = glob_wildcards(
+        os.path.join(cp.output[0], "chr" + wildcards.chr + "-{part}.maf")
+    )
+    return parts
+
+
 checkpoint split_alignment:
     """
-    Splits the maf files in to chunks of size N. While the maf files are split in 
-    chunks, they are also converted to fasta format in preparation for annotations
+    Splits the MAF alignment into fixed-size chunks for parallel GERP/PHAST scoring.
+    Uses the conservation alignment (all species preserved) so GERP/phastCons/phyloP
+    have the full phylogenetic context.
     """
     input:
-        script="workflow/scripts/vep_annotation/split_alignments.py",
-        maf="results/alignment/merged/chr{chr}.maf",
+        script="workflow/scripts/combine_annotations/split_alignments.py",
+        maf="results/alignment/merged_conservation/chr{chr}.maf",
     params:
         blocksize=config["parallelization"]["alignment_positions_per_file"],
     log:
@@ -235,7 +156,7 @@ rule gerp2coords_combine:
     This analysis is run as one job per genome chunk, but is internally run per contig.
     """
     input:
-        script="workflow/scripts/vep_annotation/gerp_to_position.py",
+        script="workflow/scripts/gerp_annotation/gerp_to_position.py",
         fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
         gerp="results/annotation/gerp/chr{chr}/{part}.rates",
     output:
@@ -350,81 +271,87 @@ rule wig2bed_combine:
         "wig2bed < {input} > {output} 2> {log}"
 
 
-# Conditional annotation merging logic
-# If premade alignment: use VEP, combine with GERP and PHAST
-# If alignment and ancestor computed: use SNPEff, combine with GERP and PHAST
-# If SNPEff and no GFF: trigger gene prediction before SNPEff
-# If no GFF, trigger gene prediction before summary report
-
-
-# Example conditional rule for gene prediction before SNPEff
-rule gene_prediction_combine:
+rule combine_constraint:
+    """
+    Aggregate per-chunk GERP + phastCons + phyloP scores into a chr-level
+    constraint BED for merging with variant annotations.
+    """
     input:
-        genome="resources/genome/{file}.fa",
+        gerp=lambda wc: expand(
+            "results/annotation/gerp/chr{chr}/{part}.rates.parsed",
+            chr=wc.chr,
+            part=get_alignment_parts(wc),
+        ),
+        phastCons=lambda wc: expand(
+            "results/annotation/phast/phastCons/chr{chr}/{part}.phastCons.bed",
+            chr=wc.chr,
+            part=get_alignment_parts(wc),
+        ),
+        phyloP=lambda wc: expand(
+            "results/annotation/phast/phyloP/chr{chr}/{part}.phyloP.bed",
+            chr=wc.chr,
+            part=get_alignment_parts(wc),
+        ),
+        index=lambda wc: expand(
+            "results/alignment/indexfiles/chr{chr}/{part}.index",
+            chr=wc.chr,
+            part=get_alignment_parts(wc),
+        ),
+        script="workflow/scripts/combine_annotations/combine_constraint.py",
     output:
-        gff="results/gene_prediction/genes_validated.gff3",
+        bed="results/annotation/constraint/constraint_chr{chr}.bed",
     log:
-        "results/logs/combine_annotations/gene_prediction_combine.log",
+        "results/logs/combine_annotations/combine_constraint_chr{chr}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("combine_constraint", "threads")
+    resources:
+        mem_mb=get_resource("combine_constraint", "mem_mb"),
+        time=get_resource("combine_constraint", "time"),
+        partition=get_resource("combine_constraint", "partition"),
     shell:
-        "augustus --species=human {input.genome} > {output.gff} 2> {log}"
+        """
+        mkdir -p $(dirname {output.bed})
+        python3 {input.script} \\
+            --gerp {input.gerp} \\
+            --phastCons {input.phastCons} \\
+            --phyloP {input.phyloP} \\
+            --index {input.index} \\
+            --chr {wildcards.chr} \\
+            -o {output.bed} 2> {log}
+        """
 
 
-rule snpeff_annotation_combine:
-    input:
-        vcf="results/variants/{type}/chr{chr}.vcf.gz",
-        gff="results/gene_prediction/genes_validated.gff3",
-    output:
-        snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
-    log:
-        "results/logs/combine_annotations/snpeff_annotation_combine_{type}_chr{chr}.log",
-    conda:
-        get_conda_env("annotation")
-    shell:
-        "snpeff ann -gff {input.gff} {input.vcf} > {output.snpeff} 2> {log}"
+if should_include_vep():
+
+    rule combine_annotations_combine:
+        input:
+            annotation="results/annotation/vep/{type}/chr{chr}_vep.tsv",
+            constraint="results/annotation/constraint/constraint_chr{chr}.bed",
+            script="workflow/scripts/combine_annotations/merge_annotations.py",
+        output:
+            annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
+        log:
+            "results/logs/combine_annotations/combine_annotations_{type}_chr{chr}.log",
+        conda:
+            get_conda_env("annotation")
+        shell:
+            "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"
 
 
-rule combine_annotations_combine:
-    input:
-        vep="results/annotation/vep/{type}/chr{chr}_vep.tsv",
-        gerp="results/annotation/gerp/chr{chr}/gerp_scores.tsv",
-        phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv",
-    output:
-        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
-    log:
-        "results/logs/combine_annotations/combine_annotations_{type}_chr{chr}.log",
-    conda:
-        get_conda_env("annotation")
-    shell:
-        "python3 workflow/scripts/combine_annotations/merge_annotations.py -v {input.vep} -g {input.gerp} -p {input.phast} -o {output.combined} 2> {log}"
+if should_include_snpeff():
 
+    rule combine_annotations_snpeff_combine:
+        input:
+            annotation="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
+            constraint="results/annotation/constraint/constraint_chr{chr}.bed",
+            script="workflow/scripts/combine_annotations/merge_annotations.py",
+        output:
+            annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
+        log:
+            "results/logs/combine_annotations/combine_annotations_snpeff_{type}_chr{chr}.log",
+        conda:
+            get_conda_env("annotation")
+        shell:
+            "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"
 
-rule combine_annotations_snpeff_combine:
-    input:
-        snpeff="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
-        gerp="results/annotation/gerp/chr{chr}/gerp_scores.tsv",
-        phast="results/annotation/phast/phastCons/chr{chr}/phastCons_scores.tsv",
-    output:
-        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
-    log:
-        "results/logs/combine_annotations/combine_annotations_snpeff_{type}_chr{chr}.log",
-    conda:
-        get_conda_env("annotation")
-    shell:
-        "python3 workflow/scripts/combine_annotations/merge_annotations.py -s {input.snpeff} -g {input.gerp} -p {input.phast} -o {output.combined} 2> {log}"
-
-
-# Example summary report rule with gene prediction check
-rule summary_report_combine:
-    input:
-        combined="results/annotation/combined/{type}/chr{chr}_combined.tsv",
-        gff="results/gene_prediction/genes_validated.gff3",
-    output:
-        report="results/summary/chr{chr}_summary.html",
-    log:
-        "results/logs/combine_annotations/summary_report_combine_chr{chr}.log",
-    conda:
-        get_conda_env("report")
-    shell:
-        "Rscript workflow/scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report}"

@@ -14,10 +14,21 @@ from pathlib import Path
 ####################################
 
 
+def _deep_merge(base, override):
+    """Recursively merge override dict into base dict, preserving unmentioned keys."""
+    for key, value in override.items():
+        if isinstance(value, dict) and key in base and isinstance(base[key], dict):
+            _deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
 def apply_data_tier_preset(config):
     """
     Apply preset configurations based on data_tier setting.
-    Modifies config in place.
+    Modifies config in place using a recursive deep merge so that keys
+    present in the main config but absent from the preset are preserved.
     """
     tier = config.get("data_tier", "custom")
 
@@ -29,16 +40,9 @@ def apply_data_tier_preset(config):
         print(f"Warning: Unknown data_tier '{tier}', using custom configuration")
         return config
 
-    # Apply preset
+    # Apply preset via deep merge (preserves existing keys not in preset)
     preset = config["profiles"][tier]
-
-    # Deep merge preset into config
-    for key, value in preset.items():
-        if isinstance(value, dict) and key in config:
-            # Recursively merge dictionaries
-            config[key].update(value)
-        else:
-            config[key] = value
+    _deep_merge(config, preset)
 
     print(f"Applied data tier preset: {tier}")
     return config
@@ -152,6 +156,24 @@ def should_include_ancestral_reconstruction():
 ####################################
 ### Input File Selection ###########
 ####################################
+
+
+def get_vep_source_vcf(wildcards):
+    """Get source VCF path for VEP annotation based on variant type wildcard."""
+    if wildcards.type == "simulated":
+        return f"results/simulated_variants/trimmed_snps/chr{wildcards.chr}.vcf.gz"
+    return f"results/derived_variants/singletons/chr{wildcards.chr}.vcf.gz"
+
+
+def get_vep_source_index(wildcards):
+    """Get source VCF index path for VEP annotation based on variant type wildcard."""
+    return get_vep_source_vcf(wildcards) + ".tbi"
+
+
+def get_vep_source_vep_output(wildcards):
+    """Get intermediate VEP output TSV path based on variant type wildcard."""
+    vcf = get_vep_source_vcf(wildcards)
+    return vcf.replace(".vcf.gz", "_vep_output.tsv")
 
 
 def get_variant_annotation_input(wildcards, variant_type):
