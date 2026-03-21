@@ -60,18 +60,13 @@ Quick Links
    configuration
    input_data
    output_data
+   DATA_TIERS
    
 .. toctree::
    :maxdepth: 2
    :caption: Advanced Topics
    
-   DOCKER_SLURM_GUIDE
-   
-.. toctree::
-   :maxdepth: 1
-   :caption: Reference
-   
-   workflow
+   BUILD_ALIGNMENT_WORKFLOW
 
 Workflow Overview
 -----------------

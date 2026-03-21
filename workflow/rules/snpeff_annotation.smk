@@ -12,19 +12,6 @@ import os
 SNPEFF_CONTAINER = config.get("containers", {}).get("snpeff") or config.get("containers", {}).get("augustus")
 
 
-def _snpeff_output_path(wildcards):
-    folder = wildcards.folder
-    chr_ = wildcards.chr
-    if folder.startswith("results/derived_variants/singletons"):
-        return f"results/annotation/snpeff/derived/chr{chr_}_snpeff.tsv"
-    elif folder.startswith("results/simulated_variants/trimmed_snps"):
-        return f"results/annotation/snpeff/simulated/chr{chr_}_snpeff.tsv"
-    else:
-        # default: keep alongside folder
-        base = os.path.basename(folder.rstrip("/"))
-        return f"results/annotation/snpeff/{base}/chr{chr_}_snpeff.tsv"
-
-
 ####################################
 ### SNPEff Database Creation #######
 ####################################
@@ -54,7 +41,7 @@ rule snpeff_prepare_genome:
         ),
     params:
         db_name=config["annotation"]["snpeff"]["database"]["name"],
-        data_dir=config["annotation"]["snpeff"]["database"]["path"],
+        data_dir=lambda wildcards, output: os.path.dirname(output.prepared),
         genome_dir=lambda wildcards: os.path.join(config["annotation"]["snpeff"]["database"]["path"], "genomes"),
         anno_dir=lambda wildcards: os.path.join(
             config["annotation"]["snpeff"]["database"]["path"], config["annotation"]["snpeff"]["database"]["name"]
@@ -69,6 +56,8 @@ rule snpeff_prepare_genome:
             config["annotation"]["snpeff"]["database"]["path"], config["annotation"]["snpeff"]["database"]["name"], "genes.gff"
         ),
         prepared=os.path.join(config["annotation"]["snpeff"]["database"]["path"], "database_prepared.flag"),
+    log:
+        "results/logs/snpeff/prepare_genome.log",
     conda:
         "../envs/annotation.yml"
     shell:
@@ -140,6 +129,8 @@ rule snpeff_extract_normalized_chr:
         ),
     output:
         chr_fa="results/snpeff/data/normalized_genome/chr{chr}.fa",
+    log:
+        "results/logs/snpeff/extract_chr{chr}.log",
     conda:
         "../envs/annotation.yml"
     shell:
@@ -203,6 +194,8 @@ rule snpeff_generate_sequences:
             config["annotation"]["snpeff"]["database"]["name"],
             "protein.fa",
         ),
+    log:
+        "results/logs/snpeff/generate_sequences.log",
     conda:
         "../envs/annotation.yml"
     shell:
@@ -241,6 +234,10 @@ rule snpeff_validate_prep:
         ),
     params:
         allow_empty=config["annotation"]["snpeff"]["build"].get("allow_empty", False),
+    log:
+        "results/logs/snpeff/validate_prep.log",
+    conda:
+        "../envs/annotation.yml"
     shell:
         """
         set -euo pipefail
@@ -290,13 +287,17 @@ rule snpeff_create_config:
     Adds line: genome_name.genome : Species Description
     """
     params:
-        config_file=config["annotation"]["snpeff"]["build"]["config_file"],
+        config_file=lambda wildcards, output: output.config_file,
         db_name=config["annotation"]["snpeff"]["database"]["name"],
         species_name=config["species_name"],
         data_dir=config["annotation"]["snpeff"]["database"]["path"],
         genome_version=config["genome_version"],
     output:
         config_file=config["annotation"]["snpeff"]["build"]["config_file"],
+    log:
+        "results/logs/snpeff/create_config.log",
+    conda:
+        "../envs/annotation.yml"
     shell:
         """
         set -euo pipefail
@@ -316,8 +317,8 @@ rule snpeff_create_config:
             echo "# Databases" >> "$CONFIG_ABS"
         else
             # Ensure data.dir points to absolute path (avoid duplicated prefixes like .tests/snpEff/.tests/snpEff)
-            if grep -q "^data\.dir[[:space:]]*=" "$CONFIG_ABS"; then
-                sed -i'' -E "s|^data\.dir[[:space:]]*=.*$|data.dir = $DATA_ABS|" "$CONFIG_ABS"
+            if grep -q "^data\\.dir[[:space:]]*=" "$CONFIG_ABS"; then
+                sed -i'' -E "s|^data\\.dir[[:space:]]*=.*$|data.dir = $DATA_ABS|" "$CONFIG_ABS"
             else
                 # Prepend data.dir at the top
                 tmpfile=$(mktemp)
@@ -371,7 +372,7 @@ rule snpeff_build_database:
             "-gff3" if config["annotation"]["snpeff"]["build"].get("annotation_format", "gff3").lower() == "gff3" else "-gtf"
         ),
         build_opts=config["annotation"]["snpeff"]["build"].get("options", ""),
-        data_dir=config["annotation"]["snpeff"]["database"]["path"],
+        data_dir=lambda wildcards, output: os.path.dirname(os.path.dirname(output.db_built)),
     output:
         db_built=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -452,7 +453,11 @@ rule run_snpeff:
     params:
         db_name=config["annotation"]["snpeff"]["database"]["name"],
         options=config["annotation"]["snpeff"]["run"]["options"],
-        data_dir=config["annotation"]["snpeff"]["database"]["path"],
+        data_dir=lambda wildcards, input: (
+            os.path.dirname(os.path.dirname(input.database[0]))
+            if input.database
+            else config["annotation"]["snpeff"]["database"]["path"]
+        ),
     container:
         SNPEFF_CONTAINER
     threads: get_resource("run_snpeff", "threads")
@@ -540,29 +545,6 @@ rule process_snpeff_simulated:
             """
 
 
-####################################
-### Conditional Routing ############
-####################################
-
-
-def get_annotation_input(wildcards):
-    """
-    Route to appropriate annotation method based on config.
-    Returns VEP or SNPEff output depending on configuration.
-    """
-    annotator = config["annotation"]["variant_annotator"]
-
-    if annotator == "vep":
-        return f"{{folder}}/chr{{chr}}_vep.tsv"
-    elif annotator == "snpeff":
-        return f"{{folder}}/chr{{chr}}_snpeff.tsv"
-    elif annotator == "both":
-        # Return both, will need merge rule
-        return {"vep": f"{{folder}}/chr{{chr}}_vep.tsv", "snpeff": f"{{folder}}/chr{{chr}}_snpeff.tsv"}
-    else:
-        raise ValueError(f"Unknown variant_annotator: {annotator}")
-
-
 rule merge_vep_snpeff:
     """
     Merge VEP and SNPEff annotations when both are enabled.
@@ -576,6 +558,8 @@ rule merge_vep_snpeff:
         "../envs/annotation.yml"
     output:
         merged="{folder}/chr{chr}_combined_annotation.tsv",
+    log:
+        "{folder}/logs/merge_vep_snpeff_chr{chr}.log",
     shell:
         """
         python3 {input.script} \
@@ -610,7 +594,11 @@ rule run_genome_snpeff:
     params:
         db_name=config["annotation"]["snpeff"]["database"]["name"],
         options=config["annotation"]["snpeff"]["run"]["options"],
-        data_dir=config["annotation"]["snpeff"]["database"]["path"],
+        data_dir=lambda wildcards, input: (
+            os.path.dirname(os.path.dirname(input.database[0]))
+            if input.database
+            else config["annotation"]["snpeff"]["database"]["path"]
+        ),
     container:
         SNPEFF_CONTAINER
     threads: get_resource("run_genome_snpeff", "threads")
@@ -645,12 +633,14 @@ rule process_genome_snpeff:
         vcf="results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf",
         genome=lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
         grantham=config["annotation"]["grantham_matrix"],
-        script="workflow/scripts/vep_annotation/SNPEff_process.py",
+        script="workflow/scripts/snpeff_annotation/SNPEff_process.py",
     conda:
         "../envs/score.yml"
     priority: 1
     output:
         temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff.tsv"),
+    log:
+        "results/logs/snpeff/process_genome_chr{chr}_{part}.log",
     shell:
         """
         python3 {input.script} \

@@ -196,4 +196,4 @@ bash .tests/test_configs.sh
 
 - [BUILD_ALIGNMENT_WORKFLOW.md](BUILD_ALIGNMENT_WORKFLOW.md) - Details on minimap2 alignment building
 - [SETUP.md](SETUP.md) - General workflow setup
-- [.tests/README.md](../.tests/README.md) - Test configuration examples
+- `.tests/README.md` - Test configuration examples
