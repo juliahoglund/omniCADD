@@ -36,11 +36,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       
-      - name: Install Snakemake (minimal)
+      - name: Install Snakemake
         run: |
-          pip install snakemake-minimal>=7.21.0
+          pip install snakemake>=8.0.0
           snakemake --version
       
       - name: Check Python syntax
