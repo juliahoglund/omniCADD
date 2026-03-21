@@ -114,7 +114,7 @@ Requirements
 Software Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-* **Snakemake** ≥ 7.0
+* **Snakemake** ≥ 8.0 (or ≥7.21 via conda)
 * **Conda/Mamba** for environment management
 * **Docker** or **Singularity/Apptainer** (optional, for containerized execution)
 

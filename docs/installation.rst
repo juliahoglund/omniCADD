@@ -20,7 +20,7 @@ Software Requirements
 Required Software
 ^^^^^^^^^^^^^^^^^
 
-* **Snakemake** ≥ 7.0
+* **Snakemake** ≥ 8.0 (or ≥7.21 via conda)
 * **Conda** or **Mamba** (mamba recommended for faster installation)
 * **Git** for cloning the repository
 
@@ -100,7 +100,7 @@ Check that Snakemake is installed correctly:
 .. code-block:: bash
 
    snakemake --version
-   # Should output: 7.x.x or higher
+   # Should output: 8.x.x or higher (7.21+ also works)
 
 Test the workflow:
 

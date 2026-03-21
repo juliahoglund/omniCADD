@@ -4,7 +4,7 @@ This guide helps you set up the omniCADD pipeline for different execution enviro
 
 ## Prerequisites
 
-- Snakemake (>=7.21.0)
+- Snakemake (≥8.0.0 recommended; ≥7.21.0 via conda also works)
 - Conda/Mamba
 - Docker (for local containerized execution)
 - Singularity (for cluster containerized execution)
