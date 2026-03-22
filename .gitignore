@@ -97,3 +97,4 @@ __pycache__/
 .tests/resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz
 check-before-push.sh
 workflow/rules/5_annotate_vars_unimplemented.smk
+5_annotate_vars_unimplemented.smk
