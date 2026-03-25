@@ -30,9 +30,6 @@ wildcard_constraints:
 ################
 
 
-# get_alignment_parts is defined in common.smk alongside other gather functions
-
-
 checkpoint split_alignment:
     """
     Splits the MAF alignment into fixed-size chunks for parallel GERP/PHAST scoring.

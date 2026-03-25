@@ -118,6 +118,5 @@ omniCADD/
 ```
 
 For detailed information about specific components, see:
-- `DOCKER_SLURM_GUIDE.md` - Container and SLURM setup
 - `workflow/README.md` - Workflow details
 - `config/README.md` - Configuration options

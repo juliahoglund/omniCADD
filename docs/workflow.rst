@@ -441,4 +441,3 @@ See Also
 --------
 
 * :doc:`configuration` - Configure pipeline parameters
-* :doc:`DOCKER_SLURM_GUIDE` - Container usage and HPC setup

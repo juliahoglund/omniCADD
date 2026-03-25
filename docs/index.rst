@@ -50,7 +50,6 @@ Quick Links
    
    SETUP
    DARDEL_SETUP
-   DOCKER_SLURM_GUIDE
 
 .. toctree::
    :maxdepth: 2

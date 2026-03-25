@@ -1,0 +1,155 @@
+# Snakemake SLURM profile for PDC Dardel
+# Requires Snakemake 8+ and snakemake-executor-plugin-slurm
+#
+# SETUP (once, on Dardel):
+#   pip install snakemake-executor-plugin-slurm
+#   mkdir -p slurm
+#
+# EDIT before running:
+#   1. Replace YOUR_DARDEL_ACCOUNT with your PDC project (e.g., naiss2024-X-NNN)
+#   2. Replace YOUR_PROJECT_PATH with your project storage path
+#
+# USAGE (from a screen/tmux session on a login node):
+#   screen -S omnicadd
+#   module load PDC bioinfo-tools apptainer
+#   conda activate omnicadd
+#   snakemake --profile config/slurm/dardel -n   # dry-run
+#   snakemake --profile config/slurm/dardel       # full run
+
+executor: slurm
+jobs: 500
+keep-going: true
+restart-times: 1
+rerun-incomplete: true
+max-jobs-per-second: 10
+max-status-checks-per-second: 10
+
+snakefile: snakefile
+configfile: config/config.yaml
+
+# Apptainer (Singularity) settings
+# Dardel uses apptainer; replace path with your project storage
+use-apptainer: true
+apptainer-args: "--cleanenv --bind /cfs/klemming --disable-cache"
+apptainer-prefix: "/cfs/klemming/projects/supr/YOUR_PROJECT_PATH/apptainer_cache"
+
+# Default SLURM resources applied to all jobs unless overridden below
+# - slurm_account: PDC project account (mandatory, replace below)
+# - slurm_partition: "shared" for jobs using less than a full node (most rules)
+#                    use "main" only for whole-node jobs (128 cores)
+# - runtime: wall-clock limit in minutes
+# - mem_mb: total memory in MB
+# - tasks: number of tasks (1 for all thread-based rules)
+default-resources:
+  slurm_account: "YOUR_DARDEL_ACCOUNT"
+  slurm_partition: "shared"
+  runtime: 240
+  mem_mb: 8192
+  tasks: 1
+  slurm_extra: "--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err"
+
+# Per-rule overrides — mirrors config/resources.yaml but converted to minutes
+# Only rules with values different from the defaults above are listed
+set-resources:
+  # Step 1: Ancestral sequence
+  maf_ro:
+    runtime: 720
+    mem_mb: 49152
+  maf_df:
+    runtime: 600
+    mem_mb: 32768
+  mark_ancestor:
+    runtime: 480
+    mem_mb: 24576
+  reconstruct_ancestor:
+    runtime: 960
+    mem_mb: 49152
+  fit_phylo_model:
+    runtime: 720
+    mem_mb: 32768
+
+  # Step 3: Simulate variants
+  simulate_indels:
+    runtime: 960
+    mem_mb: 32768
+
+  # Step 4: Summary report
+  create_stats_report:
+    runtime: 480
+    mem_mb: 49152
+  create_summary:
+    runtime: 360
+    mem_mb: 32768
+
+  # Step 5: Annotate variants
+  run_vep_combine:
+    runtime: 720
+    mem_mb: 49152
+  process_vep_combine:
+    runtime: 480
+    mem_mb: 32768
+  run_snpeff:
+    runtime: 720
+    mem_mb: 49152
+  process_snpeff_derived:
+    runtime: 360
+    mem_mb: 32768
+  process_snpeff_simulated:
+    runtime: 360
+    mem_mb: 32768
+  augustus_predict_genes:
+    runtime: 720
+    mem_mb: 32768
+  compute_gerp:
+    runtime: 480
+    mem_mb: 32768
+  phylo_fit_combine:
+    runtime: 480
+    mem_mb: 32768
+
+  # Step 6: Combine annotations
+  combine_annotations_combine:
+    runtime: 720
+    mem_mb: 65536
+  combine_annotations_snpeff_combine:
+    runtime: 720
+    mem_mb: 65536
+
+  # Step 7: Train & test model
+  train_test_model:
+    runtime: 1440
+    mem_mb: 98304
+
+  # Step 8: Score variants
+  run_genome_vep:
+    runtime: 960
+    mem_mb: 49152
+  process_genome_vep:
+    runtime: 720
+    mem_mb: 49152
+  run_genome_snpeff:
+    runtime: 960
+    mem_mb: 49152
+  process_genome_snpeff:
+    runtime: 720
+    mem_mb: 49152
+  prepare_whole_genome:
+    runtime: 960
+    mem_mb: 65536
+  score_variants:
+    runtime: 1440
+    mem_mb: 98304
+  sort_raw_scores:
+    runtime: 480
+    mem_mb: 49152
+
+  # Alignment generation
+  align_species:
+    runtime: 960
+    mem_mb: 49152
+  filter_alignments:
+    runtime: 480
+    mem_mb: 32768
+  sort_bam:
+    runtime: 360
+    mem_mb: 32768
