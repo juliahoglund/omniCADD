@@ -6,7 +6,7 @@ import os
 omniCADD_version = "0.1.0"
 
 ##### set minimum snakemake version #####
-min_version("7.21.0")
+min_version("8.0.0")
 
 
 ##### Load config files #####

@@ -20,7 +20,7 @@ Software Requirements
 Required Software
 ^^^^^^^^^^^^^^^^^
 
-* **Snakemake** ≥ 8.0 (or ≥7.21 via conda)
+* **Snakemake** ≥ 8.0 (≥ 9.0 recommended; required for HPC/SLURM execution via ``snakemake-executor-plugin-slurm``)
 * **Conda** or **Mamba** (mamba recommended for faster installation)
 * **Git** for cloning the repository
 

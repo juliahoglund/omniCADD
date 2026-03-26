@@ -66,7 +66,7 @@ The alignment-free scripts are still under construction and have not yet been fu
 ## Requirements
 
 ### Software Dependencies
-- **Snakemake** ≥ 8.0 (or ≥7.21 if installing via conda)
+- **Snakemake** ≥ 8.0 (≥ 9.0 recommended; required for HPC/SLURM execution via `snakemake-executor-plugin-slurm`)
 - **Conda/Mamba** for environment management
 - **Docker** or **Singularity/Apptainer** (optional, for containerized execution)*
 
