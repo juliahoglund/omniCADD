@@ -1,11 +1,11 @@
 """
- Basic helper rules for the other parts of the workflow.
- Configuration loading helper functions are also found here.
+Basic helper rules for the other parts of the workflow.
+Configuration loading helper functions are also found here.
 
- :Author: Job van Schipstal
- :Date: 21-9-2023
- :extension and modification: Julia Höglund
- :Date: 13-8-2025
+:Author: Job van Schipstal
+:Date: 21-9-2023
+:extension and modification: Julia Höglund
+:Date: 13-8-2025
 """
 
 import subprocess
@@ -204,7 +204,7 @@ wildcard_constraints:
 Bgzip_tabix combines bgzip and the tabix rule to reduce overhead.
 This prioritises the combined rule over just tabix,
 desired since they produce the same output.
-Bgzip_validation_variants has the highest priority since 
+Bgzip_validation_variants has the highest priority since
 it also handles moving the variants into the results folder.
 """
 
@@ -213,9 +213,9 @@ ruleorder: bgzip_tabix > tabix
 
 
 """
- Unzip MAF files since the tool needs a seekable file,
- it is more effective to not have to decompress multiple times.
- Marked as temp so automatically deleted when longer needed, leaving only the compressed original.
+Unzip MAF files since the tool needs a seekable file,
+it is more effective to not have to decompress multiple times.
+Marked as temp so automatically deleted when longer needed, leaving only the compressed original.
 """
 
 
@@ -277,13 +277,13 @@ Compress VCF file using bgzip and index using tabix
 rule bgzip_tabix:
     input:
         "{folder}/{file}.vcf",
+    output:
+        vcf=temp("{folder}/{file}.vcf.gz"),
+        index=temp("{folder}/{file}.vcf.gz.tbi"),
     log:
         "results/logs/common/bgzip_tabix/{folder}_{file}.log",
     conda:
         get_conda_env("common")
-    output:
-        vcf=temp("{folder}/{file}.vcf.gz"),
-        index=temp("{folder}/{file}.vcf.gz.tbi"),
     shell:
         "bgzip -c {input} > {output.vcf} 2> {log} && " "tabix -p vcf -f {output.vcf} 2>> {log}"
 
@@ -296,12 +296,12 @@ Index VCF using tabix
 rule tabix:
     input:
         "{folder}/{file}.vcf.gz",
+    output:
+        temp("{folder}/{file}.vcf.gz.tbi"),
     log:
         "results/logs/common/tabix/{folder}_{file}.log",
     conda:
         get_conda_env("common")
-    output:
-        temp("{folder}/{file}.vcf.gz.tbi"),
     shell:
         "tabix -p vcf -f {input} 2> {log}"
 

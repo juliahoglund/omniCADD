@@ -10,12 +10,12 @@ rule derive_impute_means:
         ),
         processing=config["annotation_config"]["processing"],
         script="workflow/scripts/combine_annotations/derive_means.py",
+    output:
+        imputation=report("results/dataset/imputation_dict.txt", category="Logs"),
     log:
         "results/logs/combine_annotations/derive_impute_means.log",
     conda:
         get_conda_env("annotation")
-    output:
-        imputation=report("results/dataset/imputation_dict.txt", category="Logs"),
     shell:
         """
         mkdir -p $(dirname {output.imputation})
@@ -34,12 +34,6 @@ rule column_analysis:
             chr=config["chromosomes"]["karyotype"],
         ),
         script="workflow/scripts/combine_annotations/column_analysis.py",
-    log:
-        "results/logs/combine_annotations/column_analysis.log",
-    conda:
-        get_conda_env("annotation")
-    params:
-        out_folder=lambda wildcards, output: "results/figures/column_analysis/",
     output:
         relevance=report("results/figures/column_analysis/relevance.tsv", category="Column Analysis"),
         derived_cor=report(
@@ -54,6 +48,12 @@ rule column_analysis:
             "results/figures/column_analysis/combined_variants_corr.tsv",
             category="Column Analysis",
         ),
+    log:
+        "results/logs/combine_annotations/column_analysis.log",
+    conda:
+        get_conda_env("annotation")
+    params:
+        out_folder=lambda wildcards, output: "results/figures/column_analysis/",
     shell:
         """
         mkdir -p {params.out_folder}
@@ -68,26 +68,26 @@ rule prepare_data:
         processing=config["annotation_config"]["processing"],
         interactions=config["annotation_config"]["interactions"],
         script="workflow/scripts/combine_annotations/prepare_annotated_data.py",
-    params:
-        derived_flag=lambda wildcards: ("--derived" if wildcards.type == "derived" else ""),
-        y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
-    threads: get_resource("prepare_data", "threads")
-    resources:
-        mem_mb=lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
-        time=lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
-        partition=get_resource("prepare_data", "partition"),
     output:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",
         cols="results/dataset/{type}/chr{chr}.npz.columns.csv",
         temp_processed=temp("results/temp/{type}_chr{chr}_processed.tsv"),
-    wildcard_constraints:
-        type="(derived|simulated|validation)",
-    conda:
-        get_conda_env("annotation")
-    priority: 10
     log:
         report("results/logs/data_preparation/{type}_chr{chr}.log", category="Logs"),
+    wildcard_constraints:
+        type="(derived|simulated|validation)",
+    priority: 10
+    conda:
+        get_conda_env("annotation")
+    threads: get_resource("prepare_data", "threads")
+    resources:
+        mem_mb=lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
+        time=lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
+        partition=get_resource("prepare_data", "partition"),
+    params:
+        derived_flag=lambda wildcards: ("--derived" if wildcards.type == "derived" else ""),
+        y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
     shell:
         """
         mkdir -p $(dirname {output.npz}) results/temp $(dirname {log})

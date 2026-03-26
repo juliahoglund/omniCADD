@@ -29,11 +29,23 @@ if not AUGUSTUS_CONTAINER:
 
 rule augustus_predict_genes:
     """
-    Predict genes using Augustus when no annotation available.
-    Runs per chromosome for parallelization.
-    """
+Predict genes using Augustus when no annotation available.
+Runs per chromosome for parallelization.
+"""
     input:
         genome=lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
+    output:
+        gff="results/gene_prediction/chr{chr}.gff3",
+    log:
+        "results/logs/augustus/chr{chr}.log",
+    # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
+    container:
+        AUGUSTUS_CONTAINER
+    threads: get_resource("augustus_predict_genes", "threads")
+    resources:
+        mem_mb=get_resource("augustus_predict_genes", "mem_mb"),
+        time=get_resource("augustus_predict_genes", "time"),
+        partition=get_resource("augustus_predict_genes", "partition"),
     params:
         species=config.get("gene_annotation", {}).get("augustus", {}).get("species", "generic"),
         options=config.get("gene_annotation", {}).get("augustus", {}).get("options", "--gff3=on"),
@@ -45,18 +57,6 @@ rule augustus_predict_genes:
             "usr/lib/augustus/config",
             "usr/lib64/augustus/config",
         ],
-    # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
-    container:
-        AUGUSTUS_CONTAINER
-    threads: get_resource("augustus_predict_genes", "threads")
-    resources:
-        mem_mb=get_resource("augustus_predict_genes", "mem_mb"),
-        time=get_resource("augustus_predict_genes", "time"),
-        partition=get_resource("augustus_predict_genes", "partition"),
-    output:
-        gff="results/gene_prediction/chr{chr}.gff3",
-    log:
-        "results/logs/augustus/chr{chr}.log",
     shell:
         """
         mkdir -p results/logs/augustus
@@ -101,8 +101,8 @@ rule augustus_predict_genes:
 
 rule augustus_merge_chromosomes:
     """
-    Merge Augustus predictions from all chromosomes into single file.
-    """
+Merge Augustus predictions from all chromosomes into single file.
+"""
     input:
         gff_files=expand("results/gene_prediction/chr{chr}.gff3", chr=config["chromosomes"]["karyotype"]),
     output:
@@ -133,8 +133,8 @@ rule augustus_merge_chromosomes:
 
 rule augustus_validate:
     """
-    Validate Augustus predictions and check for common issues.
-    """
+Validate Augustus predictions and check for common issues.
+"""
     input:
         gff="results/gene_prediction/genes.gff3",
     output:
@@ -180,9 +180,9 @@ rule augustus_validate:
 
 rule convert_gff_to_gtf:
     """
-    Convert GFF3 to GTF format if needed (e.g., for SIFT).
-    Uses gffread for conversion.
-    """
+Convert GFF3 to GTF format if needed (e.g., for SIFT).
+Uses gffread for conversion.
+"""
     input:
         gff=lambda wildcards: get_gene_annotation_file(),
     output:
@@ -220,9 +220,9 @@ rule convert_gff_to_gtf:
 
 rule merge_reference_genome:
     """
-    Merge per-chromosome FASTA specified by reference_genome_wildcard into a single FASTA
-    containing the configured karyotype chromosomes. Used by SNPEff prep.
-    """
+Merge per-chromosome FASTA specified by reference_genome_wildcard into a single FASTA
+containing the configured karyotype chromosomes. Used by SNPEff prep.
+"""
     input:
         expand(config["generate_variants"]["reference_genome_wildcard"], chr=config["chromosomes"]["karyotype"]),
     output:
@@ -240,9 +240,9 @@ rule merge_reference_genome:
 
 rule compress_merged_reference_genome:
     """
-    Optional: Create a gzipped FASTA alongside the merged genome.
-    Keeps the plain .fa for rules that read headers directly.
-    """
+Optional: Create a gzipped FASTA alongside the merged genome.
+Keeps the plain .fa for rules that read headers directly.
+"""
     input:
         fa="results/genome/merged_genome.fa",
     output:
@@ -259,9 +259,9 @@ rule compress_merged_reference_genome:
 
 rule index_merged_reference_genome:
     """
-    Optional: Index merged FASTA with samtools to produce a .fai.
-    Only runs if a downstream rule requires the index.
-    """
+Optional: Index merged FASTA with samtools to produce a .fai.
+Only runs if a downstream rule requires the index.
+"""
     input:
         fa="results/genome/merged_genome.fa",
     output:
@@ -278,9 +278,9 @@ rule index_merged_reference_genome:
 
 rule prepare_annotation_for_snpeff:
     """
-    Prepare gene annotation specifically for SNPEff database creation.
-    Ensures chromosome names match between genome and annotation.
-    """
+Prepare gene annotation specifically for SNPEff database creation.
+Ensures chromosome names match between genome and annotation.
+"""
     input:
         annotation=lambda wildcards: get_gene_annotation_file(),
         genome=config["mark_ancestor"]["reference_genome"],
@@ -325,16 +325,12 @@ rule prepare_annotation_for_snpeff:
 
 rule augustus_train_species:
     """
-    Optional: Train Augustus on species-specific data.
-    Requires training set of genes with known structure.
-    """
+Optional: Train Augustus on species-specific data.
+Requires training set of genes with known structure.
+"""
     input:
         training_genes="resources/augustus_training/training_genes.gb",
         test_genes="resources/augustus_training/test_genes.gb",
-    params:
-        species_name=config["species_name"],
-    conda:
-        "../envs/annotation.yml"
     output:
         # Use a concrete path derived from config['species_name'] so outputs/logs
         # do not contain different wildcards. Evaluate at parse time to avoid
@@ -342,6 +338,10 @@ rule augustus_train_species:
         model="results/augustus_training/{}_trained".format(config["species_name"]),
     log:
         "results/logs/augustus_training_{}.log".format(config["species_name"]),
+    conda:
+        "../envs/annotation.yml"
+    params:
+        species_name=config["species_name"],
     shell:
         """
         # This is a placeholder for Augustus training
@@ -363,8 +363,8 @@ rule augustus_train_species:
 
 rule assess_gene_prediction_quality:
     """
-    Assess quality of gene predictions by comparing metrics.
-    """
+Assess quality of gene predictions by comparing metrics.
+"""
     input:
         predictions="results/gene_prediction/genes_validated.gff3",
     output:

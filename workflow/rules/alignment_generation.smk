@@ -45,13 +45,13 @@ rule index_reference:
         f"{OUTPUT_DIR}/index/reference.mmi",
     log:
         f"{OUTPUT_DIR}/logs/index_reference.log",
+    conda:
+        "../envs/alignment.yml"
     threads: get_resource("index_reference", "threads")
     resources:
         mem_mb=get_resource("index_reference", "mem_mb"),
         time=get_resource("index_reference", "time"),
         partition=get_resource("index_reference", "partition"),
-    conda:
-        "../envs/alignment.yml"
     shell:
         """
         minimap2 -d {output} {input} 2> {log}
@@ -69,6 +69,8 @@ rule align_species:
         bam=temp(f"{OUTPUT_DIR}/alignments/{{species}}.bam"),
     log:
         f"{OUTPUT_DIR}/logs/align_species/{{species}}.log",
+    conda:
+        "../envs/alignment.yml"
     threads: get_resource("align_species", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("align_species", "mem_mb") * attempt,
@@ -76,8 +78,6 @@ rule align_species:
         partition=get_resource("align_species", "partition"),
     params:
         preset=MINIMAP_PRESET,
-    conda:
-        "../envs/alignment.yml"
     shell:
         """
         minimap2 -ax {params.preset} -t {threads} \
@@ -96,6 +96,8 @@ rule filter_alignments:
         bam=temp(f"{OUTPUT_DIR}/filtered/{{species}}.bam"),
     log:
         f"{OUTPUT_DIR}/logs/filter_alignments/{{species}}.log",
+    conda:
+        "../envs/alignment.yml"
     threads: get_resource("filter_alignments", "threads")
     resources:
         mem_mb=get_resource("filter_alignments", "mem_mb"),
@@ -103,8 +105,6 @@ rule filter_alignments:
         partition=get_resource("filter_alignments", "partition"),
     params:
         mapq=MIN_MAPQ,
-    conda:
-        "../envs/alignment.yml"
     shell:
         """
         samtools view -F 2048 -bq {params.mapq} -h {input} > {output.bam} 2> {log}
@@ -121,13 +121,13 @@ rule sort_bam:
         bam=temp(f"{OUTPUT_DIR}/sorted/{{species}}.sorted.bam"),
     log:
         f"{OUTPUT_DIR}/logs/sort_bam/{{species}}.log",
+    conda:
+        "../envs/alignment.yml"
     threads: get_resource("sort_bam", "threads")
     resources:
         mem_mb=get_resource("sort_bam", "mem_mb"),
         time=get_resource("sort_bam", "time"),
         partition=get_resource("sort_bam", "partition"),
-    conda:
-        "../envs/alignment.yml"
     shell:
         """
         samtools sort -@ {threads} -o {output.bam} {input} 2> {log}
@@ -145,6 +145,8 @@ rule generate_consensus:
         fasta=temp(f"{OUTPUT_DIR}/consensus/{{species}}.fasta"),
     log:
         f"{OUTPUT_DIR}/logs/generate_consensus/{{species}}.log",
+    conda:
+        "../envs/alignment.yml"
     threads: get_resource("generate_consensus", "threads")
     resources:
         mem_mb=get_resource("generate_consensus", "mem_mb"),
@@ -154,8 +156,6 @@ rule generate_consensus:
         mapq=MIN_MAPQ,
         baseq=MIN_BASEQ,
         mincov=MIN_COVERAGE,
-    conda:
-        "../envs/alignment.yml"
     shell:
         """
         htsbox pileup -f {input.reference} -R \
@@ -175,6 +175,8 @@ rule split_by_chromosome:
         expand(f"{OUTPUT_DIR}/by_chr/{{species}}/chr{{chr}}.fa", chr=CHROMOSOMES, allow_missing=True),
     log:
         f"{OUTPUT_DIR}/logs/split_by_chromosome/{{species}}.log",
+    conda:
+        "../envs/common.yml"
     threads: get_resource("split_by_chromosome", "threads")
     resources:
         mem_mb=get_resource("split_by_chromosome", "mem_mb"),
@@ -183,8 +185,6 @@ rule split_by_chromosome:
     params:
         outdir=f"{OUTPUT_DIR}/by_chr/{{species}}",
         chromosomes=CHROMOSOMES,
-    conda:
-        "../envs/common.yml"
     script:
         "workflow/scripts/split_fasta_by_chromosome.py"
 
@@ -201,6 +201,8 @@ rule create_multiway_alignment:
         multiway=f"{OUTPUT_DIR}/multiway/chr{{chr}}_multiway.fa",
     log:
         f"{OUTPUT_DIR}/logs/create_multiway/chr{{chr}}.log",
+    conda:
+        "../envs/common.yml"
     threads: get_resource("create_multiway_alignment", "threads")
     resources:
         mem_mb=get_resource("create_multiway_alignment", "mem_mb"),
@@ -208,8 +210,6 @@ rule create_multiway_alignment:
         partition=get_resource("create_multiway_alignment", "partition"),
     params:
         species_list=SPECIES_LIST,
-    conda:
-        "../envs/common.yml"
     shell:
         """
         {{
@@ -235,13 +235,13 @@ rule format_for_gerp:
         f"{OUTPUT_DIR}/gerp_ready/chr{{chr}}_oneline.fa",
     log:
         f"{OUTPUT_DIR}/logs/format_for_gerp/chr{{chr}}.log",
+    conda:
+        "../envs/common.yml"
     threads: get_resource("format_for_gerp", "threads")
     resources:
         mem_mb=get_resource("format_for_gerp", "mem_mb"),
         time=get_resource("format_for_gerp", "time"),
         partition=get_resource("format_for_gerp", "partition"),
-    conda:
-        "../envs/common.yml"
     shell:
         """
         awk '/^>/ {{printf("\\n%s\\n",$0);next; }} {{ printf("%s",$0);}}  END {{printf("\\n");}}' \

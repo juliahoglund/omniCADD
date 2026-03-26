@@ -29,12 +29,12 @@ rule fit_phylo_model:
         tree=PHAST_TREE,
     output:
         mod=f"{OUTPUT_DIR}/chr{{chr}}.mod",
-    params:
-        output_dir=lambda w, output: os.path.dirname(output.mod),
     log:
         f"{OUTPUT_DIR}/logs/fit_phylo_model_chr{{chr}}.log",
     conda:
         "../envs/annotation.yml"
+    params:
+        output_dir=lambda w, output: os.path.dirname(output.mod),
     shell:
         """
         phyloFit --tree {input.tree} --subst-mod REV --out-root {params.output_dir}/chr{wildcards.chr} \
@@ -49,13 +49,13 @@ rule reconstruct_ancestor:
         mod=f"{OUTPUT_DIR}/chr{{chr}}.mod",
     output:
         ancestor=f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa",
-    params:
-        node=NODE,
-        output_dir=lambda w, output: os.path.dirname(output.ancestor),
     log:
         f"{OUTPUT_DIR}/logs/ancestor_chr{{chr}}.log",
     conda:
         "../envs/annotation.yml"
+    params:
+        node=NODE,
+        output_dir=lambda w, output: os.path.dirname(output.ancestor),
     shell:
         """
         ancestors --msa-format FASTA --tree {input.mod} --msa {input.alignment} \
