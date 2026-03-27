@@ -81,7 +81,7 @@ ancestral_sequence:
   alignment:
     enabled: true
     alignments:
-      43_mammals.epo:
+      44_mammals.epo:
         path: '.tests/resources/alignment/'  # Test data: minimal chr18 alignment
         type: 'maf.gz'
         clean_maf: true
@@ -119,7 +119,7 @@ ancestral_sequence:
     species: "bos_taurus"
 
 mark_ancestor:
-  ancestral_alignment: "43_mammals.epo"
+  ancestral_alignment: "44_mammals.epo"
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
@@ -175,7 +175,7 @@ annotation:
   conservation:
     gerp:
       enabled: true
-      alignment: '43_mammals.epo'
+      alignment: '44_mammals.epo'
       n_chunks: 30
       tree: 'resources/tree_43_mammals.nwk'
       
