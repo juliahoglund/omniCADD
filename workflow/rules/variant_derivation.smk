@@ -1,15 +1,15 @@
 """
- Module that generates the derived variants,
- From the previously obtained ancestral sequence,
- the reference genome and the population vcf.
+Module that generates the derived variants,
+From the previously obtained ancestral sequence,
+the reference genome and the population vcf.
 
- :Author: Job van Schipstal
- :Date: 23-9-2023
+:Author: Job van Schipstal
+:Date: 23-9-2023
 
- Based upon the work of Seyan Hu.
+Based upon the work of Seyan Hu.
 
- :Extension and modification: Julia Höglund
- :Date: 2026-03-17
+:Extension and modification: Julia Höglund
+:Date: 2026-03-17
 """
 
 
@@ -17,15 +17,15 @@
 rule freq_files:
     input:
         config["generate_variants"]["population_vcf"],
-    params:
-        min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"],
-        chr_prefix=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["chrom_prefix"],
+    output:
+        "results/processed_population_frequency/chr{chr}.frq",
     log:
         "results/logs/derive_variants/freq_files/chr{chr}.log",
     conda:
         get_conda_env("common")
-    output:
-        "results/processed_population_frequency/chr{chr}.frq",
+    params:
+        min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"],
+        chr_prefix=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["chrom_prefix"],
     shell:
         "vcftools --gzvcf {input} "
         "--chr {params.chr_prefix}{wildcards.chr} "
@@ -42,15 +42,15 @@ rule gen_derived:
         reference=config["generate_variants"]["reference_genome_wildcard"],
         frequency="results/processed_population_frequency/chr{chr}.frq",
         script="workflow/scripts/variant_derivation/derive_variants.py",
-    params:
-        no_chrs=config["chromosomes"]["autosomes"],
-        output_prefix="results/derived_variants/raw/chr{chr}",
+    output:
+        "results/derived_variants/raw/chr{chr}.vcf",
     log:
         "results/logs/derive_variants/gen_derived/chr{chr}.log",
     conda:
         get_conda_env("simulation")
-    output:
-        "results/derived_variants/raw/chr{chr}.vcf",
+    params:
+        no_chrs=config["chromosomes"]["autosomes"],
+        output_prefix="results/derived_variants/raw/chr{chr}",
     shell:
         """
         if [ $(wc -l < {input.reference}) -ge 3 ]; then
@@ -75,18 +75,15 @@ rule snp_filter:
     input:
         vcf="results/derived_variants/raw/chr{chr}.vcf",
         script="workflow/scripts/variant_derivation/filter_snps.py",
+    output:
+        snps="results/derived_variants/singletons/chr{chr}.vcf",
+        series="results/derived_variants/series/chr{chr}.vcf",
     log:
         "results/logs/derive_variants/snp_filter/chr{chr}.log",
     conda:
         get_conda_env("simulation")
-    output:
-        snps="results/derived_variants/singletons/chr{chr}.vcf",
-        series="results/derived_variants/series/chr{chr}.vcf",
     shell:
-        "python3 {input.script} "
-        "-i {input.vcf} "
-        "--snps {output.snps} "
-        "--series {output.series} 2> {log}"
+        "python3 {input.script} " "-i {input.vcf} " "--snps {output.snps} " "--series {output.series} 2> {log}"
 
 
 # Variants are generated and filtered for each chromosome in parallel.

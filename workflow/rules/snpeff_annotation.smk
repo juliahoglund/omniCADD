@@ -19,11 +19,11 @@ SNPEFF_CONTAINER = config.get("containers", {}).get("snpeff") or config.get("con
 
 rule snpeff_prepare_genome:
     """
-    Prepare reference genome for SNPEff database.
-    SNPEff requires specific file structure:
-    - snpEff/data/genomes/genome_name.fa
-    - snpEff/data/genome_name/genes.gff (or genes.gtf)
-    """
+Prepare reference genome for SNPEff database.
+SNPEff requires specific file structure:
+- snpEff/data/genomes/genome_name.fa
+- snpEff/data/genome_name/genes.gff (or genes.gtf)
+"""
     input:
         # Only karyotype chromosomes to avoid mismatches with annotation
         genome_files=[
@@ -39,13 +39,6 @@ rule snpeff_prepare_genome:
                 else "results/gene_prediction/genes_validated.gff3"
             )
         ),
-    params:
-        db_name=config["annotation"]["snpeff"]["database"]["name"],
-        data_dir=lambda wildcards, output: os.path.dirname(output.prepared),
-        genome_dir=lambda wildcards: os.path.join(config["annotation"]["snpeff"]["database"]["path"], "genomes"),
-        anno_dir=lambda wildcards: os.path.join(
-            config["annotation"]["snpeff"]["database"]["path"], config["annotation"]["snpeff"]["database"]["name"]
-        ),
     output:
         genome_out=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"],
@@ -60,6 +53,13 @@ rule snpeff_prepare_genome:
         "results/logs/snpeff/prepare_genome.log",
     conda:
         "../envs/annotation.yml"
+    params:
+        db_name=config["annotation"]["snpeff"]["database"]["name"],
+        data_dir=lambda wildcards, output: os.path.dirname(output.prepared),
+        genome_dir=lambda wildcards: os.path.join(config["annotation"]["snpeff"]["database"]["path"], "genomes"),
+        anno_dir=lambda wildcards: os.path.join(
+            config["annotation"]["snpeff"]["database"]["path"], config["annotation"]["snpeff"]["database"]["name"]
+        ),
     shell:
         """
         set -euo pipefail
@@ -118,9 +118,9 @@ rule snpeff_prepare_genome:
 
 rule snpeff_extract_normalized_chr:
     """
-    Extract individual chromosomes from SNPEff normalized genome.
-    Provides per-chr FASTAs with consistent naming for downstream processing.
-    """
+Extract individual chromosomes from SNPEff normalized genome.
+Provides per-chr FASTAs with consistent naming for downstream processing.
+"""
     input:
         genome=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -169,9 +169,9 @@ rule snpeff_extract_normalized_chr:
 
 rule snpeff_generate_sequences:
     """
-    Generate CDS nucleotide sequences and protein translations from the prepared
-    genome and annotation using gffread. SNPEff uses these for build checks.
-    """
+Generate CDS nucleotide sequences and protein translations from the prepared
+genome and annotation using gffread. SNPEff uses these for build checks.
+"""
     input:
         genome=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -210,11 +210,11 @@ rule snpeff_generate_sequences:
 
 rule snpeff_validate_prep:
     """
-    Validate prepared SNPEff inputs:
-    - Ensure GFF has feature lines (non-comment with 9 columns)
-    - Ensure chromosome names overlap between genome and annotation
-    Fails fast with clear messages if issues are found.
-    """
+Validate prepared SNPEff inputs:
+- Ensure GFF has feature lines (non-comment with 9 columns)
+- Ensure chromosome names overlap between genome and annotation
+Fails fast with clear messages if issues are found.
+"""
     input:
         genome=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -232,12 +232,12 @@ rule snpeff_validate_prep:
             config["annotation"]["snpeff"]["database"]["name"],
             "prep_validated.flag",
         ),
-    params:
-        allow_empty=config["annotation"]["snpeff"]["build"].get("allow_empty", False),
     log:
         "results/logs/snpeff/validate_prep.log",
     conda:
         "../envs/annotation.yml"
+    params:
+        allow_empty=config["annotation"]["snpeff"]["build"].get("allow_empty", False),
     shell:
         """
         set -euo pipefail
@@ -283,21 +283,21 @@ rule snpeff_validate_prep:
 
 rule snpeff_create_config:
     """
-    Create or update SNPEff config file with database entry.
-    Adds line: genome_name.genome : Species Description
-    """
-    params:
-        config_file=lambda wildcards, output: output.config_file,
-        db_name=config["annotation"]["snpeff"]["database"]["name"],
-        species_name=config["species_name"],
-        data_dir=config["annotation"]["snpeff"]["database"]["path"],
-        genome_version=config["genome_version"],
+Create or update SNPEff config file with database entry.
+Adds line: genome_name.genome : Species Description
+"""
     output:
         config_file=config["annotation"]["snpeff"]["build"]["config_file"],
     log:
         "results/logs/snpeff/create_config.log",
     conda:
         "../envs/annotation.yml"
+    params:
+        config_file=lambda wildcards, output: output.config_file,
+        db_name=config["annotation"]["snpeff"]["database"]["name"],
+        species_name=config["species_name"],
+        data_dir=config["annotation"]["snpeff"]["database"]["path"],
+        genome_version=config["genome_version"],
     shell:
         """
         set -euo pipefail
@@ -337,8 +337,8 @@ rule snpeff_create_config:
 
 rule snpeff_build_database:
     """
-    Build SNPEff database from genome and annotation files.
-    """
+Build SNPEff database from genome and annotation files.
+"""
     input:
         genome=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -366,13 +366,6 @@ rule snpeff_build_database:
             config["annotation"]["snpeff"]["database"]["name"],
             "protein.fa",
         ),
-    params:
-        db_name=config["annotation"]["snpeff"]["database"]["name"],
-        anno_fmt=(
-            "-gff3" if config["annotation"]["snpeff"]["build"].get("annotation_format", "gff3").lower() == "gff3" else "-gtf"
-        ),
-        build_opts=config["annotation"]["snpeff"]["build"].get("options", ""),
-        data_dir=lambda wildcards, output: os.path.dirname(os.path.dirname(output.db_built)),
     output:
         db_built=os.path.join(
             config["annotation"]["snpeff"]["database"]["path"].rstrip("/"),
@@ -388,6 +381,13 @@ rule snpeff_build_database:
         mem_mb=get_resource("snpeff_build_database", "mem_mb"),
         time=get_resource("snpeff_build_database", "time"),
         partition=get_resource("snpeff_build_database", "partition"),
+    params:
+        db_name=config["annotation"]["snpeff"]["database"]["name"],
+        anno_fmt=(
+            "-gff3" if config["annotation"]["snpeff"]["build"].get("annotation_format", "gff3").lower() == "gff3" else "-gtf"
+        ),
+        build_opts=config["annotation"]["snpeff"]["build"].get("options", ""),
+        data_dir=lambda wildcards, output: os.path.dirname(os.path.dirname(output.db_built)),
     shell:
         """
         set -euo pipefail
@@ -434,9 +434,9 @@ rule snpeff_build_database:
 
 rule run_snpeff:
     """
-    Annotate variants using SNPEff.
-    Runs on both derived and simulated variants.
-    """
+Annotate variants using SNPEff.
+Runs on both derived and simulated variants.
+"""
     input:
         vcf="{folder}/chr{chr}.vcf.gz",
         index="{folder}/chr{chr}.vcf.gz.tbi",
@@ -450,6 +450,18 @@ rule run_snpeff:
             else []
         ),
         config_file=config["annotation"]["snpeff"]["build"]["config_file"],
+    output:
+        vcf=temp("{folder}/chr{chr}_snpeff_output.vcf"),
+        stats="{folder}/chr{chr}_snpeff_stats.html",
+    log:
+        "results/logs/snpeff/{folder}_chr{chr}.log",
+    container:
+        SNPEFF_CONTAINER
+    threads: get_resource("run_snpeff", "threads")
+    resources:
+        mem_mb=get_resource("run_snpeff", "mem_mb"),
+        time=get_resource("run_snpeff", "time"),
+        partition=get_resource("run_snpeff", "partition"),
     params:
         db_name=config["annotation"]["snpeff"]["database"]["name"],
         options=config["annotation"]["snpeff"]["run"]["options"],
@@ -458,18 +470,6 @@ rule run_snpeff:
             if input.database
             else config["annotation"]["snpeff"]["database"]["path"]
         ),
-    container:
-        SNPEFF_CONTAINER
-    threads: get_resource("run_snpeff", "threads")
-    resources:
-        mem_mb=get_resource("run_snpeff", "mem_mb"),
-        time=get_resource("run_snpeff", "time"),
-        partition=get_resource("run_snpeff", "partition"),
-    output:
-        vcf=temp("{folder}/chr{chr}_snpeff_output.vcf"),
-        stats="{folder}/chr{chr}_snpeff_stats.html",
-    log:
-        "results/logs/snpeff/{folder}_chr{chr}.log",
     shell:
         """
         mkdir -p $(dirname {log})
@@ -487,20 +487,20 @@ rule run_snpeff:
 
 rule process_snpeff_derived:
     """
-    Process SNPEff output for derived variants to standardized TSV.
-    Uses normalized genome from SNPEff to match VCF chromosome names.
-    """
+Process SNPEff output for derived variants to standardized TSV.
+Uses normalized genome from SNPEff to match VCF chromosome names.
+"""
     input:
         vcf="results/derived_variants/singletons/chr{chr}_snpeff_output.vcf",
         genome="results/snpeff/data/normalized_genome/chr{chr}.fa",
         grantham=config["annotation"]["grantham_matrix"],
         script="workflow/scripts/snpeff_annotation/SNPEff_process.py",
-    conda:
-        "../envs/annotation.yml"
     output:
         tsv="results/annotation/snpeff/derived/chr{chr}_snpeff.tsv",
     log:
         "results/logs/snpeff_process/derived_chr{chr}.log",
+    conda:
+        "../envs/annotation.yml"
     shell:
         """
         set -euo pipefail
@@ -517,20 +517,20 @@ rule process_snpeff_derived:
 
 rule process_snpeff_simulated:
     """
-    Process SNPEff output for simulated variants to standardized TSV.
-    Uses normalized genome from SNPEff to match VCF chromosome names.
-    """
+Process SNPEff output for simulated variants to standardized TSV.
+Uses normalized genome from SNPEff to match VCF chromosome names.
+"""
     input:
         vcf="results/simulated_variants/trimmed_snps/chr{chr}_snpeff_output.vcf",
         genome="results/snpeff/data/normalized_genome/chr{chr}.fa",
         grantham=config["annotation"]["grantham_matrix"],
         script="workflow/scripts/snpeff_annotation/SNPEff_process.py",
-    conda:
-        "../envs/annotation.yml"
     output:
         tsv="results/annotation/snpeff/simulated/chr{chr}_snpeff.tsv",
     log:
         "results/logs/snpeff_process/simulated_chr{chr}.log",
+    conda:
+        "../envs/annotation.yml"
     shell:
         """
         set -euo pipefail
@@ -547,19 +547,19 @@ rule process_snpeff_simulated:
 
 rule merge_vep_snpeff:
     """
-    Merge VEP and SNPEff annotations when both are enabled.
-    Combines complementary information from both annotators.
-    """
+Merge VEP and SNPEff annotations when both are enabled.
+Combines complementary information from both annotators.
+"""
     input:
         vep="{folder}/chr{chr}_vep.tsv",
         snpeff="{folder}/chr{chr}_snpeff.tsv",
         script="workflow/scripts/combine_annotations/merge_annotations.py",
-    conda:
-        "../envs/annotation.yml"
     output:
         merged="{folder}/chr{chr}_combined_annotation.tsv",
     log:
         "{folder}/logs/merge_vep_snpeff_chr{chr}.log",
+    conda:
+        "../envs/annotation.yml"
     shell:
         """
         python3 {input.script} \
@@ -576,9 +576,9 @@ rule merge_vep_snpeff:
 
 rule run_genome_snpeff:
     """
-    Annotate whole genome variants using SNPEff.
-    Used in scoring step.
-    """
+Annotate whole genome variants using SNPEff.
+Used in scoring step.
+"""
     input:
         vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
         database=(
@@ -591,6 +591,18 @@ rule run_genome_snpeff:
             else []
         ),
         config_file=config["annotation"]["snpeff"]["build"]["config_file"],
+    output:
+        temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf"),
+    log:
+        "results/logs/snpeff/whole_genome_chr{chr}_{part}.log",
+    priority: 1
+    container:
+        SNPEFF_CONTAINER
+    threads: get_resource("run_genome_snpeff", "threads")
+    resources:
+        mem_mb=get_resource("run_genome_snpeff", "mem_mb"),
+        time=get_resource("run_genome_snpeff", "time"),
+        partition=get_resource("run_genome_snpeff", "partition"),
     params:
         db_name=config["annotation"]["snpeff"]["database"]["name"],
         options=config["annotation"]["snpeff"]["run"]["options"],
@@ -599,18 +611,6 @@ rule run_genome_snpeff:
             if input.database
             else config["annotation"]["snpeff"]["database"]["path"]
         ),
-    container:
-        SNPEFF_CONTAINER
-    threads: get_resource("run_genome_snpeff", "threads")
-    resources:
-        mem_mb=get_resource("run_genome_snpeff", "mem_mb"),
-        time=get_resource("run_genome_snpeff", "time"),
-        partition=get_resource("run_genome_snpeff", "partition"),
-    priority: 1
-    output:
-        temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf"),
-    log:
-        "results/logs/snpeff/whole_genome_chr{chr}_{part}.log",
     shell:
         """
         DATA_ABS=$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "{params.data_dir}")
@@ -627,20 +627,20 @@ rule run_genome_snpeff:
 
 rule process_genome_snpeff:
     """
-    Process whole genome SNPEff output.
-    """
+Process whole genome SNPEff output.
+"""
     input:
         vcf="results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf",
         genome=lambda wildcards: config["generate_variants"]["reference_genome_wildcard"].format(chr=wildcards.chr),
         grantham=config["annotation"]["grantham_matrix"],
         script="workflow/scripts/snpeff_annotation/SNPEff_process.py",
-    conda:
-        "../envs/score.yml"
-    priority: 1
     output:
         temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff.tsv"),
     log:
         "results/logs/snpeff/process_genome_chr{chr}_{part}.log",
+    priority: 1
+    conda:
+        "../envs/score.yml"
     shell:
         """
         python3 {input.script} \

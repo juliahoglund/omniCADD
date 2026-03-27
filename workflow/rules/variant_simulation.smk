@@ -1,16 +1,16 @@
 # -*- snakemake -*-
 
 """
- The snakemake file goes through part 2 of creating and applying the paramters and simulating the
- variants. The first part will create the log files needed, with mutation rates and alike,
- and the next part will apply these parameters while simulating variants.
- This is based on the same genome file as the previous step, together with the extracted ancestral sequence. 
+The snakemake file goes through part 2 of creating and applying the paramters and simulating the
+variants. The first part will create the log files needed, with mutation rates and alike,
+and the next part will apply these parameters while simulating variants.
+This is based on the same genome file as the previous step, together with the extracted ancestral sequence.
 
- :Author: Julia Höglund
- :Date: 06-4-2023
- :Usage: snakemake -p --snakefile <snakefile script>
+:Author: Julia Höglund
+:Date: 06-4-2023
+:Usage: snakemake -p --snakefile <snakefile script>
 
- Params can be adjusted for any given species of interest. 
+Params can be adjusted for any given species of interest.
 """
 
 """
@@ -23,12 +23,12 @@ rule create_parameters:
         script="workflow/scripts/variant_simulation/create_parameters.py",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
         reference=config["generate_variants"]["reference_genome_wildcard"],
+    output:
+        "results/simulated_variants/parameters/chr{chr}.txt",
     log:
         "results/logs/simulate_variants/create_parameters/chr{chr}.log",
     conda:
         get_conda_env("simulation")
-    output:
-        "results/simulated_variants/parameters/chr{chr}.txt",
     shell:
         "python3 {input.script} " "-a {input.ancestral} " "-r {input.reference} " "-c {wildcards.chr} " "-o {output} 2> {log}"
 
@@ -47,17 +47,21 @@ rule process_parameters:
             chr=config["chromosomes"]["karyotype"],
         ),
         derived_count="results/derived_variants/singletons/total.count",
-    params:
-        factor=config["generate_variants"]["simulate"]["overestimation_factor"],
+    output:
+        parameters="results/simulated_variants/params.pckl",
+        log=report("results/logs/process_parameters.log", category="Logs"),
     log:
         "results/logs/simulate_variants/process_parameters.log",
     conda:
         get_conda_env("simulation")
-    output:
-        parameters="results/simulated_variants/params.pckl",
-        log=report("results/logs/process_parameters.log", category="Logs"),
+    params:
+        factor=config["generate_variants"]["simulate"]["overestimation_factor"],
     shell:
-        "python3 {input.script} " "-n $(cat {input.derived_count} | awk '{{s+=$1}} END {{print s * {params.factor}}}') " "-p {input.parameters} " "-l {output.log} " "-o {output.parameters} 2> {log}"
+        "python3 {input.script} "
+        "-n $(cat {input.derived_count} | awk '{{s+=$1}} END {{print s * {params.factor}}}') "
+        "-p {input.parameters} "
+        "-l {output.log} "
+        "-o {output.parameters} 2> {log}"
 
 
 """
@@ -72,12 +76,12 @@ rule simulate_snps:
         script="workflow/scripts/variant_simulation/simulate_variants.py",
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl",
+    output:
+        "results/simulated_variants/raw_snps/chr{chr}.vcf",
     log:
         "results/logs/simulate_variants/simulate_snps/chr{chr}.log",
     conda:
         get_conda_env("simulation")
-    output:
-        "results/simulated_variants/raw_snps/chr{chr}.vcf",
     shell:
         """
         mkdir -p $(dirname {output})
@@ -96,12 +100,12 @@ rule simulate_indels:
         script="workflow/scripts/variant_simulation/simulate_variants.py",
         reference=config["generate_variants"]["reference_genome_wildcard"],
         params="results/simulated_variants/params.pckl",
+    output:
+        "results/simulated_variants/raw_indels/chr{chr}.vcf",
     log:
         "results/logs/simulate_variants/simulate_indels/chr{chr}.log",
     conda:
         get_conda_env("simulation")
-    output:
-        "results/simulated_variants/raw_indels/chr{chr}.vcf",
     shell:
         """
         mkdir -p $(dirname {output})
@@ -115,12 +119,12 @@ rule filter_variants:
         script="workflow/scripts/variant_simulation/filter_variants.py",
         variants="results/simulated_variants/raw_{sim_type}/chr{chr}.vcf",
         ancestral=f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
+    output:
+        "results/simulated_variants/filtered_{sim_type}/chr{chr}.vcf",
     log:
         "results/logs/simulate_variants/filter_variants/{sim_type}_chr{chr}.log",
     conda:
         get_conda_env("simulation")
-    output:
-        "results/simulated_variants/filtered_{sim_type}/chr{chr}.vcf",
     shell:
         "python3 {input.script} " "-i {input.variants} " "-a {input.ancestral} " "-o {output} 2> {log}"
 
@@ -141,11 +145,11 @@ rule chrom_to_all:
             "results/simulated_variants/filtered_{{sim_type}}/chr{chr}.vcf",
             chr=config["chromosomes"]["karyotype"],
         ),
-    log:
-        "results/logs/simulate_variants/chrom_to_all/{sim_type}.log",
     output:
         raw="results/simulated_variants/raw_{sim_type}/all_chr.vcf",
         filtered="results/simulated_variants/filtered_{sim_type}/all_chr.vcf",
+    log:
+        "results/logs/simulate_variants/chrom_to_all/{sim_type}.log",
     conda:
         get_conda_env("common")
     shell:
@@ -178,22 +182,28 @@ rule check_substitutions_rates:
             "results/simulated_variants/parameters/chr{chr}.txt",
             chr=config["chromosomes"]["karyotype"],
         ),
-    log:
-        "results/logs/simulate_variants/check_substitutions_rates.log",
-    conda:
-        get_conda_env("simulation")
     output:
         raw="results/visualisation/raw_summary.log",
         filtered="results/visualisation/filtered_summary.log",
         params="results/visualisation/parameter_summary.log",
+    log:
+        "results/logs/simulate_variants/check_substitutions_rates.log",
+    conda:
+        get_conda_env("simulation")
     shell:
-        "python3 {input.script} " "--sim-snps {input.snps} " "--trimmed-snps {input.trimmed_snps} " "--param-logfiles {input.params} " "--snp-outfile {output.raw} " "--trimmed-outfile {output.filtered} " "--param-outfile {output.params} 2> {log}"
+        "python3 {input.script} "
+        "--sim-snps {input.snps} "
+        "--trimmed-snps {input.trimmed_snps} "
+        "--param-logfiles {input.params} "
+        "--snp-outfile {output.raw} "
+        "--trimmed-outfile {output.filtered} "
+        "--param-outfile {output.params} 2> {log}"
 
 
 """
-Trims the vcf file to the desired number of variants. This is done because 
-the for training the model we desire the same amount of derived and 
-ancestral variants, but the amount of simulated variants that will result 
+Trims the vcf file to the desired number of variants. This is done because
+the for training the model we desire the same amount of derived and
+ancestral variants, but the amount of simulated variants that will result
 from the simulation and subsequent filtering is not exactly known.
 This is solved by overestimation and trimming.
 """
@@ -205,14 +215,18 @@ rule trim_vcf:
         vcf="results/simulated_variants/filtered_snps/all_chr.vcf",
         simulated_count="results/simulated_variants/filtered_snps/all_chr.vcf.count",
         derived_count="results/derived_variants/singletons/total.count",
+    output:
+        "results/simulated_variants/trimmed_snps/all_chr.vcf",
     log:
         "results/logs/simulate_variants/trim_vcf.log",
     conda:
         get_conda_env("simulation")
-    output:
-        "results/simulated_variants/trimmed_snps/all_chr.vcf",
     shell:
-        "python3 {input.script} " "-i {input.vcf} " "-o {output} " "-c $(cat {input.simulated_count}) " "-d $(cat {input.derived_count}) 2> {log}"
+        "python3 {input.script} "
+        "-i {input.vcf} "
+        "-o {output} "
+        "-c $(cat {input.simulated_count}) "
+        "-d $(cat {input.derived_count}) 2> {log}"
 
 
 """
@@ -226,10 +240,10 @@ rule split_by_chrom:
     input:
         vcf="results/simulated_variants/trimmed_{sim_type}/all_chr.vcf.gz",
         index="results/simulated_variants/trimmed_{sim_type}/all_chr.vcf.gz.tbi",
-    log:
-        "results/logs/simulate_variants/split_by_chrom/{sim_type}_chr{chr}.log",
     output:
         "results/simulated_variants/trimmed_{sim_type}/chr{chr}.vcf",
+    log:
+        "results/logs/simulate_variants/split_by_chrom/{sim_type}_chr{chr}.log",
     conda:
         get_conda_env("common")
     shell:

@@ -5,17 +5,17 @@
 rule phylo_fit:
     input:
         "results/alignment/splitted/chr{chr}/{part}.maf",
+    output:
+        "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
+    log:
+        "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log",
+    conda:
+        get_conda_env("annotation")
     params:
         tree=config["annotation"]["conservation"]["phast"]["tree"],
         tree_species=config["annotation"]["conservation"]["phast"]["tree_species"],
         precision=config["annotation"]["conservation"]["phast"]["train_precision"],
         out="results/annotation/phast/phylo_model/chr{chr}/{part}",
-    log:
-        "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log",
-    conda:
-        get_conda_env("annotation")
-    output:
-        "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     shell:
         "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa 2>> {log} && "
         "phyloFit "
@@ -31,9 +31,8 @@ rule run_phastCons:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
-    params:
-        species_interest=config["species_name"],
-        phast_params=config["annotation"]["conservation"]["phast"]["phastCons_params"],
+    output:
+        temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
     log:
         "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log",
     conda:
@@ -43,8 +42,9 @@ rule run_phastCons:
         mem_mb=lambda wildcards, attempt: get_resource("run_phastCons", "mem_mb") * attempt,
         time=lambda wildcards, attempt: get_resource("run_phastCons", "time") * attempt,
         partition=get_resource("run_phastCons", "partition"),
-    output:
-        temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
+    params:
+        species_interest=config["species_name"],
+        phast_params=config["annotation"]["conservation"]["phast"]["phastCons_params"],
     shell:
         """
          mkdir -p $(dirname {output})
@@ -56,9 +56,8 @@ rule run_phyloP:
     input:
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
-    params:
-        species_interest=config["species_name"],
-        phylo_params=config["annotation"]["conservation"]["phast"]["phyloP_params"],
+    output:
+        temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     log:
         "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log",
     conda:
@@ -68,8 +67,9 @@ rule run_phyloP:
         mem_mb=lambda wildcards, attempt: get_resource("run_phyloP", "mem_mb") * attempt,
         time=lambda wildcards, attempt: get_resource("run_phyloP", "time") * attempt,
         partition=get_resource("run_phyloP", "partition"),
-    output:
-        temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
+    params:
+        species_interest=config["species_name"],
+        phylo_params=config["annotation"]["conservation"]["phast"]["phyloP_params"],
     shell:
         """
         mkdir -p $(dirname {output})
@@ -80,13 +80,13 @@ rule run_phyloP:
 rule wig2bed:
     input:
         "results/annotation/phast/{tool}/chr{chr}/{part}.wig",
-    log:
-        "results/logs/annotate_vars/wig2bed/{tool}_chr{chr}_{part}.log",
-    conda:
-        get_conda_env("annotation")
     output:
         "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed",
+    log:
+        "results/logs/annotate_vars/wig2bed/{tool}_chr{chr}_{part}.log",
     wildcard_constraints:
         tool="(phastCons|phyloP)",
+    conda:
+        get_conda_env("annotation")
     shell:
         "wig2bed < {input} > {output} 2> {log}"

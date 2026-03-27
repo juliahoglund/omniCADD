@@ -7,14 +7,14 @@ wildcard_constraints:
 
 
 rule vep_cache:
-    params:
-        version_species=config["annotation"]["vep"]["cache"]["install_params"],
-    log:
-        "results/logs/annotate_vars/vep_cache.log",
     output:
         directory(config["annotation"]["vep"]["cache"]["directory"]),
+    log:
+        "results/logs/annotate_vars/vep_cache.log",
     conda:
         get_conda_env("annotation")
+    params:
+        version_species=config["annotation"]["vep"]["cache"]["install_params"],
     shell:
         "vep_install -a cf -n {params.version_species} -c {output} --CONVERT 2> {log}"
 
@@ -24,9 +24,8 @@ rule run_vep:
         script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
         cache=(rules.vep_cache.output if config["annotation"]["vep"]["cache"]["should_install"] == "True" else []),
-    params:
-        cache_dir=config["annotation"]["vep"]["cache"]["directory"],
-        species_name=config["species_name"],
+    output:
+        temp("{folder}/{file}_vep_output.tsv"),
     log:
         "{folder}/{file}_vep.log",
     conda:
@@ -36,8 +35,9 @@ rule run_vep:
         mem_mb=get_resource("run_vep", "mem_mb"),
         time=get_resource("run_vep", "time"),
         partition=get_resource("run_vep", "partition"),
-    output:
-        temp("{folder}/{file}_vep_output.tsv"),
+    params:
+        cache_dir=config["annotation"]["vep"]["cache"]["directory"],
+        species_name=config["species_name"],
     shell:
         """
          mkdir -p $(dirname {output})
@@ -53,12 +53,12 @@ rule process_vep:
         vep=get_vep_source_vep_output,
         genome=config["generate_variants"]["reference_genome_wildcard"],
         grantham=config["annotation"]["grantham_matrix"],
+    output:
+        vep_tsv="results/annotation/vep/{type}/chr{chr}_vep.tsv",
     log:
         "results/logs/annotate_vars/process_vep_{type}_chr{chr}.log",
     conda:
         get_conda_env("common")
-    output:
-        vep_tsv="results/annotation/vep/{type}/chr{chr}_vep.tsv",
     shell:
         """
          mkdir -p $(dirname {output.vep_tsv})

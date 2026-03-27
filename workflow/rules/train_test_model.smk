@@ -1,20 +1,20 @@
 # -*- snakemake -*-
 
 """
- Module that applies a logistic regression model to the dataset generated.
- Trains a model which is then validated using a hold-out test set
- and databases of known variants.
- Additionally, the model is used to score all variants,
- which are then used to generate the whole-genome CADD scores.
+Module that applies a logistic regression model to the dataset generated.
+Trains a model which is then validated using a hold-out test set
+and databases of known variants.
+Additionally, the model is used to score all variants,
+which are then used to generate the whole-genome CADD scores.
 
- :Author: Job van Schipstal
- :Date: 23-10-2023
+:Author: Job van Schipstal
+:Date: 23-10-2023
 
- Scripts are based upon the work of Christian Gross,
- but written for scikit-learn instead of turi create.
+Scripts are based upon the work of Christian Gross,
+but written for scikit-learn instead of turi create.
 
- :Extension and modification: Julia Höglund
- :Date: 2026-03-17
+:Extension and modification: Julia Höglund
+:Date: 2026-03-17
 """
 
 
@@ -49,11 +49,17 @@ rule fold_data:
         ),
         script="workflow/scripts/train_test_model/fold_data.py",
         lib="workflow/scripts/utilities/data_helper.py",
+    output:
+        test=expand("results/dataset/fold_{fold}.npz", fold=get_folds()),
+        test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
+        test_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
     log:
         "results/logs/train_test_model/fold_data.log",
+    benchmark:
+        "logs/benchmarks/fold_data.tsv"
+    priority: 20
     conda:
         get_conda_env("model")
-    priority: 20
     threads: get_resource("fold_data", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: min(
@@ -61,12 +67,6 @@ rule fold_data:
         ),
         time=get_resource("fold_data", "time"),
         partition=get_resource("fold_data", "partition"),
-    output:
-        test=expand("results/dataset/fold_{fold}.npz", fold=get_folds()),
-        test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
-        test_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
-    benchmark:
-        "logs/benchmarks/fold_data.tsv"
     shell:
         """
         mkdir -p results/dataset
@@ -90,21 +90,6 @@ rule train_model:
         ),
         script="workflow/scripts/train_test_model/train_model.py",
         lib="workflow/scripts/utilities/data_helper.py",
-    params:
-        c=config["model"]["test_params"]["c"],
-        max_iter=config["model"]["test_params"]["max_iter"],
-        file_pattern="results/model/{cols}/fold_{fold}_[C]C_[ITER]iter.mod",
-        sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
-    conda:
-        get_conda_env("model")
-    priority: 20
-    threads: get_resource("train_model", "threads")
-    resources:
-        mem_mb=lambda wildcards, attempt: min(
-            get_resource("train_model", "mem_mb") * 2, get_resource("train_model", "mem_mb") * attempt
-        ),
-        time=get_resource("train_model", "time"),
-        partition=get_resource("train_model", "partition"),
     output:
         model=expand(
             "results/model/{{cols}}/fold_{{fold}}_{c}C_{iter}iter.mod.pickle",
@@ -127,10 +112,25 @@ rule train_model:
             iter=config["model"]["test_params"]["max_iter"],
         ),
         scaler="results/model/{cols}/fold_{fold}.scaler.pickle",
-    benchmark:
-        "logs/benchmarks/train_model_{cols}_fold_{fold}.tsv"
     log:
         "results/logs/model/train_{cols}_fold_{fold}.log",
+    benchmark:
+        "logs/benchmarks/train_model_{cols}_fold_{fold}.tsv"
+    priority: 20
+    conda:
+        get_conda_env("model")
+    threads: get_resource("train_model", "threads")
+    resources:
+        mem_mb=lambda wildcards, attempt: min(
+            get_resource("train_model", "mem_mb") * 2, get_resource("train_model", "mem_mb") * attempt
+        ),
+        time=get_resource("train_model", "time"),
+        partition=get_resource("train_model", "partition"),
+    params:
+        c=config["model"]["test_params"]["c"],
+        max_iter=config["model"]["test_params"]["max_iter"],
+        file_pattern="results/model/{cols}/fold_{fold}_[C]C_[ITER]iter.mod",
+        sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
     shell:
         """
          mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks
@@ -145,14 +145,17 @@ rule final_model:
         train_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
         script="workflow/scripts/train_test_model/train_model.py",
         lib="workflow/scripts/utilities/data_helper.py",
-    params:
-        c=config["model"]["final_params"]["c"],
-        max_iter=config["model"]["final_params"]["max_iter"],
-        file_pattern="results/model/{cols}/full.mod",
-        sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
+    output:
+        model="results/model/{cols}/full.mod.pickle",
+        scaler="results/model/{cols}/full.scaler.pickle",
+        weights="results/model/{cols}/full.mod.weights.csv",
+    log:
+        "results/logs/model/final_model_{cols}.log",
+    benchmark:
+        "logs/benchmarks/final_model_{cols}.tsv"
+    priority: 20
     conda:
         get_conda_env("model")
-    priority: 20
     threads: get_resource("final_model", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: min(
@@ -160,14 +163,11 @@ rule final_model:
         ),
         time=get_resource("final_model", "time"),
         partition=get_resource("final_model", "partition"),
-    output:
-        model="results/model/{cols}/full.mod.pickle",
-        scaler="results/model/{cols}/full.scaler.pickle",
-        weights="results/model/{cols}/full.mod.weights.csv",
-    benchmark:
-        "logs/benchmarks/final_model_{cols}.tsv"
-    log:
-        "results/logs/model/final_model_{cols}.log",
+    params:
+        c=config["model"]["final_params"]["c"],
+        max_iter=config["model"]["final_params"]["max_iter"],
+        file_pattern="results/model/{cols}/full.mod",
+        sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
     shell:
         """
         mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks
@@ -190,6 +190,13 @@ rule evaluate_models:
             iter=config["model"]["test_params"]["max_iter"],
         ),
         script="workflow/scripts/train_test_model/evaluate_models.py",
+    output:
+        summary="results/model/{cols}/model_evaluation_summary.tsv",
+        best_params="results/model/{cols}/best_parameters.json",
+    log:
+        "results/logs/model/evaluate_models_{cols}.log",
+    benchmark:
+        "logs/benchmarks/evaluate_models_{cols}.tsv"
     conda:
         get_conda_env("model")
     threads: get_resource("evaluate_models", "threads")
@@ -197,13 +204,6 @@ rule evaluate_models:
         mem_mb=get_resource("evaluate_models", "mem_mb"),
         time=get_resource("evaluate_models", "time"),
         partition=get_resource("evaluate_models", "partition"),
-    output:
-        summary="results/model/{cols}/model_evaluation_summary.tsv",
-        best_params="results/model/{cols}/best_parameters.json",
-    benchmark:
-        "logs/benchmarks/evaluate_models_{cols}.tsv"
-    log:
-        "results/logs/model/evaluate_models_{cols}.log",
     shell:
         """
         mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks

@@ -1,16 +1,16 @@
 # -*- snakemake -*-
 
 """
- The snakemake file goes through part 3 of creating a summary
- of the simulated variants and the extracted ancestor
- from the previous steps. The final output is an html
- file (to be opened in a browser) with tables and graphs
+The snakemake file goes through part 3 of creating a summary
+of the simulated variants and the extracted ancestor
+from the previous steps. The final output is an html
+file (to be opened in a browser) with tables and graphs
 
- :Author: Julia Höglund
- :Date: 19-5-2023
- :Usage: snakemake -p --snakefile <snakefile script>
+:Author: Julia Höglund
+:Date: 19-5-2023
+:Usage: snakemake -p --snakefile <snakefile script>
 
- Params can be adjusted for any given species of interest.
+Params can be adjusted for any given species of interest.
 """
 
 
@@ -27,15 +27,15 @@ rule create_summary:
         parameter_log="results/visualisation/parameter_summary.log",
         raw_log="results/visualisation/raw_summary.log",
         filtered_log="results/visualisation/filtered_summary.log",
-    params:
-        ancestral_dir=lambda wildcards, input: os.path.dirname(input.ancestral_files[0]) + "/",
+    output:
+        r_clump="results/visualisation/graphs.RData",
+        indexfile="results/visualisation/indexfile.txt",
     log:
         "results/logs/summary_report/create_summary.log",
     conda:
         get_conda_env("r_stats")
-    output:
-        r_clump="results/visualisation/graphs.RData",
-        indexfile="results/visualisation/indexfile.txt",
+    params:
+        ancestral_dir=lambda wildcards, input: os.path.dirname(input.ancestral_files[0]) + "/",
     shell:
         """
         # create genomewide ancestral fasta file
@@ -67,14 +67,14 @@ if config["stats_report"]["annotation"] == "True":
             gff=config["stats_report"]["gff"],
             file=config["stats_report"]["prefix"],
             script="workflow/scripts/summary_report/fasta2bed.py",
-        log:
-            "results/logs/summary_report/create_input.log",
-        conda:
-            get_conda_env("common")
         output:
             regions="results/visualisation/CDS.regions.bed",
             coverage="results/visualisation/CDS.coverage.bed",
             ancestor_genome="results/visualisation/Ancestor.bed",
+        log:
+            "results/logs/summary_report/create_input.log",
+        conda:
+            get_conda_env("common")
         shell:
             """
             gunzip -c {input.gff} > temp_gff.gff 2>> {log}
@@ -93,15 +93,15 @@ rule create_datafiles:
         annotation=("results/visualisation/Ancestor.bed" if config["stats_report"]["annotation"] == "True" else []),
         bedfile=("results/visualisation/CDS.regions.bed" if config["stats_report"]["annotation"] == "True" else []),
         coverage=("results/visualisation/CDS.coverage.bed" if config["stats_report"]["annotation"] == "True" else []),
-    params:
-        ingroup=config["stats_report"]["ingroup"],
-        outgroup=config["stats_report"]["outgroup"],
+    output:
+        "results/visualisation/stats_report.html",
     log:
         "results/logs/summary_report/create_datafiles.log",
     conda:
         get_conda_env("r_stats")
-    output:
-        "results/visualisation/stats_report.html",
+    params:
+        ingroup=config["stats_report"]["ingroup"],
+        outgroup=config["stats_report"]["outgroup"],
     shell:
         """
         Rscript -e "rmarkdown::render('{input.script}', \
@@ -120,10 +120,10 @@ rule create_datafiles:
 rule raw_singleton_stats:
     input:
         "results/derived_variants/singletons/all_chr.vcf",
-    log:
-        "results/logs/summary_report/raw_singleton_stats.log",
     output:
         "results/derived_variants/singletons/stats.txt",
+    log:
+        "results/logs/summary_report/raw_singleton_stats.log",
     conda:
         get_conda_env("common")
     shell:

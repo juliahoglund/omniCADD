@@ -3,13 +3,13 @@ rule split_fasta_by_chromosome:
     input:
         fasta="resources/genome/{prefix}.fa",
         index="resources/genome/{prefix}.fa.fai",
-    params:
-        chromosomes=config["chromosomes"]["karyotype"],
-        output_dir="resources/genome/",
     output:
         expand("resources/genome/{{prefix}}_chr{chr}.fa", chr=config["chromosomes"]["karyotype"]),
     conda:
         get_conda_env("common")
+    params:
+        chromosomes=config["chromosomes"]["karyotype"],
+        output_dir="resources/genome/",
     shell:
         """
         for chr in {params.chromosomes}; do
@@ -58,12 +58,12 @@ rule linearize_fasta:
 rule chunk_maf:
     input:
         maf="resources/alignment/chr{chr}.maf",
-    params:
-        chunk_size=100000,
     output:
         chunks=directory("results/alignment/chunks/chr{chr}/"),
     conda:
         get_conda_env("common")
+    params:
+        chunk_size=100000,
     shell:
         "python workflow/scripts/preprocessing/chunk_maf.py --input {input.maf} --output {output.chunks} --size {params.chunk_size}"
 
