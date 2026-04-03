@@ -1,52 +1,37 @@
 # Snakemake SLURM profile for PDC Dardel
 # Requires Snakemake 8+ and snakemake-executor-plugin-slurm
 #
-# SETUP (once, on Dardel):
-#   pip install snakemake-executor-plugin-slurm
-#   mkdir -p slurm
-#
-# EDIT before running:
-#   1. Replace YOUR_DARDEL_ACCOUNT with your PDC project (e.g., naiss2024-X-NNN)
-#   2. Replace YOUR_PROJECT_PATH with your project storage path
-#
 # USAGE (from a screen/tmux session on a login node):
-#   screen -S omnicadd
 #   module load PDC bioinfo-tools apptainer
 #   conda activate omnicadd
 #   snakemake --profile config/slurm/dardel -n   # dry-run
 #   snakemake --profile config/slurm/dardel       # full run
 
+# Profile and SLURM executor settings
 executor: slurm
-jobs: 500
-keep-going: true
-restart-times: 1
-rerun-incomplete: true
-max-jobs-per-second: 10
-max-status-checks-per-second: 10
-
-snakefile: snakefile
-configfile: config/config.yaml
-
-# Apptainer (Singularity) settings
-# Dardel uses apptainer; replace path with your project storage
+jobs: 50  # Max simultaneous jobs - reduced to be more considerate on shared cluster
+cores: 8
+use-conda: True
 use-apptainer: true
-apptainer-args: "--cleanenv --bind /cfs/klemming --disable-cache"
-apptainer-prefix: "/cfs/klemming/projects/supr/YOUR_PROJECT_PATH/apptainer_cache"
+singularity-prefix: "/path/to/singularity-cache"
+restart-times: 2
+max-jobs-per-second: 1
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 60
+keep-going: True
+rerun-incomplete: True
 
-# Default SLURM resources applied to all jobs unless overridden below
-# - slurm_account: PDC project account (mandatory, replace below)
-# - slurm_partition: "shared" for jobs using less than a full node (most rules)
-#                    use "main" only for whole-node jobs (128 cores)
-# - runtime: wall-clock limit in minutes
-# - mem_mb: total memory in MB
-# - tasks: number of tasks (1 for all thread-based rules)
 default-resources:
-  slurm_account: "YOUR_DARDEL_ACCOUNT"
+  slurm_account: "account_name"
   slurm_partition: "shared"
   runtime: 240
   mem_mb: 8192
   tasks: 1
   slurm_extra: "--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err"
+
+# Conda and Apptainer paths
+conda-prefix: "/path/to/conda-envs"
 
 # Per-rule overrides — mirrors config/resources.yaml but converted to minutes
 # Only rules with values different from the defaults above are listed
