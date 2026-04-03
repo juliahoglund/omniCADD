@@ -98,3 +98,6 @@ __pycache__/
 check-before-push.sh
 workflow/rules/5_annotate_vars_unimplemented.smk
 5_annotate_vars_unimplemented.smk
+extract_true_species.py
+README_dardel.md
+README_dardel.md
