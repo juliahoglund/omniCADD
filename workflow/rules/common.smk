@@ -17,7 +17,24 @@ import glob
 # Global conda environment resolver
 def get_conda_env(env_name):
     """Return path to conda environment file"""
-    return f"workflow/envs/{env_name}.yml"
+    import os
+
+    return os.path.join(workflow.basedir, "workflow", "envs", f"{env_name}.yml")
+
+
+def get_alignment_config():
+    """Get the correct alignment configuration based on the configured name (mark_ancestor: ancestral_alignment)."""
+    # Try to get the name from config, falling back to any available or 43_mammals.epo
+    alignment_name = config.get("mark_ancestor", {}).get("ancestral_alignment")
+
+    if not alignment_name:
+        alignments = config.get("ancestral_sequence", {}).get("alignment", {}).get("alignments", {})
+        if alignments:
+            alignment_name = next(iter(alignments))
+        else:
+            alignment_name = "43_mammals.epo"
+
+    return config["ancestral_sequence"]["alignment"]["alignments"][alignment_name]
 
 
 def get_gene_annotation_file():
@@ -39,7 +56,7 @@ def get_gene_annotation_file():
         raise ValueError(f"Unknown gene annotation source: {source}")
 
 
-def get_df_input_maf():
+def get_df_input_maf(wildcards):
     """
     Input for maf_df rule (duplicate filter step), which follows after marking.
     Pipeline: clean_ambiguous → mark_ancestor → maf_df → maf_ro
@@ -47,34 +64,36 @@ def get_df_input_maf():
     If only cleaning is configured, maf_df takes cleaned_maf output.
     Otherwise maf_df takes raw alignment files directly.
     Used by: ancestral_generation.smk (maf_df input)
-    :return: str, input file pattern
+    :param wildcards: Snakemake wildcards object
+    :return: str, input file path with wildcard resolved
     """
-    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
+    alignment_config = get_alignment_config()
 
     if "name_ancestor" in config["mark_ancestor"]:
-        return "results/alignment/marked_ancestor/{part}.maf.gz"
+        return f"results/alignment/marked_ancestor/{wildcards.part}.maf.gz"
 
     if alignment_config["clean_maf"]:
-        return "results/alignment/cleaned_maf/{part}.maf.gz"
+        return f"results/alignment/cleaned_maf/{wildcards.part}.maf.gz"
 
-    return f"{alignment_config['path']}{{part}}.maf.gz"
+    return f"{alignment_config['path']}{wildcards.part}.maf.gz"
 
 
-def get_mark_ancestor_input_maf():
+def get_mark_ancestor_input_maf(wildcards):
     """
     Input for mark_ancestor rule (the step before maf_df).
     Pipeline: clean_ambiguous → mark_ancestor
     If cleaning is configured, mark_ancestor takes cleaned_maf as input.
     Otherwise mark_ancestor takes raw alignment files directly.
     Used by: ancestral_generation.smk (mark_ancestor input)
-    :return: str, input file pattern
+    :param wildcards: Snakemake wildcards object
+    :return: str, input file path with wildcard resolved
     """
-    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
+    alignment_config = get_alignment_config()
 
     if alignment_config["clean_maf"]:
-        return "results/alignment/cleaned_maf/{part}.maf.gz"
+        return f"results/alignment/cleaned_maf/{wildcards.part}.maf.gz"
 
-    return f"{alignment_config['path']}{{part}}.maf.gz"
+    return f"{alignment_config['path']}{wildcards.part}.maf.gz"
 
 
 def gather_part_files():
@@ -82,9 +101,10 @@ def gather_part_files():
     Gather all alignment part files based on configuration.
     Used by: ancestral_generation.smk
     """
-    alignment_config = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]
+    alignment_config = get_alignment_config()
     input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
     parts = glob_wildcards(input_pattern).part
+
     parts_filtered = []
     for part in parts:
         if not any(pattern in part for pattern in alignment_config["exclude_patterns"]):
@@ -114,7 +134,8 @@ def gather_part_files_conservation():
     Gather all alignment part files for conservation analysis (preserves all species).
     Used by: ancestral_generation.smk (sort_by_chr_conservation rule)
     """
-    alignment_dir = config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["path"]
+    alignment_config = get_alignment_config()
+    alignment_dir = alignment_config["path"]
     parts = glob_wildcards(os.path.join(alignment_dir, "{part}.maf.gz")).part
 
     # Handle the case when no files are found
@@ -190,7 +211,7 @@ Name, label and file may not contain /, they may not be sub-folders.
 # Global wildcard constraints for use across modules
 wildcard_constraints:
     chr="[0-9XY]+",
-    part="[a-zA-Z0-9-]+",
+    part="[a-zA-Z0-9._-]+",  # Allow dots, underscores, hyphens for MAF part names
     fold="[0-9]+",
     type="(simulated|derived|validation)",
     cols="(All|[A-Za-z0-9_]+)",

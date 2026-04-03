@@ -89,7 +89,7 @@ rule maf_df:
         temp("results/alignment/dedup/{part}.maf.lz4"),
     log:
         "results/logs/extract_ancestor/maf_df/{part}.log",
-    #conda:
+    # conda:
     #    get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
@@ -111,7 +111,7 @@ rule maf_ro:
         temp("results/alignment/row_ordered/{part}.maf.lz4"),
     log:
         "results/logs/extract_ancestor/maf_ro/{part}.log",
-    #conda:
+    # conda:
     #    get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
@@ -135,7 +135,7 @@ rule maf_ro_conservation:
         temp("results/alignment/row_ordered_conservation/{part}.maf.lz4"),
     log:
         "results/logs/extract_ancestor/maf_ro_conservation/{part}.log",
-    #conda:
+    # conda:
     #    get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
@@ -213,7 +213,7 @@ rule maf_str:
         temp("results/alignment/stranded/chr{chr}.maf.gz"),
     log:
         "results/logs/extract_ancestor/maf_str/chr{chr}.log",
-    #conda:
+    # conda:
     #    get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
@@ -236,7 +236,7 @@ rule maf_sorter:
         "results/alignment/sorted/chr{chr}.maf.gz",
     log:
         "results/logs/extract_ancestor/maf_sorter/chr{chr}.log",
-    #conda:
+    # conda:
     #    get_conda_env("ancestor")
     container:
         "docker://juliahoglund/maftools:latest"
