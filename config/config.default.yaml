@@ -204,7 +204,7 @@ mark_ancestor:
 ###########################
 generate_variants:
   reference_genome_wildcard: "resources/genome/Sus_scrofa_ref_{chr}.fa"
-  population_vcf: "resources/population/chr{chr}.vcf.gz"
+  population_vcf: "resources/pop-level-VCF/chr{chr}.vcf.gz"
   
   derive:
     frequency_threshold: 0.9

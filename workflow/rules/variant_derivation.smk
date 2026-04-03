@@ -25,7 +25,7 @@ rule freq_files:
         get_conda_env("common")
     params:
         min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"],
-        chr_prefix=config["ancestral_sequence"]["alignment"]["alignments"]["43_mammals.epo"]["chrom_prefix"],
+        chr_prefix=get_alignment_config()["chrom_prefix"],
     shell:
         "vcftools --gzvcf {input} "
         "--chr {params.chr_prefix}{wildcards.chr} "
