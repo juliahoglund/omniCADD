@@ -5,6 +5,11 @@ ENV  PATH=/opt/mafTools/bin:$PATH
 ENV  DEBIAN_FRONTEND=noninteractive
 ENV  LC_ALL=C
 
+# Debian Stretch is EOL - use archive repositories
+RUN sed -i 's|http://deb.debian.org|http://archive.debian.org|g' /etc/apt/sources.list && \
+    sed -i 's|http://security.debian.org|http://archive.debian.org|g' /etc/apt/sources.list && \
+    sed -i '/stretch-updates/d' /etc/apt/sources.list
+
 RUN apt-get update && \
    apt-get -y --no-install-recommends install --fix-missing \
    wget curl git build-essential libz-dev valgrind libatlas-base-dev
