@@ -1,14 +1,14 @@
 name: alignment
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
   # Core tools for alignment generation
   - minimap2
   - samtools
   - htsbox
-  - biopython
+  - biopython>=1.80
   - python=3.10
   - pip
   - setuptools

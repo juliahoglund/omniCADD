@@ -11,7 +11,7 @@ dependencies:
   - wheel
   
   # Core bioinformatics tools
-  - biopython
+  - biopython>=1.80
   - msaconverter
   - numpy
   
