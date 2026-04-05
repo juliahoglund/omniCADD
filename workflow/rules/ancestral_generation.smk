@@ -37,13 +37,11 @@ rule clean_ambiguous:
         mem_mb=get_resource("clean_ambiguous", "mem_mb"),
         time=lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
         partition=get_resource("clean_ambiguous", "partition"),
-    params:
-        name_ancestor=config["mark_ancestor"]["name_ancestor"],
-        name_reference=get_alignment_config()["name_species_interest"],
-        p_n=config["mark_ancestor"].get("p_n", 0.8),
-        p_gap=config["mark_ancestor"].get("p_gap", 0.8),
-    script:
-        "../scripts/ancestral_generation/clean_maf.py"
+    shell:
+        "python3 workflow/scripts/ancestral_generation/clean_maf.py"
+        " -i {input}"
+        " -o {output}"
+        " 2> {log}"
 
 
 # Identifies the most recent common ancestor between two given species and marks it with an identifier.
@@ -92,7 +90,7 @@ rule maf_df:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:latest"
+        "docker://juliahoglund/maftools:2026.04.05"
     threads: get_resource("maf_df", "threads")
     resources:
         mem_mb=get_resource("maf_df", "mem_mb"),
@@ -114,7 +112,7 @@ rule maf_ro:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:latest"
+        "docker://juliahoglund/maftools:2026.04.05"
     threads: get_resource("maf_ro", "threads")
     resources:
         mem_mb=get_resource("maf_ro", "mem_mb"),
@@ -138,7 +136,7 @@ rule maf_ro_conservation:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:latest"
+        "docker://juliahoglund/maftools:2026.04.05"
     threads: get_resource("maf_ro", "threads")
     resources:
         mem_mb=get_resource("maf_ro", "mem_mb"),
@@ -216,7 +214,7 @@ rule maf_str:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:latest"
+        "docker://juliahoglund/maftools:2026.04.05"
     threads: get_resource("maf_str", "threads")
     resources:
         mem_mb=get_resource("maf_str", "mem_mb"),
@@ -239,7 +237,7 @@ rule maf_sorter:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:latest"
+        "docker://juliahoglund/maftools:2026.04.05"
     threads: get_resource("maf_sorter", "threads")
     resources:
         mem_mb=get_resource("maf_sorter", "mem_mb"),

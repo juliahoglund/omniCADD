@@ -16,6 +16,11 @@ RUN  git clone --recursive --depth 1 --shallow-submodules https://github.com/ben
 RUN  git clone --recursive --depth 1 --shallow-submodules https://github.com/benedictpaten/pinchesAndCacti
 RUN  git clone --recursive --depth 1 --shallow-submodules https://github.com/dentearl/mafTools/
 
+# Capture mafTools version
+WORKDIR /opt/mafTools
+RUN  git rev-parse HEAD > /opt/maftools_version.txt && \
+     echo "mafTools version: $(cat /opt/maftools_version.txt)"
+
 WORKDIR /opt/sonLib
 RUN  export PYTHONPATH=${PYTHONPATH}:/opt
 RUN  make && make test || true
