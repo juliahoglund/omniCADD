@@ -13,7 +13,7 @@ RUN sed -i 's|http://deb.debian.org|http://archive.debian.org|g' /etc/apt/source
 RUN apt-get update && \
    apt-get -y --no-install-recommends install --fix-missing \
    wget curl git build-essential libz-dev valgrind libatlas-base-dev gfortran \
-   lz4 gzip
+   liblz4-tool gzip
 
 # Install numpy first (scipy depends on it during build)
 RUN pip install --no-cache 'numpy>=1.8.2,<1.17'
