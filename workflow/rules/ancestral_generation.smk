@@ -97,7 +97,7 @@ rule maf_df:
         time=get_resource("maf_df", "time"),
         partition=get_resource("maf_df", "partition"),
     shell:
-        "mkdir -p $(dirname {output}) && lz4 -dc {input} 2>> {log} | mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}"
+        "mkdir -p $(dirname {output}) && gzip -dc {input} 2>> {log} | mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 
 # Reorders species within any alignment block, so that the wanted species are in front.
