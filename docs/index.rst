@@ -56,6 +56,7 @@ Quick Links
    :caption: User Guide
    
    workflow
+   workflow_diagram
    configuration
    input_data
    output_data

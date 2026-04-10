@@ -29,6 +29,14 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'  # ReadTheDocs theme
 html_static_path = ['_static']
 
+# Copy additional files to the build directory
+html_extra_path = []
+
+# Allow raw HTML in RST files
+html_context = {
+    'display_github': True,
+}
+
 # -- MyST markdown options ---------------------------------------------------
 myst_enable_extensions = [
     "deflist",
