@@ -64,8 +64,8 @@ preprocessing:
 gene_annotation:
   source: "augustus"  # Must predict genes (no existing annotation)
   
-  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
-  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
+  gff: '.tests/resources/Sus_scrofa.Sscrofa11.1.111.chr18.gff3.gz'
+  gtf: ''
   
   predict_genes: true
   ancestral_mode: "alignment"
@@ -178,7 +178,7 @@ mark_ancestor:
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
-  reference_genome: 'resources/genome/Sus_scrofa_ref.fa'
+  reference_genome: '.tests/resources/genome/Sus_scrofa_ref.fa'
 
 ###########################
 ### VARIANT GENERATION ####
@@ -215,7 +215,7 @@ annotation:
       path: "resources/snpEff/data/"
     build:
       annotation_format: "gff3"
-      genome_fasta: "resources/genome/Sus_scrofa_ref.fa"
+      genome_fasta: ".tests/resources/genome/Sus_scrofa_ref.fa"
       config_file: "resources/snpEff/snpEff.config"
     run:
       options: "-v -stats"
