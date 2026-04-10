@@ -64,8 +64,8 @@ preprocessing:
 gene_annotation:
   source: "augustus"  # Must predict genes (no existing annotation)
   
-  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
-  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
+  gff: '.tests/resources/Sus_scrofa.Sscrofa11.1.111.chr18.gff3.gz'
+  gtf: ''
   
   predict_genes: true
   ancestral_mode: "alignment"
