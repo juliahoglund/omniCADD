@@ -85,16 +85,16 @@ FAILED=0
 
 # Test standard configuration
 if test_config "$SCRIPT_DIR/config/config_standard.yaml" "standard"; then
-    ((PASSED++))
+    PASSED=$((PASSED + 1))
 else
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
 fi
 
 # Test limited configuration
 if test_config "$SCRIPT_DIR/config/config_limited.yaml" "limited"; then
-    ((PASSED++))
+    PASSED=$((PASSED + 1))
 else
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
 fi
 
 # Summary
