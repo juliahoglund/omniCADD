@@ -38,10 +38,7 @@ rule clean_ambiguous:
         time=lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
         partition=get_resource("clean_ambiguous", "partition"),
     shell:
-        "python3 workflow/scripts/ancestral_generation/clean_maf.py"
-        " -i {input}"
-        " -o {output}"
-        " 2> {log}"
+        "python3 workflow/scripts/ancestral_generation/clean_maf.py -i {input} -o {output} 2> {log}"
 
 
 # Identifies the most recent common ancestor between two given species and marks it with an identifier.
