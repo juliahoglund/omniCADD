@@ -1,0 +1,47 @@
+/* Custom CSS to make ReadTheDocs content wider and more responsive */
+
+/* Make the main content area wider */
+.wy-nav-content {
+    max-width: 1200px !important;  /* Increase from default 800px */
+}
+
+/* On very large screens, use even more space */
+@media screen and (min-width: 1400px) {
+    .wy-nav-content {
+        max-width: 1400px !important;
+    }
+}
+
+/* Make content fill available width on medium screens */
+@media screen and (min-width: 768px) and (max-width: 1399px) {
+    .wy-nav-content {
+        max-width: 95% !important;
+    }
+}
+
+/* Better spacing for the workflow diagram iframes */
+.document iframe {
+    max-width: 100%;
+}
+
+/* Improve code block width */
+.rst-content pre.literal-block,
+.rst-content div[class^='highlight'] {
+    max-width: 100%;
+}
+
+/* Make tables responsive and wider */
+.rst-content table.docutils {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Better sidebar width on large screens */
+@media screen and (min-width: 1400px) {
+    .wy-nav-side {
+        width: 320px;
+    }
+    .wy-nav-content-wrap {
+        margin-left: 320px;
+    }
+}
