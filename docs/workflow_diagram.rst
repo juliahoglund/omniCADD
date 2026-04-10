@@ -9,7 +9,7 @@ This page contains the full interactive workflow diagram for omniCADD.
       body { margin: 0; padding: 0; }
       .document { max-width: 100% !important; }
    </style>
-   <iframe src="../_static/omniCADD_workflow_dag.html" 
+   <iframe src="_static/omniCADD_workflow_dag.html" 
            width="100%" 
            height="1150px" 
            style="border: none; display: block; margin: 0;">
@@ -34,7 +34,7 @@ Features
 Direct Link
 -----------
 
-`Open diagram in full screen <../_static/omniCADD_workflow_dag.html>`_ (opens in new window)
+`Open diagram in full screen <_static/omniCADD_workflow_dag.html>`_ (opens in new window)
 
 Pipeline Steps
 --------------
