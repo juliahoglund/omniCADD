@@ -37,6 +37,39 @@ def get_alignment_config():
     return config["ancestral_sequence"]["alignment"]["alignments"][alignment_name]
 
 
+def should_skip_ancestral_path():
+    """
+    Check if ancestral and conservation paths use same species order.
+    If true, the workflow can skip ancestral-specific MAF processing and
+    reuse conservation outputs, saving ~50% of alignment processing time.
+    """
+    filter_order = get_alignment_config().get("filter_order", "")
+    conservation_order = get_alignment_config().get("conservation_species_order", "")
+    return filter_order == conservation_order and conservation_order != ""
+
+
+def get_maf_ro_output(wildcards):
+    """
+    Return appropriate maf_ro output depending on whether paths are merged.
+    When species orders match, returns conservation path to avoid duplication.
+    """
+    if should_skip_ancestral_path():
+        return f"results/alignment/row_ordered_conservation/{wildcards.part}.maf.lz4"
+    else:
+        return f"results/alignment/row_ordered/{wildcards.part}.maf.lz4"
+
+
+def get_sort_by_chr_output(wildcards):
+    """
+    Return appropriate sorted MAF output depending on whether paths are merged.
+    When species orders match, returns conservation path to avoid duplication.
+    """
+    if should_skip_ancestral_path():
+        return f"results/alignment/merged_conservation/chr{wildcards.chr}.maf"
+    else:
+        return f"results/alignment/merged/chr{wildcards.chr}.maf.gz"
+
+
 def get_gene_annotation_file():
     """
     Return appropriate gene annotation file based on config.

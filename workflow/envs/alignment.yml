@@ -15,6 +15,7 @@ dependencies:
   - wheel
   # For split_fasta_by_chromosome.py and general scripting
   - numpy
+  - lz4  # For sort_by_chromosome.py (reading lz4 compressed files)
   # For compatibility with other rules
   - bcftools
   - gzip

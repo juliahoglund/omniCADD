@@ -101,7 +101,10 @@ rule maf_df:
 # (it also removes sequences that are not from species given in the order)
 rule maf_ro:
     input:
-        "results/alignment/dedup/{part}.maf.lz4",
+        dedup="results/alignment/dedup/{part}.maf.lz4",
+        conservation=lambda wildcards: (
+            f"results/alignment/row_ordered_conservation/{wildcards.part}.maf.lz4" if should_skip_ancestral_path() else []
+        ),
     output:
         temp("results/alignment/row_ordered/{part}.maf.lz4"),
     log:
@@ -117,8 +120,8 @@ rule maf_ro:
         partition=get_resource("maf_ro", "partition"),
     params:
         order=get_alignment_config()["filter_order"],
-    shell:
-        "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
+    script:
+        "../scripts/ancestral_generation/maf_ro_wrapper.py"
 
 
 # Reorder species for conservation annotations (keeps ALL species, just reorders with reference first)
@@ -140,7 +143,7 @@ rule maf_ro_conservation:
         time=get_resource("maf_ro", "time"),
         partition=get_resource("maf_ro", "partition"),
     params:
-        order=get_alignment_config()["filter_order"],
+        order=lambda wildcards: get_alignment_config().get("conservation_species_order", get_alignment_config()["filter_order"]),
     shell:
         "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
@@ -176,6 +179,9 @@ rule sort_by_chr:
     input:
         maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
+        conservation=lambda wildcards: (
+            f"results/alignment/merged_conservation/chr{wildcards.chr}.maf" if should_skip_ancestral_path() else []
+        ),
     output:
         "results/alignment/merged/chr{chr}.maf.gz",
     log:
@@ -193,8 +199,8 @@ rule sort_by_chr:
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
         directory=lambda w, output: os.path.dirname(output[0]),
-    shell:
-        "mkdir -p results/alignment/merged && python3 {input.script} --species {params.species_name} --ancestor {params.ancestor} --chromosomes {params.chromosomes} --outdir {params.directory} > {log} 2>&1"
+    script:
+        "../scripts/ancestral_generation/sort_by_chr_wrapper.py"
 
 
 # Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand.
