@@ -106,3 +106,4 @@ extract_true_species.py
 README_dardel.md
 README_dardel.md
 config/slurm/dardel/start_omnicadd.sh
+.vscode/settings.json
