@@ -120,8 +120,22 @@ rule maf_ro:
         partition=get_resource("maf_ro", "partition"),
     params:
         order=get_alignment_config()["filter_order"],
-    script:
-        "../scripts/ancestral_generation/maf_ro_wrapper.py"
+        conservation_file=lambda wildcards: (
+            f"results/alignment/row_ordered_conservation/{wildcards.part}.maf.lz4" if should_skip_ancestral_path() else ""
+        ),
+    shell:
+        """
+        if [ -n "{params.conservation_file}" ] && [ -f "{params.conservation_file}" ]; then
+            # Optimization: symlink to conservation output
+            mkdir -p $(dirname {output})
+            [ -e {output} ] && rm {output}
+            ln -s $(realpath {params.conservation_file}) {output}
+            echo "Species orders identical - symlinking to conservation output: {params.conservation_file}" > {log}
+        else
+            # Normal processing: run mafRowOrderer
+            lz4 -dc {input.dedup} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}
+        fi
+        """
 
 
 # Reorder species for conservation annotations (keeps ALL species, just reorders with reference first)
@@ -154,9 +168,9 @@ rule sort_by_chr_conservation:
         maf=gather_part_files_conservation(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
-        "results/alignment/merged_conservation/chr{chr}.maf",
+        expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"]),
     log:
-        "results/logs/extract_ancestor/sort_by_chr_conservation/chr{chr}.log",
+        "results/logs/extract_ancestor/sort_by_chr_conservation/all_chr.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("sort_by_chr", "threads")
@@ -171,7 +185,11 @@ rule sort_by_chr_conservation:
         ancestor=config["mark_ancestor"]["name_ancestor"],
         directory=lambda w, output: os.path.dirname(output[0]),
     shell:
-        "mkdir -p results/alignment/merged_conservation && python3 {input.script} --species {params.species_name} --ancestor {params.ancestor} --chromosomes {params.chromosomes} --outdir {params.directory} > {log} 2>&1"
+        """
+        mkdir -p $(dirname {log})
+        mkdir -p {params.directory}
+        python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} > {log} 2>&1
+        """
 
 
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
@@ -180,12 +198,14 @@ rule sort_by_chr:
         maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
         conservation=lambda wildcards: (
-            f"results/alignment/merged_conservation/chr{wildcards.chr}.maf" if should_skip_ancestral_path() else []
+            expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"])
+            if should_skip_ancestral_path()
+            else []
         ),
     output:
-        "results/alignment/merged/chr{chr}.maf.gz",
+        expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"]),
     log:
-        "results/logs/extract_ancestor/sort_by_chr/chr{chr}.log",
+        "results/logs/extract_ancestor/sort_by_chr/all_chr.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("sort_by_chr", "threads")
@@ -199,8 +219,32 @@ rule sort_by_chr:
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
         directory=lambda w, output: os.path.dirname(output[0]),
-    script:
-        "../scripts/ancestral_generation/sort_by_chr_wrapper.py"
+        conservation_dir=lambda w, output: os.path.dirname(output[0]).replace("merged", "merged_conservation"),
+        skip_optimization=should_skip_ancestral_path(),
+    shell:
+        """
+        if [ -n "$(ls -A {params.conservation_dir}/*.maf 2>/dev/null)" ] && [ "{params.skip_optimization}" = "True" ]; then
+            # Optimization: compress all conservation outputs for ancestral path
+            mkdir -p {params.directory}
+            mkdir -p $(dirname {log})
+            for maf_file in {params.conservation_dir}/*.maf; do
+                chr_name=$(basename $maf_file .maf)
+                gzip -c $maf_file > {params.directory}/${{chr_name}}.maf.gz
+            done
+            echo "Species orders identical - compressed all conservation outputs" > {log}
+        else
+            # Normal processing: run sort_by_chromosome.py
+            mkdir -p {params.directory}
+            cd {params.directory}
+            mkdir -p ../../$(dirname {log})
+            python3 ../../{input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} > ../../{log} 2>&1
+            
+            # Compress outputs
+            for maf_file in chr*.maf; do
+                gzip -f $maf_file
+            done
+        fi
+        """
 
 
 # Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand.
