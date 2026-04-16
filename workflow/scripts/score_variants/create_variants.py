@@ -15,6 +15,7 @@ SNPs for the chromosome of interest. These are stored in .vcf files of a
 user specified size at the desired location.
 """
 
+import gzip
 import re
 import sys
 from argparse import ArgumentParser
@@ -61,13 +62,27 @@ def get_chrom_from_file(chromosome: str, fasta_file: str, vb: bool = False) -> S
     :return: SeqIO record for chromosome of interest
     """
     pattern = r"(^|chr|chromosome)\W*" + chromosome + r"($|\W)"
-    ref_fasta = SeqIO.parse(fasta_file, "fasta")
-    for rec in ref_fasta:
-        if re.match(pattern, rec.name):
-            if vb:
-                print(f"Found: ID = {rec.id}, length {len(rec.seq)}, "
-                      f"with {len(rec.features)} features")
-            return rec
+
+    # Handle gzipped files
+    if fasta_file.endswith('.gz'):
+        with gzip.open(fasta_file, 'rt') as handle:
+            ref_fasta = SeqIO.parse(handle, "fasta")
+            for rec in ref_fasta:
+                if re.match(pattern, rec.name):
+                    if vb:
+                        print(f"Found: ID = {rec.id}, length {len(rec.seq)}, "
+                              f"with {len(rec.features)} features")
+                    return rec
+    else:
+        with open(fasta_file, 'r') as handle:
+            ref_fasta = SeqIO.parse(handle, "fasta")
+            for rec in ref_fasta:
+                if re.match(pattern, rec.name):
+                    if vb:
+                        print(f"Found: ID = {rec.id}, length {len(rec.seq)}, "
+                              f"with {len(rec.features)} features")
+                    return rec
+
     sys.exit(f"Chr {chromosome} was not found in reference fasta file:\n"
              f"{fasta_file}")
 
