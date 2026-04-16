@@ -91,7 +91,7 @@ annotation:
   vep:
     enabled: true
     cache:
-      directory: '$VEP_CACHE'
+      directory: '/sw/data/vep/111.0'
       should_install: false
       install_params: "--CACHE_VERSION 111 -s sus_scrofa -y Sscrofa11.1"
     options: "--everything --fork 2"

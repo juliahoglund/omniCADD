@@ -97,13 +97,13 @@ rule run_genome_vep:
         species_name=config["species_name"],
     shell:
         """
-         mkdir -p $(dirname {output}) logs/benchmarks
-         
-         chmod +x {input.script} 2>> {log} && \\
-         {input.script} {input.vcf} {output} \\
-         {params.cache_dir} {params.species_name} {threads} 2>> {log} && \\
-         [[ -s {output} ]] 2>> {log}
-         """
+        mkdir -p $(dirname {output}) logs/benchmarks
+        mkdir -p $(dirname {log})
+        touch {log}
+        chmod +x {input.script} >> {log} 2>&1
+        {input.script} {input.vcf} {output} {params.cache_dir} {params.species_name} {threads} >> {log} 2>&1
+        [[ -s {output} ]] >> {log} 2>&1
+        """
 
 
 """
@@ -240,6 +240,7 @@ rule score_variants:
         mem_mb=get_resource("score_variants", "mem_mb"),
         time=get_resource("score_variants", "time"),
         partition=get_resource("score_variants", "partition"),
+    priority: 1
     shell:
         """
         mkdir -p $(dirname {output}) logs/benchmarks
@@ -277,6 +278,7 @@ rule sort_raw_scores:
         time=lambda wildcards, attempt: get_resource("sort_raw_scores", "time") * attempt,
         partition=get_resource("sort_raw_scores", "partition"),
         tmpdir="results/tmp/sort_raw_{chr}",
+    priority: 1
     shell:
         """
         mkdir -p $(dirname {output}) {resources.tmpdir} logs/benchmarks
@@ -308,6 +310,7 @@ rule count_positions:
         mem_mb=get_resource("count_positions", "mem_mb"),
         time=get_resource("count_positions", "time"),
         partition=get_resource("count_positions", "partition"),
+    priority: 1
     shell:
         """
         mkdir -p $(dirname {output}) 2>> {log}
@@ -351,6 +354,7 @@ rule assign_phred_scores:
     params:
         outmask="results/whole_genome_scores/phred/chrCHROM.tsv",
         chromosomes=config["chromosomes"]["score"],
+    priority: 1
     shell:
         """
         mkdir -p results/whole_genome_scores/phred logs/benchmarks
@@ -384,6 +388,7 @@ rule merge_all_raw_scores:
         time=get_resource("merge_all_raw_scores", "time"),
         partition=get_resource("merge_all_raw_scores", "partition"),
         tmpdir="results/tmp/sort_merge",
+    priority: 1
     shell:
         """
         mkdir -p $(dirname {output}) {resources.tmpdir} logs/benchmarks
@@ -413,6 +418,7 @@ rule format_cadd_scores:
         mem_mb=get_resource("format_cadd_scores", "mem_mb"),
         time=get_resource("format_cadd_scores", "time"),
         partition=get_resource("format_cadd_scores", "partition"),
+    priority: 1
     shell:
         """
         mkdir -p $(dirname {output}) logs/benchmarks
@@ -434,6 +440,7 @@ rule index_cadd_scores:
         mem_mb=get_resource("index_cadd_scores", "mem_mb"),
         time=get_resource("index_cadd_scores", "time"),
         partition=get_resource("index_cadd_scores", "partition"),
+    priority: 1
     shell:
         "tabix -s1 -b2 -e2 {input} 2> {log}"
 
@@ -456,6 +463,7 @@ rule summarize_cadd_scores:
         mem_mb=get_resource("summarize_cadd_scores", "mem_mb"),
         time=get_resource("summarize_cadd_scores", "time"),
         partition=get_resource("summarize_cadd_scores", "partition"),
+    priority: 1
     shell:
         """
         mkdir -p $(dirname {output.summary})
