@@ -8,10 +8,6 @@ Provides complete implementation of SNPEff as alternative to VEP
 
 import os
 
-# Fallback: if no dedicated SNPEff image, use the Augustus image that bundles SNPEff.
-SNPEFF_CONTAINER = config.get("containers", {}).get("snpeff") or config.get("containers", {}).get("augustus")
-
-
 ####################################
 ### SNPEff Database Creation #######
 ####################################
@@ -405,7 +401,7 @@ Build SNPEff database from genome and annotation files.
     log:
         "results/logs/snpeff_build_database.log",
     container:
-        SNPEFF_CONTAINER
+        config.get("containers", {}).get("snpeff", config.get("containers", {}).get("augustus"))
     threads: get_resource("snpeff_build_database", "threads")
     resources:
         mem_mb=get_resource("snpeff_build_database", "mem_mb"),
@@ -487,7 +483,7 @@ Runs on both derived and simulated variants.
     log:
         "results/logs/run_snpeff/{folder}/chr{chr}.log",
     container:
-        SNPEFF_CONTAINER
+        config.get("containers", {}).get("snpeff", config.get("containers", {}).get("augustus"))
     threads: get_resource("run_snpeff", "threads")
     resources:
         mem_mb=get_resource("run_snpeff", "mem_mb"),
@@ -647,7 +643,7 @@ Used in scoring step.
         "results/logs/run_genome_snpeff/chr{chr}/{part}.log",
     priority: 1
     container:
-        SNPEFF_CONTAINER
+        config.get("containers", {}).get("snpeff", config.get("containers", {}).get("augustus"))
     threads: get_resource("run_genome_snpeff", "threads")
     resources:
         mem_mb=get_resource("run_genome_snpeff", "mem_mb"),

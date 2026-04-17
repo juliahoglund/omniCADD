@@ -11,16 +11,7 @@ try:
 except Exception:  # Fallback if import path changes across versions
     WorkflowError = ValueError
 
-# Container image for Augustus must be provided via config to avoid broken tags.
-# Example (recommended):
-# containers:
-#   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
-AUGUSTUS_CONTAINER = config.get("containers", {}).get("augustus")
-if not AUGUSTUS_CONTAINER:
-    raise WorkflowError(
-        "Missing containers.augustus. Set a valid Quay.io Biocontainers tag, e.g. "
-        "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
-    )
+# Augustus Gene Prediction
 
 ####################################
 ### Augustus Gene Prediction #######
@@ -40,7 +31,7 @@ Runs per chromosome for parallelization.
         "results/logs/augustus_predict_genes/chr{chr}.log",
     # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
-        AUGUSTUS_CONTAINER
+        config.get("containers", {}).get("augustus")
     threads: get_resource("augustus_predict_genes", "threads")
     resources:
         mem_mb=get_resource("augustus_predict_genes", "mem_mb"),

@@ -13,6 +13,8 @@ rule vep_cache:
         "results/logs/vep_cache.log",
     conda:
         get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("vep")
     threads: get_resource("vep_cache", "threads")
     resources:
         mem_mb=get_resource("vep_cache", "mem_mb"),
@@ -36,6 +38,8 @@ rule run_vep:
         "results/logs/run_vep/{folder}/{file}.log",
     conda:
         get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("vep")
     threads: get_resource("run_vep", "threads")
     resources:
         mem_mb=get_resource("run_vep", "mem_mb"),

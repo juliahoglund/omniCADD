@@ -88,6 +88,8 @@ rule run_genome_vep:
     priority: 1
     conda:
         get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("vep")
     threads: get_resource("run_genome_vep", "threads")
     resources:
         mem_mb=get_resource("run_genome_vep", "mem_mb"),

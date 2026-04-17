@@ -88,7 +88,7 @@ rule maf_df:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:2026.04.06"
+        config.get("containers", {}).get("maftools")
     threads: get_resource("maf_df", "threads")
     resources:
         mem_mb=get_resource("maf_df", "mem_mb"),
@@ -114,7 +114,7 @@ rule maf_ro:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:2026.04.06"
+        config.get("containers", {}).get("maftools")
     threads: get_resource("maf_ro", "threads")
     resources:
         mem_mb=get_resource("maf_ro", "mem_mb"),
@@ -153,7 +153,7 @@ rule maf_ro_conservation:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:2026.04.06"
+        config.get("containers", {}).get("maftools")
     threads: get_resource("maf_ro", "threads")
     resources:
         mem_mb=get_resource("maf_ro", "mem_mb"),
@@ -264,7 +264,7 @@ rule maf_str:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:2026.04.06"
+        config.get("containers", {}).get("maftools")
     threads: get_resource("maf_str", "threads")
     resources:
         mem_mb=get_resource("maf_str", "mem_mb"),
@@ -288,7 +288,7 @@ rule maf_sorter:
     # conda:
     #    get_conda_env("ancestor")
     container:
-        "docker://juliahoglund/maftools:2026.04.06"
+        config.get("containers", {}).get("maftools")
     threads: get_resource("maf_sorter", "threads")
     resources:
         mem_mb=get_resource("maf_sorter", "mem_mb"),
