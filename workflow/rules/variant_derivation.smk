@@ -20,9 +20,15 @@ rule freq_files:
     output:
         "results/processed_population_frequency/chr{chr}.frq",
     log:
-        "results/logs/derive_variants/freq_files/chr{chr}.log",
+        "results/logs/freq_files/chr{chr}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("freq_files", "threads")
+    resources:
+        mem_mb=get_resource("freq_files", "mem_mb"),
+        runtime=get_resource("freq_files", "runtime"),
+        time=get_resource("freq_files", "time"),
+        partition=get_resource("freq_files", "partition"),
     params:
         min_non_ref_freq=config["generate_variants"]["derive"]["frequency_threshold"],
         chr_prefix=get_alignment_config()["chrom_prefix"],
@@ -45,9 +51,15 @@ rule gen_derived:
     output:
         "results/derived_variants/raw/chr{chr}.vcf",
     log:
-        "results/logs/derive_variants/gen_derived/chr{chr}.log",
+        "results/logs/gen_derived/chr{chr}.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("gen_derived", "threads")
+    resources:
+        mem_mb=get_resource("gen_derived", "mem_mb"),
+        runtime=get_resource("gen_derived", "runtime"),
+        time=get_resource("gen_derived", "time"),
+        partition=get_resource("gen_derived", "partition"),
     params:
         no_chrs=config["chromosomes"]["autosomes"],
         output_prefix="results/derived_variants/raw/chr{chr}",
@@ -79,9 +91,15 @@ rule snp_filter:
         snps="results/derived_variants/singletons/chr{chr}.vcf",
         series="results/derived_variants/series/chr{chr}.vcf",
     log:
-        "results/logs/derive_variants/snp_filter/chr{chr}.log",
+        "results/logs/snp_filter/chr{chr}.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("snp_filter", "threads")
+    resources:
+        mem_mb=get_resource("snp_filter", "mem_mb"),
+        runtime=get_resource("snp_filter", "runtime"),
+        time=get_resource("snp_filter", "time"),
+        partition=get_resource("snp_filter", "partition"),
     shell:
         "python3 {input.script} " "-i {input.vcf} " "--snps {output.snps} " "--series {output.series} 2> {log}"
 
@@ -96,9 +114,15 @@ rule merge_by_chr:
     output:
         raw="results/derived_variants/singletons/all_chr.vcf",
     log:
-        "results/logs/derive_variants/merge_by_chr.log",
+        "results/logs/merge_by_chr.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("merge_by_chr", "threads")
+    resources:
+        mem_mb=get_resource("merge_by_chr", "mem_mb"),
+        runtime=get_resource("merge_by_chr", "runtime"),
+        time=get_resource("merge_by_chr", "time"),
+        partition=get_resource("merge_by_chr", "partition"),
     shell:
         """
         echo "##fileformat=VCFv4.1" > {output.raw}

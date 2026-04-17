@@ -13,7 +13,7 @@ jobs: 50  # Max simultaneous jobs - reduced to be more considerate on shared clu
 cores: 8
 use-conda: True
 use-apptainer: true
-singularity-prefix: "/path/to/singularity-cache"
+singularity-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/singularity-cache"
 restart-times: 2
 max-jobs-per-second: 1
 max-status-checks-per-second: 10
@@ -23,7 +23,7 @@ keep-going: True
 rerun-incomplete: True
 
 default-resources:
-  slurm_account: "account_name"
+  slurm_account: "naiss2026-3-90"
   slurm_partition: "shared"
   runtime: 240
   mem_mb: 8192
@@ -31,7 +31,7 @@ default-resources:
   slurm_extra: "--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err"
 
 # Conda and Apptainer paths
-conda-prefix: "/path/to/conda-envs"
+conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-envs"
 
 # Per-rule overrides — mirrors config/resources.yaml but converted to minutes
 # Only rules with values different from the defaults above are listed
@@ -52,6 +52,14 @@ set-resources:
   fit_phylo_model:
     runtime: 720
     mem_mb: 32768
+
+  # Step 2: Derive variants
+  freq_files:
+    runtime: 60
+    mem_mb: 8192
+  gen_derived:
+    runtime: 120
+    mem_mb: 16384
 
   # Step 3: Simulate variants
   simulate_indels:

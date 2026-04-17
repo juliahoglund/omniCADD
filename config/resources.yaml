@@ -47,6 +47,29 @@ fit_phylo_model:
   threads: 4
   time: "12:00:00"
 
+###################################
+### STEP 2: VARIANT DERIVATION ####
+###################################
+freq_files:
+  mem_mb: 8192
+  threads: 1
+  time: "04:00:00"
+
+gen_derived:
+  mem_mb: 16384
+  threads: 2
+  time: "08:00:00"
+
+snp_filter:
+  mem_mb: 8192
+  threads: 1
+  time: "02:00:00"
+
+merge_by_chr:
+  mem_mb: 8192
+  threads: 1
+  time: "01:00:00"
+
 ####################################
 ### STEP 3: SIMULATE VARIANTS ######
 ####################################

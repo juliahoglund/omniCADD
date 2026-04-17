@@ -50,9 +50,15 @@ SNPEff requires specific file structure:
         ),
         prepared=os.path.join(config["annotation"]["snpeff"]["database"]["path"], "database_prepared.flag"),
     log:
-        "results/logs/snpeff/prepare_genome.log",
+        "results/logs/snpeff_prepare_genome.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("snpeff_prepare_genome", "threads")
+    resources:
+        mem_mb=get_resource("snpeff_prepare_genome", "mem_mb"),
+        runtime=get_resource("snpeff_prepare_genome", "runtime"),
+        time=get_resource("snpeff_prepare_genome", "time"),
+        partition=get_resource("snpeff_prepare_genome", "partition"),
     params:
         db_name=config["annotation"]["snpeff"]["database"]["name"],
         data_dir=lambda wildcards, output: os.path.dirname(output.prepared),
@@ -130,9 +136,15 @@ Provides per-chr FASTAs with consistent naming for downstream processing.
     output:
         chr_fa="results/snpeff/data/normalized_genome/chr{chr}.fa",
     log:
-        "results/logs/snpeff/extract_chr{chr}.log",
+        "results/logs/snpeff_extract_normalized_chr/{chr}.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("snpeff_extract_normalized_chr", "threads")
+    resources:
+        mem_mb=get_resource("snpeff_extract_normalized_chr", "mem_mb"),
+        runtime=get_resource("snpeff_extract_normalized_chr", "runtime"),
+        time=get_resource("snpeff_extract_normalized_chr", "time"),
+        partition=get_resource("snpeff_extract_normalized_chr", "partition"),
     shell:
         """
         set -euo pipefail
@@ -195,9 +207,15 @@ genome and annotation using gffread. SNPEff uses these for build checks.
             "protein.fa",
         ),
     log:
-        "results/logs/snpeff/generate_sequences.log",
+        "results/logs/snpeff_generate_sequences.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("snpeff_generate_sequences", "threads")
+    resources:
+        mem_mb=get_resource("snpeff_generate_sequences", "mem_mb"),
+        runtime=get_resource("snpeff_generate_sequences", "runtime"),
+        time=get_resource("snpeff_generate_sequences", "time"),
+        partition=get_resource("snpeff_generate_sequences", "partition"),
     shell:
         """
         set -euo pipefail
@@ -233,9 +251,15 @@ Fails fast with clear messages if issues are found.
             "prep_validated.flag",
         ),
     log:
-        "results/logs/snpeff/validate_prep.log",
+        "results/logs/snpeff_validate_prep.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("snpeff_validate_prep", "threads")
+    resources:
+        mem_mb=get_resource("snpeff_validate_prep", "mem_mb"),
+        runtime=get_resource("snpeff_validate_prep", "runtime"),
+        time=get_resource("snpeff_validate_prep", "time"),
+        partition=get_resource("snpeff_validate_prep", "partition"),
     params:
         allow_empty=config["annotation"]["snpeff"]["build"].get("allow_empty", False),
     shell:
@@ -289,9 +313,15 @@ Adds line: genome_name.genome : Species Description
     output:
         config_file=config["annotation"]["snpeff"]["build"]["config_file"],
     log:
-        "results/logs/snpeff/create_config.log",
+        "results/logs/snpeff_create_config.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("snpeff_create_config", "threads")
+    resources:
+        mem_mb=get_resource("snpeff_create_config", "mem_mb"),
+        runtime=get_resource("snpeff_create_config", "runtime"),
+        time=get_resource("snpeff_create_config", "time"),
+        partition=get_resource("snpeff_create_config", "partition"),
     params:
         config_file=lambda wildcards, output: output.config_file,
         db_name=config["annotation"]["snpeff"]["database"]["name"],
@@ -379,6 +409,7 @@ Build SNPEff database from genome and annotation files.
     threads: get_resource("snpeff_build_database", "threads")
     resources:
         mem_mb=get_resource("snpeff_build_database", "mem_mb"),
+        runtime=get_resource("snpeff_build_database", "runtime"),
         time=get_resource("snpeff_build_database", "time"),
         partition=get_resource("snpeff_build_database", "partition"),
     params:
@@ -454,12 +485,13 @@ Runs on both derived and simulated variants.
         vcf=temp("{folder}/chr{chr}_snpeff_output.vcf"),
         stats="{folder}/chr{chr}_snpeff_stats.html",
     log:
-        "results/logs/snpeff/{folder}_chr{chr}.log",
+        "results/logs/run_snpeff/{folder}/chr{chr}.log",
     container:
         SNPEFF_CONTAINER
     threads: get_resource("run_snpeff", "threads")
     resources:
         mem_mb=get_resource("run_snpeff", "mem_mb"),
+        runtime=get_resource("run_snpeff", "runtime"),
         time=get_resource("run_snpeff", "time"),
         partition=get_resource("run_snpeff", "partition"),
     params:
@@ -498,9 +530,15 @@ Uses normalized genome from SNPEff to match VCF chromosome names.
     output:
         tsv="results/annotation/snpeff/derived/chr{chr}_snpeff.tsv",
     log:
-        "results/logs/snpeff_process/derived_chr{chr}.log",
+        "results/logs/process_snpeff_derived/chr{chr}.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("process_snpeff_derived", "threads")
+    resources:
+        mem_mb=get_resource("process_snpeff_derived", "mem_mb"),
+        runtime=get_resource("process_snpeff_derived", "runtime"),
+        time=get_resource("process_snpeff_derived", "time"),
+        partition=get_resource("process_snpeff_derived", "partition"),
     shell:
         """
         set -euo pipefail
@@ -528,9 +566,15 @@ Uses normalized genome from SNPEff to match VCF chromosome names.
     output:
         tsv="results/annotation/snpeff/simulated/chr{chr}_snpeff.tsv",
     log:
-        "results/logs/snpeff_process/simulated_chr{chr}.log",
+        "results/logs/process_snpeff_simulated/chr{chr}.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("process_snpeff_simulated", "threads")
+    resources:
+        mem_mb=get_resource("process_snpeff_simulated", "mem_mb"),
+        runtime=get_resource("process_snpeff_simulated", "runtime"),
+        time=get_resource("process_snpeff_simulated", "time"),
+        partition=get_resource("process_snpeff_simulated", "partition"),
     shell:
         """
         set -euo pipefail
@@ -557,9 +601,15 @@ Combines complementary information from both annotators.
     output:
         merged="{folder}/chr{chr}_combined_annotation.tsv",
     log:
-        "{folder}/logs/merge_vep_snpeff_chr{chr}.log",
+        "results/logs/merge_vep_snpeff/{folder}/chr{chr}.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("merge_vep_snpeff", "threads")
+    resources:
+        mem_mb=get_resource("merge_vep_snpeff", "mem_mb"),
+        runtime=get_resource("merge_vep_snpeff", "runtime"),
+        time=get_resource("merge_vep_snpeff", "time"),
+        partition=get_resource("merge_vep_snpeff", "partition"),
     shell:
         """
         python3 {input.script} \
@@ -594,13 +644,14 @@ Used in scoring step.
     output:
         temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff_output.vcf"),
     log:
-        "results/logs/snpeff/whole_genome_chr{chr}_{part}.log",
+        "results/logs/run_genome_snpeff/chr{chr}/{part}.log",
     priority: 1
     container:
         SNPEFF_CONTAINER
     threads: get_resource("run_genome_snpeff", "threads")
     resources:
         mem_mb=get_resource("run_genome_snpeff", "mem_mb"),
+        runtime=get_resource("run_genome_snpeff", "runtime"),
         time=get_resource("run_genome_snpeff", "time"),
         partition=get_resource("run_genome_snpeff", "partition"),
     params:
@@ -637,15 +688,21 @@ Process whole genome SNPEff output.
     output:
         temp("results/whole_genome_annotations/chr{chr}/{part}_snpeff.tsv"),
     log:
-        "results/logs/snpeff/process_genome_chr{chr}_{part}.log",
+        "results/logs/process_genome_snpeff/chr{chr}/{part}.log",
     priority: 1
     conda:
         "../envs/score.yml"
+    threads: get_resource("process_genome_snpeff", "threads")
+    resources:
+        mem_mb=get_resource("process_genome_snpeff", "mem_mb"),
+        runtime=get_resource("process_genome_snpeff", "runtime"),
+        time=get_resource("process_genome_snpeff", "time"),
+        partition=get_resource("process_genome_snpeff", "partition"),
     shell:
         """
         python3 {input.script} \
             -i {input.vcf} \
             -r {input.genome} \
             -o {output} \
-            -g {input.grantham}
+            -g {input.grantham} 2> {log}
         """

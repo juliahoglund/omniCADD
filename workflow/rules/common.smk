@@ -279,9 +279,15 @@ rule unzip_maf:
     output:
         "{folder}/{file}.maf",  # TODO Mark TEMP after testing
     log:
-        "results/logs/common/unzip_maf/{folder}_{file}.log",
+        "results/logs/unzip_maf/{folder}/{file}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("unzip_maf", "threads")
+    resources:
+        mem_mb=get_resource("unzip_maf", "mem_mb"),
+        runtime=get_resource("unzip_maf", "runtime"),
+        time=get_resource("unzip_maf", "time"),
+        partition=get_resource("unzip_maf", "partition"),
     shell:
         "gzip -dc {input} > {output} 2> {log}"
 
@@ -297,9 +303,15 @@ rule count_variants:
     output:
         "{folder}/{file}.vcf.count",
     log:
-        "results/logs/common/count_variants/{folder}_{file}.log",
+        "results/logs/count_variants/{folder}/{file}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("count_variants", "threads")
+    resources:
+        mem_mb=get_resource("count_variants", "mem_mb"),
+        runtime=get_resource("count_variants", "runtime"),
+        time=get_resource("count_variants", "time"),
+        partition=get_resource("count_variants", "partition"),
     shell:
         r"grep -c '^[^#\S]' {input} > {output} 2> {log}"
 
@@ -316,9 +328,15 @@ rule add_counts:
     output:
         report("{folder}/total.count", category="Logs"),
     log:
-        "results/logs/common/add_counts/{folder}_total.log",
+        "results/logs/add_counts/{folder}/total.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("add_counts", "threads")
+    resources:
+        mem_mb=get_resource("add_counts", "mem_mb"),
+        runtime=get_resource("add_counts", "runtime"),
+        time=get_resource("add_counts", "time"),
+        partition=get_resource("add_counts", "partition"),
     shell:
         "cat {input} | awk '{{s+=$1}} END {{print s}}' > {output} 2> {log}"
 
@@ -335,9 +353,15 @@ rule bgzip_tabix:
         vcf=temp("{folder}/{file}.vcf.gz"),
         index=temp("{folder}/{file}.vcf.gz.tbi"),
     log:
-        "results/logs/common/bgzip_tabix/{folder}_{file}.log",
+        "results/logs/bgzip_tabix/{folder}/{file}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("bgzip_tabix", "threads")
+    resources:
+        mem_mb=get_resource("bgzip_tabix", "mem_mb"),
+        runtime=get_resource("bgzip_tabix", "runtime"),
+        time=get_resource("bgzip_tabix", "time"),
+        partition=get_resource("bgzip_tabix", "partition"),
     shell:
         "bgzip -c {input} > {output.vcf} 2> {log} && " "tabix -p vcf -f {output.vcf} 2>> {log}"
 
@@ -353,9 +377,15 @@ rule tabix:
     output:
         temp("{folder}/{file}.vcf.gz.tbi"),
     log:
-        "results/logs/common/tabix/{folder}_{file}.log",
+        "results/logs/tabix/{folder}/{file}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("tabix", "threads")
+    resources:
+        mem_mb=get_resource("tabix", "mem_mb"),
+        runtime=get_resource("tabix", "runtime"),
+        time=get_resource("tabix", "time"),
+        partition=get_resource("tabix", "partition"),
     shell:
         "tabix -p vcf -f {input} 2> {log}"
 
@@ -400,9 +430,15 @@ rule create_base_directories:
     output:
         touch("results/.directories_created"),
     log:
-        "results/logs/common/create_base_directories.log",
+        "results/logs/create_base_directories.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("create_base_directories", "threads")
+    resources:
+        mem_mb=get_resource("create_base_directories", "mem_mb"),
+        runtime=get_resource("create_base_directories", "runtime"),
+        time=get_resource("create_base_directories", "time"),
+        partition=get_resource("create_base_directories", "partition"),
     shell:
         """
         mkdir -p results/{{annotation,dataset,logs,temp,model,scores,figures}}/ 2> {log}
@@ -427,9 +463,15 @@ checkpoint cleanup_temp_files:
     output:
         touch("results/.cleanup_annotation"),
     log:
-        "results/logs/common/cleanup_temp_files.log",
+        "results/logs/cleanup_temp_files.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("cleanup_temp_files", "threads")
+    resources:
+        mem_mb=get_resource("cleanup_temp_files", "mem_mb"),
+        runtime=get_resource("cleanup_temp_files", "runtime"),
+        time=get_resource("cleanup_temp_files", "time"),
+        partition=get_resource("cleanup_temp_files", "partition"),
     shell:
         """
         # Clean up large temporary alignment files

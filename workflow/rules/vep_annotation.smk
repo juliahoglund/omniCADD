@@ -10,9 +10,15 @@ rule vep_cache:
     output:
         directory(config["annotation"]["vep"]["cache"]["directory"]),
     log:
-        "results/logs/annotate_vars/vep_cache.log",
+        "results/logs/vep_cache.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("vep_cache", "threads")
+    resources:
+        mem_mb=get_resource("vep_cache", "mem_mb"),
+        runtime=get_resource("vep_cache", "runtime"),
+        time=get_resource("vep_cache", "time"),
+        partition=get_resource("vep_cache", "partition"),
     params:
         version_species=config["annotation"]["vep"]["cache"]["install_params"],
     shell:
@@ -27,12 +33,13 @@ rule run_vep:
     output:
         temp("{folder}/{file}_vep_output.tsv"),
     log:
-        "{folder}/{file}_vep.log",
+        "results/logs/run_vep/{folder}/{file}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("run_vep", "threads")
     resources:
         mem_mb=get_resource("run_vep", "mem_mb"),
+        runtime=get_resource("run_vep", "runtime"),
         time=get_resource("run_vep", "time"),
         partition=get_resource("run_vep", "partition"),
     params:
@@ -56,9 +63,15 @@ rule process_vep:
     output:
         vep_tsv="results/annotation/vep/{type}/chr{chr}_vep.tsv",
     log:
-        "results/logs/annotate_vars/process_vep_{type}_chr{chr}.log",
+        "results/logs/process_vep/{type}/chr{chr}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("process_vep", "threads")
+    resources:
+        mem_mb=get_resource("process_vep", "mem_mb"),
+        runtime=get_resource("process_vep", "runtime"),
+        time=get_resource("process_vep", "time"),
+        partition=get_resource("process_vep", "partition"),
     shell:
         """
          mkdir -p $(dirname {output.vep_tsv})

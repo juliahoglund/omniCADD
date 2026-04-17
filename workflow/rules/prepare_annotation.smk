@@ -5,15 +5,23 @@ rule split_fasta_by_chromosome:
         index="resources/genome/{prefix}.fa.fai",
     output:
         expand("resources/genome/{{prefix}}_chr{chr}.fa", chr=config["chromosomes"]["karyotype"]),
+    log:
+        "results/logs/split_fasta_by_chromosome/{prefix}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("split_fasta_by_chromosome", "threads")
+    resources:
+        mem_mb=get_resource("split_fasta_by_chromosome", "mem_mb"),
+        runtime=get_resource("split_fasta_by_chromosome", "runtime"),
+        time=get_resource("split_fasta_by_chromosome", "time"),
+        partition=get_resource("split_fasta_by_chromosome", "partition"),
     params:
         chromosomes=config["chromosomes"]["karyotype"],
         output_dir="resources/genome/",
     shell:
         """
         for chr in {params.chromosomes}; do
-            samtools faidx {input.fasta} $chr > {params.output_dir}{wildcards.prefix}_chr${{chr}}.fa
+            samtools faidx {input.fasta} $chr > {params.output_dir}{wildcards.prefix}_chr${{chr}}.fa 2>> {log}
         done
         """
 
@@ -36,10 +44,18 @@ rule index_fasta:
         fasta="resources/genome/Sus_scrofa_ref.fa",
     output:
         index="resources/genome/Sus_scrofa_ref.fa.fai",
+    log:
+        "results/logs/index_fasta.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("index_fasta", "threads")
+    resources:
+        mem_mb=get_resource("index_fasta", "mem_mb"),
+        runtime=get_resource("index_fasta", "runtime"),
+        time=get_resource("index_fasta", "time"),
+        partition=get_resource("index_fasta", "partition"),
     shell:
-        "samtools faidx {input.fasta}"
+        "samtools faidx {input.fasta} 2> {log}"
 
 
 # Rule: Linearize FASTA
@@ -48,10 +64,18 @@ rule linearize_fasta:
         fasta="resources/genome/Sus_scrofa_ref.fa",
     output:
         linearized="resources/genome/Sus_scrofa_ref.linear.fa",
+    log:
+        "results/logs/linearize_fasta.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("linearize_fasta", "threads")
+    resources:
+        mem_mb=get_resource("linearize_fasta", "mem_mb"),
+        runtime=get_resource("linearize_fasta", "runtime"),
+        time=get_resource("linearize_fasta", "time"),
+        partition=get_resource("linearize_fasta", "partition"),
     shell:
-        'awk \'/^>/ {printf("\\n%s\\n",$0); next;} {printf("%s",$0);} END {printf("\\n");}\' {input.fasta} > {output.linearized}'
+        'awk \'/^>/ {printf("\\n%s\\n",$0); next;} {printf("%s",$0);} END {printf("\\n");}\' {input.fasta} > {output.linearized} 2> {log}'
 
 
 # Rule: Chunk VCF/MAF files
@@ -60,12 +84,20 @@ rule chunk_maf:
         maf="resources/alignment/chr{chr}.maf",
     output:
         chunks=directory("results/alignment/chunks/chr{chr}/"),
+    log:
+        "results/logs/chunk_maf/chr{chr}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("chunk_maf", "threads")
+    resources:
+        mem_mb=get_resource("chunk_maf", "mem_mb"),
+        runtime=get_resource("chunk_maf", "runtime"),
+        time=get_resource("chunk_maf", "time"),
+        partition=get_resource("chunk_maf", "partition"),
     params:
         chunk_size=100000,
     shell:
-        "python workflow/scripts/preprocessing/chunk_maf.py --input {input.maf} --output {output.chunks} --size {params.chunk_size}"
+        "python workflow/scripts/preprocessing/chunk_maf.py --input {input.maf} --output {output.chunks} --size {params.chunk_size} 2> {log}"
 
 
 # Add more shared preprocessing rules as needed

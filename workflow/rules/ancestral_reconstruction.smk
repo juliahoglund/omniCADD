@@ -30,9 +30,15 @@ rule fit_phylo_model:
     output:
         mod=f"{OUTPUT_DIR}/chr{{chr}}.mod",
     log:
-        f"{OUTPUT_DIR}/logs/fit_phylo_model_chr{{chr}}.log",
+        "results/logs/fit_phylo_model/chr{chr}.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("fit_phylo_model", "threads")
+    resources:
+        mem_mb=get_resource("fit_phylo_model", "mem_mb"),
+        runtime=get_resource("fit_phylo_model", "runtime"),
+        time=get_resource("fit_phylo_model", "time"),
+        partition=get_resource("fit_phylo_model", "partition"),
     params:
         output_dir=lambda w, output: os.path.dirname(output.mod),
     shell:
@@ -50,9 +56,15 @@ rule reconstruct_ancestor:
     output:
         ancestor=f"{OUTPUT_DIR}/chr{{chr}}_ancestor.fa",
     log:
-        f"{OUTPUT_DIR}/logs/ancestor_chr{{chr}}.log",
+        "results/logs/reconstruct_ancestor/chr{chr}.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("reconstruct_ancestor", "threads")
+    resources:
+        mem_mb=get_resource("reconstruct_ancestor", "mem_mb"),
+        runtime=get_resource("reconstruct_ancestor", "runtime"),
+        time=get_resource("reconstruct_ancestor", "time"),
+        partition=get_resource("reconstruct_ancestor", "partition"),
     params:
         node=NODE,
         output_dir=lambda w, output: os.path.dirname(output.ancestor),

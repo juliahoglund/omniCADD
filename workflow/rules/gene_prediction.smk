@@ -37,13 +37,14 @@ Runs per chromosome for parallelization.
     output:
         gff="results/gene_prediction/chr{chr}.gff3",
     log:
-        "results/logs/augustus/chr{chr}.log",
+        "results/logs/augustus_predict_genes/chr{chr}.log",
     # Prefer container for reproducibility; fall back to conda if container runtime is unavailable
     container:
         AUGUSTUS_CONTAINER
     threads: get_resource("augustus_predict_genes", "threads")
     resources:
         mem_mb=get_resource("augustus_predict_genes", "mem_mb"),
+        runtime=get_resource("augustus_predict_genes", "runtime"),
         time=get_resource("augustus_predict_genes", "time"),
         partition=get_resource("augustus_predict_genes", "partition"),
     params:
@@ -59,7 +60,7 @@ Runs per chromosome for parallelization.
         ],
     shell:
         """
-        mkdir -p results/logs/augustus
+        mkdir -p $(dirname {log})
                 echo "PATH=$(printenv PATH)" >> {log}
                 echo "Detecting AUGUSTUS_CONFIG_PATH..." >> {log}
                 CFG_PATH=""
@@ -109,9 +110,15 @@ Merge Augustus predictions from all chromosomes into single file.
         merged="results/gene_prediction/genes.gff3",
         stats="results/gene_prediction/prediction_stats.txt",
     log:
-        "results/logs/gene_prediction/augustus_merge_chromosomes.log",
+        "results/logs/augustus_merge_chromosomes.log",
     conda:
         "../envs/common.yml"
+    threads: get_resource("augustus_merge_chromosomes", "threads")
+    resources:
+        mem_mb=get_resource("augustus_merge_chromosomes", "mem_mb"),
+        runtime=get_resource("augustus_merge_chromosomes", "runtime"),
+        time=get_resource("augustus_merge_chromosomes", "time"),
+        partition=get_resource("augustus_merge_chromosomes", "partition"),
     shell:
         """
         # Extract header from first file
@@ -141,9 +148,15 @@ Validate Augustus predictions and check for common issues.
         validated="results/gene_prediction/genes_validated.gff3",
         report="results/gene_prediction/validation_report.txt",
     log:
-        "results/logs/gene_prediction/augustus_validate.log",
+        "results/logs/augustus_validate.log",
     conda:
         "../envs/gene_prediction.yml"
+    threads: get_resource("augustus_validate", "threads")
+    resources:
+        mem_mb=get_resource("augustus_validate", "mem_mb"),
+        runtime=get_resource("augustus_validate", "runtime"),
+        time=get_resource("augustus_validate", "time"),
+        partition=get_resource("augustus_validate", "partition"),
     shell:
         """
         # Basic validation
@@ -188,9 +201,15 @@ Uses gffread for conversion.
     output:
         gtf="results/gene_annotation/genes.gtf.gz",
     log:
-        "results/logs/gene_annotation/convert_gff_to_gtf.log",
+        "results/logs/convert_gff_to_gtf.log",
     conda:
         "../envs/gene_prediction.yml"
+    threads: get_resource("convert_gff_to_gtf", "threads")
+    resources:
+        mem_mb=get_resource("convert_gff_to_gtf", "mem_mb"),
+        runtime=get_resource("convert_gff_to_gtf", "runtime"),
+        time=get_resource("convert_gff_to_gtf", "time"),
+        partition=get_resource("convert_gff_to_gtf", "partition"),
     shell:
         """
         # Decompress if needed
@@ -228,9 +247,15 @@ containing the configured karyotype chromosomes. Used by SNPEff prep.
     output:
         merged="results/genome/merged_genome.fa",
     log:
-        "results/logs/genome/merge_reference_genome.log",
+        "results/logs/merge_reference_genome.log",
     conda:
         "../envs/common.yml"
+    threads: get_resource("merge_reference_genome", "threads")
+    resources:
+        mem_mb=get_resource("merge_reference_genome", "mem_mb"),
+        runtime=get_resource("merge_reference_genome", "runtime"),
+        time=get_resource("merge_reference_genome", "time"),
+        partition=get_resource("merge_reference_genome", "partition"),
     shell:
         """
         mkdir -p results/genome
@@ -248,9 +273,15 @@ Keeps the plain .fa for rules that read headers directly.
     output:
         gz="results/genome/merged_genome.fa.gz",
     log:
-        "results/logs/genome/compress_merged_reference_genome.log",
+        "results/logs/compress_merged_reference_genome.log",
     conda:
         "../envs/common.yml"
+    threads: get_resource("compress_merged_reference_genome", "threads")
+    resources:
+        mem_mb=get_resource("compress_merged_reference_genome", "mem_mb"),
+        runtime=get_resource("compress_merged_reference_genome", "runtime"),
+        time=get_resource("compress_merged_reference_genome", "time"),
+        partition=get_resource("compress_merged_reference_genome", "partition"),
     shell:
         """
         gzip -c {input.fa} > {output.gz} 2> {log}
@@ -267,9 +298,15 @@ Only runs if a downstream rule requires the index.
     output:
         fai="results/genome/merged_genome.fa.fai",
     log:
-        "results/logs/genome/index_merged_reference_genome.log",
+        "results/logs/index_merged_reference_genome.log",
     conda:
         "../envs/common.yml"
+    threads: get_resource("index_merged_reference_genome", "threads")
+    resources:
+        mem_mb=get_resource("index_merged_reference_genome", "mem_mb"),
+        runtime=get_resource("index_merged_reference_genome", "runtime"),
+        time=get_resource("index_merged_reference_genome", "time"),
+        partition=get_resource("index_merged_reference_genome", "partition"),
     shell:
         """
         samtools faidx {input.fa} 2> {log}
@@ -287,9 +324,15 @@ Ensures chromosome names match between genome and annotation.
     output:
         prepared="results/gene_annotation/genes_for_snpeff.gff3",
     log:
-        "results/logs/gene_annotation/prepare_annotation_for_snpeff.log",
+        "results/logs/prepare_annotation_for_snpeff.log",
     conda:
         "../envs/gene_prediction.yml"
+    threads: get_resource("prepare_annotation_for_snpeff", "threads")
+    resources:
+        mem_mb=get_resource("prepare_annotation_for_snpeff", "mem_mb"),
+        runtime=get_resource("prepare_annotation_for_snpeff", "runtime"),
+        time=get_resource("prepare_annotation_for_snpeff", "time"),
+        partition=get_resource("prepare_annotation_for_snpeff", "partition"),
     shell:
         """
         # Decompress if needed
@@ -337,9 +380,15 @@ Requires training set of genes with known structure.
         # using functions for outputs/logs (some Snakemake versions restrict this).
         model="results/augustus_training/{}_trained".format(config["species_name"]),
     log:
-        "results/logs/augustus_training_{}.log".format(config["species_name"]),
+        "results/logs/augustus_train_species/{}.log".format(config["species_name"]),
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("augustus_train_species", "threads")
+    resources:
+        mem_mb=get_resource("augustus_train_species", "mem_mb"),
+        runtime=get_resource("augustus_train_species", "runtime"),
+        time=get_resource("augustus_train_species", "time"),
+        partition=get_resource("augustus_train_species", "partition"),
     params:
         species_name=config["species_name"],
     shell:
@@ -370,9 +419,15 @@ Assess quality of gene predictions by comparing metrics.
     output:
         qc_report="results/gene_prediction/quality_report.html",
     log:
-        "results/logs/gene_prediction/assess_quality.log",
+        "results/logs/assess_gene_prediction_quality.log",
     conda:
         "../envs/annotation.yml"
+    threads: get_resource("assess_gene_prediction_quality", "threads")
+    resources:
+        mem_mb=get_resource("assess_gene_prediction_quality", "mem_mb"),
+        runtime=get_resource("assess_gene_prediction_quality", "runtime"),
+        time=get_resource("assess_gene_prediction_quality", "time"),
+        partition=get_resource("assess_gene_prediction_quality", "partition"),
     shell:
         """
         # Generate QC report

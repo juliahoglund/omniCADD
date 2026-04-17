@@ -13,9 +13,15 @@ rule derive_impute_means:
     output:
         imputation=report("results/dataset/imputation_dict.txt", category="Logs"),
     log:
-        "results/logs/combine_annotations/derive_impute_means.log",
+        "results/logs/derive_impute_means.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("derive_impute_means", "threads")
+    resources:
+        mem_mb=get_resource("derive_impute_means", "mem_mb"),
+        runtime=get_resource("derive_impute_means", "runtime"),
+        time=get_resource("derive_impute_means", "time"),
+        partition=get_resource("derive_impute_means", "partition"),
     shell:
         """
         mkdir -p $(dirname {output.imputation})
@@ -49,9 +55,15 @@ rule column_analysis:
             category="Column Analysis",
         ),
     log:
-        "results/logs/combine_annotations/column_analysis.log",
+        "results/logs/column_analysis.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("column_analysis", "threads")
+    resources:
+        mem_mb=get_resource("column_analysis", "mem_mb"),
+        runtime=get_resource("column_analysis", "runtime"),
+        time=get_resource("column_analysis", "time"),
+        partition=get_resource("column_analysis", "partition"),
     params:
         out_folder=lambda wildcards, output: "results/figures/column_analysis/",
     shell:
@@ -74,7 +86,7 @@ rule prepare_data:
         cols="results/dataset/{type}/chr{chr}.npz.columns.csv",
         temp_processed=temp("results/temp/{type}_chr{chr}_processed.tsv"),
     log:
-        report("results/logs/data_preparation/{type}_chr{chr}.log", category="Logs"),
+        "results/logs/prepare_data/{type}_chr{chr}.log",
     wildcard_constraints:
         type="(derived|simulated|validation)",
     priority: 10
@@ -83,6 +95,7 @@ rule prepare_data:
     threads: get_resource("prepare_data", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("prepare_data", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
         partition=get_resource("prepare_data", "partition"),
     params:

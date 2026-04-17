@@ -54,7 +54,7 @@ rule fold_data:
         test_m=expand("results/dataset/fold_{fold}.npz.meta.csv.gz", fold=get_folds()),
         test_c=expand("results/dataset/fold_{fold}.npz.columns.csv", fold=get_folds()),
     log:
-        "results/logs/train_test_model/fold_data.log",
+        "results/logs/fold_data.log",
     benchmark:
         "logs/benchmarks/fold_data.tsv"
     priority: 20
@@ -65,11 +65,12 @@ rule fold_data:
         mem_mb=lambda wildcards, attempt: min(
             get_resource("fold_data", "mem_mb") * 2, get_resource("fold_data", "mem_mb") * attempt
         ),
+        runtime=get_resource("fold_data", "runtime"),
         time=get_resource("fold_data", "time"),
         partition=get_resource("fold_data", "partition"),
     shell:
         """
-        mkdir -p results/dataset
+        mkdir -p results/dataset $(dirname {log})
         python3 {input.script} -m {input.lib} -n {threads} -i {input.derived} {input.simulated} -o {output.test} 2> {log}
         """
 
@@ -113,7 +114,7 @@ rule train_model:
         ),
         scaler="results/model/{cols}/fold_{fold}.scaler.pickle",
     log:
-        "results/logs/model/train_{cols}_fold_{fold}.log",
+        "results/logs/train_model/{cols}/fold_{fold}.log",
     benchmark:
         "logs/benchmarks/train_model_{cols}_fold_{fold}.tsv"
     priority: 20
@@ -124,6 +125,7 @@ rule train_model:
         mem_mb=lambda wildcards, attempt: min(
             get_resource("train_model", "mem_mb") * 2, get_resource("train_model", "mem_mb") * attempt
         ),
+        runtime=get_resource("train_model", "runtime"),
         time=get_resource("train_model", "time"),
         partition=get_resource("train_model", "partition"),
     params:
@@ -133,7 +135,7 @@ rule train_model:
         sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
     shell:
         """
-         mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks
+         mkdir -p results/model/{wildcards.cols} $(dirname {log}) logs/benchmarks
          python3 {input.script} -m {input.lib} --train {input.train} --test {input.test} --columns {params.sel_cols} -c {params.c} -i {params.max_iter} --file-pattern {params.file_pattern} -n {threads} --save-weights --save-scaler {output.scaler} > {log} 2>&1
          """
 
@@ -150,7 +152,7 @@ rule final_model:
         scaler="results/model/{cols}/full.scaler.pickle",
         weights="results/model/{cols}/full.mod.weights.csv",
     log:
-        "results/logs/model/final_model_{cols}.log",
+        "results/logs/final_model/{cols}.log",
     benchmark:
         "logs/benchmarks/final_model_{cols}.tsv"
     priority: 20
@@ -161,6 +163,7 @@ rule final_model:
         mem_mb=lambda wildcards, attempt: min(
             get_resource("final_model", "mem_mb") * 2, get_resource("final_model", "mem_mb") * attempt
         ),
+        runtime=get_resource("final_model", "runtime"),
         time=get_resource("final_model", "time"),
         partition=get_resource("final_model", "partition"),
     params:
@@ -170,7 +173,7 @@ rule final_model:
         sel_cols=lambda wildcards: ("All" if wildcards.cols == "All" else config["model"]["column_subsets"][wildcards.cols]),
     shell:
         """
-        mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks
+        mkdir -p results/model/{wildcards.cols} $(dirname {log}) logs/benchmarks
         python3 {input.script} -m {input.lib} --train {input.train} --columns {params.sel_cols} -c {params.c} -i {params.max_iter} --file-pattern {params.file_pattern} --save-weights --save-scaler {output.scaler} > {log} 2>&1
         """
 
@@ -194,7 +197,7 @@ rule evaluate_models:
         summary="results/model/{cols}/model_evaluation_summary.tsv",
         best_params="results/model/{cols}/best_parameters.json",
     log:
-        "results/logs/model/evaluate_models_{cols}.log",
+        "results/logs/evaluate_models/{cols}.log",
     benchmark:
         "logs/benchmarks/evaluate_models_{cols}.tsv"
     conda:
@@ -202,10 +205,11 @@ rule evaluate_models:
     threads: get_resource("evaluate_models", "threads")
     resources:
         mem_mb=get_resource("evaluate_models", "mem_mb"),
+        runtime=get_resource("evaluate_models", "runtime"),
         time=get_resource("evaluate_models", "time"),
         partition=get_resource("evaluate_models", "partition"),
     shell:
         """
-        mkdir -p results/model/{wildcards.cols} results/logs/model logs/benchmarks
+        mkdir -p results/model/{wildcards.cols} $(dirname {log}) logs/benchmarks
         python3 {input.script} --stats {input.stats} --summary {output.summary} --best-params {output.best_params} > {log} 2>&1
         """

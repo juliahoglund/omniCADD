@@ -31,9 +31,15 @@ rule create_summary:
         r_clump="results/visualisation/graphs.RData",
         indexfile="results/visualisation/indexfile.txt",
     log:
-        "results/logs/summary_report/create_summary.log",
+        "results/logs/create_summary.log",
     conda:
         get_conda_env("r_stats")
+    threads: get_resource("create_summary", "threads")
+    resources:
+        mem_mb=get_resource("create_summary", "mem_mb"),
+        runtime=get_resource("create_summary", "runtime"),
+        time=get_resource("create_summary", "time"),
+        partition=get_resource("create_summary", "partition"),
     params:
         ancestral_dir=lambda wildcards, input: os.path.dirname(input.ancestral_files[0]) + "/",
     shell:
@@ -72,9 +78,15 @@ if config["stats_report"]["annotation"] == "True":
             coverage="results/visualisation/CDS.coverage.bed",
             ancestor_genome="results/visualisation/Ancestor.bed",
         log:
-            "results/logs/summary_report/create_input.log",
+            "results/logs/create_input.log",
         conda:
             get_conda_env("common")
+        threads: get_resource("create_input", "threads")
+        resources:
+            mem_mb=get_resource("create_input", "mem_mb"),
+            runtime=get_resource("create_input", "runtime"),
+            time=get_resource("create_input", "time"),
+            partition=get_resource("create_input", "partition"),
         shell:
             """
             gunzip -c {input.gff} > temp_gff.gff 2>> {log}
@@ -96,9 +108,15 @@ rule create_datafiles:
     output:
         "results/visualisation/stats_report.html",
     log:
-        "results/logs/summary_report/create_datafiles.log",
+        "results/logs/create_datafiles.log",
     conda:
         get_conda_env("r_stats")
+    threads: get_resource("create_datafiles", "threads")
+    resources:
+        mem_mb=get_resource("create_datafiles", "mem_mb"),
+        runtime=get_resource("create_datafiles", "runtime"),
+        time=get_resource("create_datafiles", "time"),
+        partition=get_resource("create_datafiles", "partition"),
     params:
         ingroup=config["stats_report"]["ingroup"],
         outgroup=config["stats_report"]["outgroup"],
@@ -123,9 +141,15 @@ rule raw_singleton_stats:
     output:
         "results/derived_variants/singletons/stats.txt",
     log:
-        "results/logs/summary_report/raw_singleton_stats.log",
+        "results/logs/raw_singleton_stats.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("raw_singleton_stats", "threads")
+    resources:
+        mem_mb=get_resource("raw_singleton_stats", "mem_mb"),
+        runtime=get_resource("raw_singleton_stats", "runtime"),
+        time=get_resource("raw_singleton_stats", "time"),
+        partition=get_resource("raw_singleton_stats", "partition"),
     shell:
         """
         mkdir -p $(dirname {output})
@@ -144,8 +168,14 @@ rule summary_report_with_gene_prediction:
     output:
         report="results/summary/chr{chr}_summary.html",
     log:
-        "results/logs/summary_report/summary_report_with_gene_prediction_chr{chr}.log",
+        "results/logs/summary_report_with_gene_prediction/chr{chr}.log",
     conda:
         get_conda_env("report")
+    threads: get_resource("summary_report_with_gene_prediction", "threads")
+    resources:
+        mem_mb=get_resource("summary_report_with_gene_prediction", "mem_mb"),
+        runtime=get_resource("summary_report_with_gene_prediction", "runtime"),
+        time=get_resource("summary_report_with_gene_prediction", "time"),
+        partition=get_resource("summary_report_with_gene_prediction", "partition"),
     shell:
         "Rscript workflow/scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report} 2> {log}"

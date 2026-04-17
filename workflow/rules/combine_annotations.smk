@@ -42,12 +42,13 @@ have the full phylogenetic context.
     output:
         directory("results/alignment/splitted/chr{chr}/"),
     log:
-        "results/logs/annotate_vars/split_alignment/chr{chr}.log",
+        "results/logs/split_alignment/chr{chr}.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("split_alignment_combine", "threads")
     resources:
         mem_mb=get_resource("split_alignment_combine", "mem_mb"),
+        runtime=get_resource("split_alignment_combine", "runtime"),
         time=get_resource("split_alignment_combine", "time"),
         partition=get_resource("split_alignment_combine", "partition"),
     params:
@@ -68,9 +69,15 @@ rule convert_alignment_combine:
     output:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta"),
     log:
-        "results/logs/annotate_vars/convert_alignment/chr{chr}_{part}.log",
+        "results/logs/convert_alignment/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("convert_alignment_combine", "threads")
+    resources:
+        mem_mb=get_resource("convert_alignment_combine", "mem_mb"),
+        runtime=get_resource("convert_alignment_combine", "runtime"),
+        time=get_resource("convert_alignment_combine", "time"),
+        partition=get_resource("convert_alignment_combine", "partition"),
     shell:
         "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
 
@@ -83,9 +90,15 @@ rule format_alignment_combine:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
         index=temp("results/alignment/indexfiles/chr{chr}/{part}.index"),
     log:
-        "results/logs/annotate_vars/format_alignment/chr{chr}_{part}.log",
+        "results/logs/format_alignment/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("format_alignment_combine", "threads")
+    resources:
+        mem_mb=get_resource("format_alignment_combine", "mem_mb"),
+        runtime=get_resource("format_alignment_combine", "runtime"),
+        time=get_resource("format_alignment_combine", "time"),
+        partition=get_resource("format_alignment_combine", "partition"),
     shell:
         "python3 {input.script} {input.fasta} {output.formatted} {output.index} 2> {log}"
 
@@ -100,9 +113,15 @@ rule prune_columns_combine:
     output:
         pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
     log:
-        "results/logs/annotate_vars/prune_columns/chr{chr}_{part}.log",
+        "results/logs/prune_columns/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("prune_columns_combine", "threads")
+    resources:
+        mem_mb=get_resource("prune_columns_combine", "mem_mb"),
+        runtime=get_resource("prune_columns_combine", "runtime"),
+        time=get_resource("prune_columns_combine", "time"),
+        partition=get_resource("prune_columns_combine", "partition"),
     shell:
         "python3 {input.script} {input.fasta} {output.pruned} 2> {log}"
 
@@ -122,12 +141,13 @@ This analysis is run as one job per genome chunk.
     output:
         temp("results/annotation/gerp/chr{chr}/{part}.rates"),
     log:
-        "results/logs/chr{chr}_{part}_gerpcol_log.txt",
+        "results/logs/compute_gerp_combine/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("compute_gerp_combine", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("compute_gerp_combine", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("compute_gerp_combine", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("compute_gerp_combine", "time") * attempt,
         partition=get_resource("compute_gerp_combine", "partition"),
     params:
@@ -153,12 +173,13 @@ This analysis is run as one job per genome chunk, but is internally run per cont
     output:
         "results/annotation/gerp/chr{chr}/{part}.rates.parsed",
     log:
-        "results/logs/chr{chr}_{part}_gerp_coord_log.txt",
+        "results/logs/gerp2coords_combine/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("gerp2coords_combine", "threads")
     resources:
         mem_mb=get_resource("gerp2coords_combine", "mem_mb"),
+        runtime=get_resource("gerp2coords_combine", "runtime"),
         time=get_resource("gerp2coords_combine", "time"),
         partition=get_resource("gerp2coords_combine", "partition"),
     params:
@@ -178,9 +199,15 @@ rule phylo_fit_combine:
     output:
         "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     log:
-        "results/logs/annotate_vars/phylo_fit/chr{chr}_{part}.log",
+        "results/logs/phylo_fit/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("phylo_fit_combine", "threads")
+    resources:
+        mem_mb=get_resource("phylo_fit_combine", "mem_mb"),
+        runtime=get_resource("phylo_fit_combine", "runtime"),
+        time=get_resource("phylo_fit_combine", "time"),
+        partition=get_resource("phylo_fit_combine", "partition"),
     params:
         tree=config["annotation"]["conservation"]["phast"]["tree"],
         tree_species=config["annotation"]["conservation"]["phast"]["tree_species"],
@@ -204,12 +231,13 @@ rule run_phastCons_combine:
     output:
         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
     log:
-        "results/logs/annotate_vars/run_phastCons/chr{chr}_{part}.log",
+        "results/logs/run_phastCons_combine/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("run_phastCons_combine", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("run_phastCons_combine", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("run_phastCons_combine", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("run_phastCons_combine", "time") * attempt,
         partition=get_resource("run_phastCons_combine", "partition"),
     params:
@@ -229,12 +257,13 @@ rule run_phyloP_combine:
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     log:
-        "results/logs/annotate_vars/run_phyloP/chr{chr}_{part}.log",
+        "results/logs/run_phyloP_combine/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("run_phyloP_combine", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("run_phyloP_combine", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("run_phyloP_combine", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("run_phyloP_combine", "time") * attempt,
         partition=get_resource("run_phyloP_combine", "partition"),
     params:
@@ -253,11 +282,17 @@ rule wig2bed_combine:
     output:
         "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed",
     log:
-        "results/logs/annotate_vars/wig2bed/{tool}_chr{chr}_{part}.log",
+        "results/logs/wig2bed_combine/{tool}/chr{chr}/{part}.log",
     wildcard_constraints:
         tool="(phastCons|phyloP)",
     conda:
         get_conda_env("annotation")
+    threads: get_resource("wig2bed_combine", "threads")
+    resources:
+        mem_mb=get_resource("wig2bed_combine", "mem_mb"),
+        runtime=get_resource("wig2bed_combine", "runtime"),
+        time=get_resource("wig2bed_combine", "time"),
+        partition=get_resource("wig2bed_combine", "partition"),
     shell:
         "wig2bed < {input} > {output} 2> {log}"
 
@@ -292,12 +327,13 @@ constraint BED for merging with variant annotations.
     output:
         bed="results/annotation/constraint/constraint_chr{chr}.bed",
     log:
-        "results/logs/combine_annotations/combine_constraint_chr{chr}.log",
+        "results/logs/combine_constraint/chr{chr}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("combine_constraint", "threads")
     resources:
         mem_mb=get_resource("combine_constraint", "mem_mb"),
+        runtime=get_resource("combine_constraint", "runtime"),
         time=get_resource("combine_constraint", "time"),
         partition=get_resource("combine_constraint", "partition"),
     shell:
@@ -323,9 +359,15 @@ if should_include_vep():
         output:
             annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
         log:
-            "results/logs/combine_annotations/combine_annotations_{type}_chr{chr}.log",
+            "results/logs/combine_annotations_combine/{type}/chr{chr}.log",
         conda:
             get_conda_env("annotation")
+        threads: get_resource("combine_annotations_combine", "threads")
+        resources:
+            mem_mb=get_resource("combine_annotations_combine", "mem_mb"),
+            runtime=get_resource("combine_annotations_combine", "runtime"),
+            time=get_resource("combine_annotations_combine", "time"),
+            partition=get_resource("combine_annotations_combine", "partition"),
         shell:
             "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"
 
@@ -340,8 +382,14 @@ if should_include_snpeff():
         output:
             annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
         log:
-            "results/logs/combine_annotations/combine_annotations_snpeff_{type}_chr{chr}.log",
+            "results/logs/combine_annotations_snpeff_combine/{type}/chr{chr}.log",
         conda:
             get_conda_env("annotation")
+        threads: get_resource("combine_annotations_snpeff_combine", "threads")
+        resources:
+            mem_mb=get_resource("combine_annotations_snpeff_combine", "mem_mb"),
+            runtime=get_resource("combine_annotations_snpeff_combine", "runtime"),
+            time=get_resource("combine_annotations_snpeff_combine", "time"),
+            partition=get_resource("combine_annotations_snpeff_combine", "partition"),
         shell:
             "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"

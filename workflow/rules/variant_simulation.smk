@@ -26,9 +26,15 @@ rule create_parameters:
     output:
         "results/simulated_variants/parameters/chr{chr}.txt",
     log:
-        "results/logs/simulate_variants/create_parameters/chr{chr}.log",
+        "results/logs/create_parameters/chr{chr}.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("create_parameters", "threads")
+    resources:
+        mem_mb=get_resource("create_parameters", "mem_mb"),
+        runtime=get_resource("create_parameters", "runtime"),
+        time=get_resource("create_parameters", "time"),
+        partition=get_resource("create_parameters", "partition"),
     shell:
         "python3 {input.script} " "-a {input.ancestral} " "-r {input.reference} " "-c {wildcards.chr} " "-o {output} 2> {log}"
 
@@ -51,9 +57,15 @@ rule process_parameters:
         parameters="results/simulated_variants/params.pckl",
         log=report("results/logs/process_parameters.log", category="Logs"),
     log:
-        "results/logs/simulate_variants/process_parameters.log",
+        "results/logs/process_parameters.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("process_parameters", "threads")
+    resources:
+        mem_mb=get_resource("process_parameters", "mem_mb"),
+        runtime=get_resource("process_parameters", "runtime"),
+        time=get_resource("process_parameters", "time"),
+        partition=get_resource("process_parameters", "partition"),
     params:
         factor=config["generate_variants"]["simulate"]["overestimation_factor"],
     shell:
@@ -79,9 +91,15 @@ rule simulate_snps:
     output:
         "results/simulated_variants/raw_snps/chr{chr}.vcf",
     log:
-        "results/logs/simulate_variants/simulate_snps/chr{chr}.log",
+        "results/logs/simulate_snps/chr{chr}.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("simulate_snps", "threads")
+    resources:
+        mem_mb=get_resource("simulate_snps", "mem_mb"),
+        runtime=get_resource("simulate_snps", "runtime"),
+        time=get_resource("simulate_snps", "time"),
+        partition=get_resource("simulate_snps", "partition"),
     shell:
         """
         mkdir -p $(dirname {output})
@@ -103,9 +121,15 @@ rule simulate_indels:
     output:
         "results/simulated_variants/raw_indels/chr{chr}.vcf",
     log:
-        "results/logs/simulate_variants/simulate_indels/chr{chr}.log",
+        "results/logs/simulate_indels/chr{chr}.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("simulate_indels", "threads")
+    resources:
+        mem_mb=get_resource("simulate_indels", "mem_mb"),
+        runtime=get_resource("simulate_indels", "runtime"),
+        time=get_resource("simulate_indels", "time"),
+        partition=get_resource("simulate_indels", "partition"),
     shell:
         """
         mkdir -p $(dirname {output})
@@ -122,9 +146,15 @@ rule filter_variants:
     output:
         "results/simulated_variants/filtered_{sim_type}/chr{chr}.vcf",
     log:
-        "results/logs/simulate_variants/filter_variants/{sim_type}_chr{chr}.log",
+        "results/logs/filter_variants/{sim_type}/chr{chr}.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("filter_variants", "threads")
+    resources:
+        mem_mb=get_resource("filter_variants", "mem_mb"),
+        runtime=get_resource("filter_variants", "runtime"),
+        time=get_resource("filter_variants", "time"),
+        partition=get_resource("filter_variants", "partition"),
     shell:
         "python3 {input.script} " "-i {input.variants} " "-a {input.ancestral} " "-o {output} 2> {log}"
 
@@ -149,9 +179,15 @@ rule chrom_to_all:
         raw="results/simulated_variants/raw_{sim_type}/all_chr.vcf",
         filtered="results/simulated_variants/filtered_{sim_type}/all_chr.vcf",
     log:
-        "results/logs/simulate_variants/chrom_to_all/{sim_type}.log",
+        "results/logs/chrom_to_all/{sim_type}/all_chr.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("chrom_to_all", "threads")
+    resources:
+        mem_mb=get_resource("chrom_to_all", "mem_mb"),
+        runtime=get_resource("chrom_to_all", "runtime"),
+        time=get_resource("chrom_to_all", "time"),
+        partition=get_resource("chrom_to_all", "partition"),
     shell:
         """
         echo "##fileformat=VCFv4.1" > {output.raw} 2>> {log}
@@ -187,9 +223,15 @@ rule check_substitutions_rates:
         filtered="results/visualisation/filtered_summary.log",
         params="results/visualisation/parameter_summary.log",
     log:
-        "results/logs/simulate_variants/check_substitutions_rates.log",
+        "results/logs/check_substitutions_rates.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("check_substitutions_rates", "threads")
+    resources:
+        mem_mb=get_resource("check_substitutions_rates", "mem_mb"),
+        runtime=get_resource("check_substitutions_rates", "runtime"),
+        time=get_resource("check_substitutions_rates", "time"),
+        partition=get_resource("check_substitutions_rates", "partition"),
     shell:
         "python3 {input.script} "
         "--sim-snps {input.snps} "
@@ -218,9 +260,15 @@ rule trim_vcf:
     output:
         "results/simulated_variants/trimmed_snps/all_chr.vcf",
     log:
-        "results/logs/simulate_variants/trim_vcf.log",
+        "results/logs/trim_vcf.log",
     conda:
         get_conda_env("simulation")
+    threads: get_resource("trim_vcf", "threads")
+    resources:
+        mem_mb=get_resource("trim_vcf", "mem_mb"),
+        runtime=get_resource("trim_vcf", "runtime"),
+        time=get_resource("trim_vcf", "time"),
+        partition=get_resource("trim_vcf", "partition"),
     shell:
         "python3 {input.script} "
         "-i {input.vcf} "
@@ -243,8 +291,14 @@ rule split_by_chrom:
     output:
         "results/simulated_variants/trimmed_{sim_type}/chr{chr}.vcf",
     log:
-        "results/logs/simulate_variants/split_by_chrom/{sim_type}_chr{chr}.log",
+        "results/logs/split_by_chrom/{sim_type}/chr{chr}.log",
     conda:
         get_conda_env("common")
+    threads: get_resource("split_by_chrom", "threads")
+    resources:
+        mem_mb=get_resource("split_by_chrom", "mem_mb"),
+        runtime=get_resource("split_by_chrom", "runtime"),
+        time=get_resource("split_by_chrom", "time"),
+        partition=get_resource("split_by_chrom", "partition"),
     shell:
         "bcftools view {input.vcf} --regions {wildcards.chr} -o {output} -O v 2> {log}"

@@ -95,6 +95,21 @@ def get_resource(rule_name, resource_type, default_override=None):
     if resource_type in rule_resources:
         return rule_resources[resource_type]
 
+    # Special handling for runtime (minutes) as an alias for time (HH:MM:SS) if not explicitly set
+    if resource_type == "runtime":
+        time_val = rule_resources.get("time") or resources.get("default_resources", {}).get("time")
+        if time_val and isinstance(time_val, str) and ":" in time_val:
+            try:
+                parts = time_val.split(":")
+                if len(parts) == 3:
+                    h, m, s = map(int, parts)
+                    return h * 60 + m + (1 if s > 0 else 0)
+                elif len(parts) == 2:
+                    h, m = map(int, parts)
+                    return h * 60 + m
+            except (ValueError, TypeError):
+                pass
+
     # Fall back to default_resources
     default_resources = resources.get("default_resources", {})
     if resource_type in default_resources:
@@ -105,7 +120,14 @@ def get_resource(rule_name, resource_type, default_override=None):
         return default_override
 
     # Hardcoded fallbacks as last resort
-    fallbacks = {"threads": 1, "mem_mb": 8192, "mem_per_cpu": 8192, "time": "04:00:00", "partition": "core"}
+    fallbacks = {
+        "threads": 1,
+        "mem_mb": 8192,
+        "mem_per_cpu": 8192,
+        "time": "04:00:00",
+        "runtime": 240,  # 4 hours in minutes
+        "partition": "core",
+    }
 
     return fallbacks.get(resource_type, 1)
 

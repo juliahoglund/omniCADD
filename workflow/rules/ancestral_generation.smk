@@ -29,12 +29,13 @@ rule clean_ambiguous:
     output:
         temp("results/alignment/cleaned_maf/{part}.maf.gz"),
     log:
-        "results/logs/extract_ancestor/clean_ambiguous/{part}.log",
+        "results/logs/clean_ambiguous/{part}.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("clean_ambiguous", "threads")
     resources:
         mem_mb=get_resource("clean_ambiguous", "mem_mb"),
+        runtime=lambda wildcards, attempt: get_resource("clean_ambiguous", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
         partition=get_resource("clean_ambiguous", "partition"),
     shell:
@@ -56,7 +57,7 @@ rule mark_ancestor:
     output:
         temp("results/alignment/marked_ancestor/{part}.maf.gz"),
     log:
-        "results/logs/{part}_mark_ancestor_log.txt",
+        "results/logs/mark_ancestor/{part}.log",
     conda:
         get_conda_env("ancestor")
     params:
@@ -83,7 +84,7 @@ rule maf_df:
     output:
         temp("results/alignment/dedup/{part}.maf.lz4"),
     log:
-        "results/logs/extract_ancestor/maf_df/{part}.log",
+        "results/logs/maf_df/{part}.log",
     # conda:
     #    get_conda_env("ancestor")
     container:
@@ -91,6 +92,7 @@ rule maf_df:
     threads: get_resource("maf_df", "threads")
     resources:
         mem_mb=get_resource("maf_df", "mem_mb"),
+        runtime=get_resource("maf_df", "runtime"),
         time=get_resource("maf_df", "time"),
         partition=get_resource("maf_df", "partition"),
     shell:
@@ -108,7 +110,7 @@ rule maf_ro:
     output:
         temp("results/alignment/row_ordered/{part}.maf.lz4"),
     log:
-        "results/logs/extract_ancestor/maf_ro/{part}.log",
+        "results/logs/maf_ro/{part}.log",
     # conda:
     #    get_conda_env("ancestor")
     container:
@@ -116,6 +118,7 @@ rule maf_ro:
     threads: get_resource("maf_ro", "threads")
     resources:
         mem_mb=get_resource("maf_ro", "mem_mb"),
+        runtime=get_resource("maf_ro", "runtime"),
         time=get_resource("maf_ro", "time"),
         partition=get_resource("maf_ro", "partition"),
     params:
@@ -146,7 +149,7 @@ rule maf_ro_conservation:
     output:
         temp("results/alignment/row_ordered_conservation/{part}.maf.lz4"),
     log:
-        "results/logs/extract_ancestor/maf_ro_conservation/{part}.log",
+        "results/logs/maf_ro_conservation/{part}.log",
     # conda:
     #    get_conda_env("ancestor")
     container:
@@ -154,6 +157,7 @@ rule maf_ro_conservation:
     threads: get_resource("maf_ro", "threads")
     resources:
         mem_mb=get_resource("maf_ro", "mem_mb"),
+        runtime=get_resource("maf_ro", "runtime"),
         time=get_resource("maf_ro", "time"),
         partition=get_resource("maf_ro", "partition"),
     params:
@@ -170,12 +174,13 @@ rule sort_by_chr_conservation:
     output:
         expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"]),
     log:
-        "results/logs/extract_ancestor/sort_by_chr_conservation/all_chr.log",
+        "results/logs/sort_by_chr_conservation/all_chr.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("sort_by_chr", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("sort_by_chr", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
         partition=get_resource("sort_by_chr", "partition"),
         tmpdir="results/tmp/sort_chr_conservation",
@@ -205,12 +210,13 @@ rule sort_by_chr:
     output:
         expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"]),
     log:
-        "results/logs/extract_ancestor/sort_by_chr/all_chr.log",
+        "results/logs/sort_by_chr/all_chr.log",
     conda:
         get_conda_env("alignment")
     threads: get_resource("sort_by_chr", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("sort_by_chr", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
         partition=get_resource("sort_by_chr", "partition"),
         tmpdir="results/tmp/sort_chr",
@@ -254,7 +260,7 @@ rule maf_str:
     output:
         temp("results/alignment/stranded/chr{chr}.maf.gz"),
     log:
-        "results/logs/extract_ancestor/maf_str/chr{chr}.log",
+        "results/logs/maf_str/chr{chr}.log",
     # conda:
     #    get_conda_env("ancestor")
     container:
@@ -262,6 +268,7 @@ rule maf_str:
     threads: get_resource("maf_str", "threads")
     resources:
         mem_mb=get_resource("maf_str", "mem_mb"),
+        runtime=get_resource("maf_str", "runtime"),
         time=get_resource("maf_str", "time"),
         partition=get_resource("maf_str", "partition"),
     params:
@@ -277,7 +284,7 @@ rule maf_sorter:
     output:
         "results/alignment/sorted/chr{chr}.maf.gz",
     log:
-        "results/logs/extract_ancestor/maf_sorter/chr{chr}.log",
+        "results/logs/maf_sorter/chr{chr}.log",
     # conda:
     #    get_conda_env("ancestor")
     container:
@@ -285,6 +292,7 @@ rule maf_sorter:
     threads: get_resource("maf_sorter", "threads")
     resources:
         mem_mb=get_resource("maf_sorter", "mem_mb"),
+        runtime=get_resource("maf_sorter", "runtime"),
         time=get_resource("maf_sorter", "time"),
         partition=get_resource("maf_sorter", "partition"),
     params:
@@ -301,9 +309,15 @@ rule gen_ancestor_seq:
     output:
         f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
     log:
-        "results/logs/ancestral_generation/gen_ancestor_seq/chr{chr}.log",
+        "results/logs/gen_ancestor_seq/chr{chr}.log",
     conda:
         get_conda_env("ancestor")
+    threads: get_resource("gen_ancestor_seq", "threads")
+    resources:
+        mem_mb=get_resource("gen_ancestor_seq", "mem_mb"),
+        runtime=get_resource("gen_ancestor_seq", "runtime"),
+        time=get_resource("gen_ancestor_seq", "time"),
+        partition=get_resource("gen_ancestor_seq", "partition"),
     params:
         species_name=get_alignment_config()["name_species_interest"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
