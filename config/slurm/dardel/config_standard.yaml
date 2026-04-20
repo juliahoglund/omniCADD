@@ -3,7 +3,7 @@
 # Use this to test workflows with existing GFF, VEP cache, MAF alignments, etc.
 
 containers:
-  vep: "docker://juliahoglund/vep:latest"
+  vep: "docker://juliahoglund/vep:111.0"
   maftools: "docker://juliahoglund/maftools:latest"
   snpeff: "docker://juliahoglund/snpeff:latest"
 
