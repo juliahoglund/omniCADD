@@ -4,8 +4,9 @@
 
 containers:
   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
-  snpeff: "docker://biocontainers/snpeff:v5.1.0_cv1"
+  snpeff: "docker://juliahoglund/snpeff:latest"
   maftools: "docker://juliahoglund/maftools:latest"
+  vep: "docker://juliahoglund/vep:latest"
 
 ###################
 ### DATA TIER #####

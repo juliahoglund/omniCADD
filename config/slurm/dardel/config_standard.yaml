@@ -2,6 +2,11 @@
 # Scenario: Well-annotated species with full resources
 # Use this to test workflows with existing GFF, VEP cache, MAF alignments, etc.
 
+containers:
+  vep: "docker://juliahoglund/vep:latest"
+  maftools: "docker://juliahoglund/maftools:latest"
+  snpeff: "docker://juliahoglund/snpeff:latest"
+
 # data_tier: "custom"  # Using explicit config below instead of presets
 species_name: "sus_scrofa"
 genome_version: "Sscrofa11.1"

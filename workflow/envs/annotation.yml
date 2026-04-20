@@ -14,6 +14,7 @@ dependencies:
   # Core bioinformatics tools
   - bedops
   - ensembl-vep=112
+  - perl-list-moreutils
   - gffread
   - htslib
   - phast
