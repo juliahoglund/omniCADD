@@ -87,7 +87,7 @@ rule run_genome_vep:
         "logs/benchmarks/run_genome_vep_chr{chr}_{part}.tsv"
     priority: 1
     conda:
-        get_conda_env("annotation")
+        get_conda_env("annotation") if not config.get("containers", {}).get("vep") else None
     container:
         config.get("containers", {}).get("vep")
     threads: get_resource("run_genome_vep", "threads")

@@ -12,7 +12,7 @@ rule vep_cache:
     log:
         "results/logs/vep_cache.log",
     conda:
-        get_conda_env("annotation")
+        get_conda_env("annotation") if not config.get("containers", {}).get("vep") else None
     container:
         config.get("containers", {}).get("vep")
     threads: get_resource("vep_cache", "threads")
@@ -37,7 +37,7 @@ rule run_vep:
     log:
         "results/logs/run_vep/{folder}/{file}.log",
     conda:
-        get_conda_env("annotation")
+        get_conda_env("annotation") if not config.get("containers", {}).get("vep") else None
     container:
         config.get("containers", {}).get("vep")
     threads: get_resource("run_vep", "threads")
