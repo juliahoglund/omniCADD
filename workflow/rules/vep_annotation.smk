@@ -28,8 +28,6 @@ rule vep_cache:
 
 
 rule run_vep:
-    wildcard_constraints:
-        folder="(?!.*whole_genome).*",  # Exclude whole_genome paths - use run_genome_vep instead
     input:
         script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
@@ -38,6 +36,8 @@ rule run_vep:
         temp("{folder}/{file}_vep_output.tsv"),
     log:
         "results/logs/run_vep/{folder}/{file}.log",
+    wildcard_constraints:
+        folder="(?!.*whole_genome).*",  # Exclude whole_genome paths - use run_genome_vep instead
     conda:
         get_conda_env("annotation") if not config.get("containers", {}).get("vep") else None
     container:

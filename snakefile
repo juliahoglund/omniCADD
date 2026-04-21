@@ -15,6 +15,7 @@ min_version("8.0.0")
 import sys
 
 if "--configfile" not in sys.argv and "--configfiles" not in sys.argv:
+
     configfile: "config/config.yaml"
 
 
@@ -139,8 +140,6 @@ rule all:
         expand("results/cadd_scores/chr{chr}.tsv.gz", chr=config["chromosomes"]["score"]),
         expand("results/cadd_scores/chr{chr}.tsv.gz.tbi", chr=config["chromosomes"]["score"]),
         "results/cadd_scores/scoring_summary.txt",
-
-
 
 
 ##### setup report #####
