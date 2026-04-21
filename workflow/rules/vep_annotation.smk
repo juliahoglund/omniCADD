@@ -28,6 +28,8 @@ rule vep_cache:
 
 
 rule run_vep:
+    wildcard_constraints:
+        folder="(?!.*whole_genome).*",  # Exclude whole_genome paths - use run_genome_vep instead
     input:
         script="workflow/scripts/vep_annotation/vep.sh",
         vcf="{folder}/{file}.vcf.gz",
