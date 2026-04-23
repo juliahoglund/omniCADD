@@ -192,9 +192,7 @@ rule sort_by_chr_conservation:
     shell:
         """
         mkdir -p $(dirname {log})
-        mkdir -p {params.directory}
-        python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} > {log} 2>&1
-        mv chr*.maf {params.directory}/
+        python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} > {log} 2>&1
         """
 
 
@@ -240,16 +238,9 @@ rule sort_by_chr:
             done
             echo "Species orders identical - compressed all conservation outputs" > {log}
         else
-            # Normal processing: run sort_by_chromosome.py
-            mkdir -p {params.directory}
-            cd {params.directory}
-            mkdir -p ../../$(dirname {log})
-            python3 ../../{input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} > ../../{log} 2>&1
-            
-            # Compress outputs
-            for maf_file in chr*.maf; do
-                gzip -f $maf_file
-            done
+            # Normal processing: run sort_by_chromosome.py with compression
+            mkdir -p $(dirname {log})
+            python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} --compress > {log} 2>&1
         fi
         """
 

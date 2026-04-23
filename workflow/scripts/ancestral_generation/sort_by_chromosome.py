@@ -23,6 +23,7 @@ instead of searching for files in a given folder.
 """
 # Import dependencies
 import gzip
+import os
 import re
 import sys
 from collections import defaultdict
@@ -48,15 +49,32 @@ PARSER.add_argument("-c", "--chromosomes",
                     type=str,
                     required=True,
                     nargs="+")
+PARSER.add_argument("-o", "--output-dir",
+                    help="output directory for chromosome MAF files (default: current directory)",
+                    type=str,
+                    default=".",
+                    required=False)
+PARSER.add_argument("--compress",
+                    help="compress output files with gzip",
+                    action="store_true",
+                    default=False)
 
 if __name__ == '__main__':
     args = PARSER.parse_args()
 
     file_list = args.input
+    
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_dir, exist_ok=True)
 
     chr_list = {}
     for chromosome in args.chromosomes:
-        chr_list[chromosome] = open("chr" + str(chromosome) + ".maf", "a")
+        if args.compress:
+            output_path = os.path.join(args.output_dir, "chr" + str(chromosome) + ".maf.gz")
+            chr_list[chromosome] = gzip.open(output_path, "at")
+        else:
+            output_path = os.path.join(args.output_dir, "chr" + str(chromosome) + ".maf")
+            chr_list[chromosome] = open(output_path, "a")
         chr_list[chromosome].write("##maf version=1\n\n")
 
     try:
