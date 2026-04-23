@@ -194,6 +194,7 @@ rule sort_by_chr_conservation:
         mkdir -p $(dirname {log})
         mkdir -p {params.directory}
         python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} > {log} 2>&1
+        mv chr*.maf {params.directory}/
         """
 
 
