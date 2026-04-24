@@ -197,7 +197,7 @@ rule sort_by_chr_conservation:
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
 rule sort_by_chr:
     input:
-        maf=gather_part_files(),
+        maf=lambda wildcards: [] if should_skip_ancestral_path() else gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
         conservation=lambda wildcards: (
             expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"])

@@ -133,6 +133,9 @@ def gather_part_files():
     """
     Gather all alignment part files based on configuration.
     Used by: ancestral_generation.smk
+    
+    If species orders are identical (should_skip_ancestral_path returns True),
+    returns conservation files directly to avoid duplicate processing.
     """
     alignment_config = get_alignment_config()
     input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
@@ -143,8 +146,12 @@ def gather_part_files():
         if not any(pattern in part for pattern in alignment_config["exclude_patterns"]):
             parts_filtered.append(part)
 
-    # Formulate filenames as output from the previous step
-    infiles = expand(f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered)
+    # If species orders are identical, use conservation outputs directly
+    if should_skip_ancestral_path():
+        infiles = expand(f"results/alignment/row_ordered_conservation/{{part}}.maf.lz4", part=parts_filtered)
+    else:
+        # Normal path: use row_ordered outputs
+        infiles = expand(f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered)
 
     # Handle the case when no files are found
     if len(infiles) == 0:
