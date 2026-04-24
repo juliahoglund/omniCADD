@@ -123,17 +123,15 @@ rule maf_ro:
         partition=get_resource("maf_ro", "partition"),
     params:
         order=get_alignment_config()["filter_order"],
-        conservation_file=lambda wildcards: (
-            f"results/alignment/row_ordered_conservation/{wildcards.part}.maf.lz4" if should_skip_ancestral_path() else ""
-        ),
+        skip_processing=should_skip_ancestral_path(),
     shell:
         """
-        if [ -n "{params.conservation_file}" ] && [ -f "{params.conservation_file}" ]; then
-            # Optimization: symlink to conservation output
+        if [ "{params.skip_processing}" = "True" ]; then
+            # Optimization: symlink to conservation output (dependency ensures it exists)
             mkdir -p $(dirname {output})
             [ -e {output} ] && rm {output}
-            ln -s $(realpath {params.conservation_file}) {output}
-            echo "Species orders identical - symlinking to conservation output: {params.conservation_file}" > {log}
+            ln -s $(realpath {input.conservation}) {output}
+            echo "Species orders identical - symlinking to conservation output: {input.conservation}" > {log}
         else
             # Normal processing: run mafRowOrderer
             lz4 -dc {input.dedup} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}

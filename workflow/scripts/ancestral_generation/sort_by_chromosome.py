@@ -63,7 +63,7 @@ if __name__ == '__main__':
     args = PARSER.parse_args()
 
     file_list = args.input
-    
+
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
 
