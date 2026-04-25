@@ -314,12 +314,15 @@ rule gen_ancestor_seq:
         reference=config["mark_ancestor"]["reference_genome"],
     shell:
         """
-        faidx -v {params.reference}
+        # Create fasta index if it doesn't exist (using pyfaidx)
+        if [ ! -f "{params.reference}.fai" ]; then
+            faidx {params.reference} 2>> {log} || samtools faidx {params.reference} 2>> {log}
+        fi
         
         python3 {input.script} \
          -i {input.maf} \
          -o {output} \
          -a {params.ancestor} \
          -n {params.species_name} \
-         -r {params.reference}.fai
+         -r {params.reference}.fai 2>> {log}
         """
