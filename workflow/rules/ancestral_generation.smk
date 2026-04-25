@@ -314,9 +314,24 @@ rule gen_ancestor_seq:
         reference=config["mark_ancestor"]["reference_genome"],
     shell:
         """
-        # Create fasta index if it doesn't exist (using pyfaidx)
+        # Ensure reference is in bgzip format for pyfaidx
+        REF_BASE=$(echo {params.reference} | sed 's/\.gz$//')
+        
+        if [[ "{params.reference}" == *.gz ]]; then
+            # Check if it's BGZF compressed (bgzip) by looking at magic bytes
+            if ! zcat {params.reference} 2>/dev/null | head -c 1 > /dev/null 2>&1; then
+                echo "Reference appears to be bgzip compressed already" >> {log}
+            elif gunzip -t {params.reference} 2>/dev/null; then
+                # It's regular gzip, need to recompress with bgzip
+                echo "Recompressing reference with bgzip..." >> {log}
+                gunzip -c {params.reference} > $REF_BASE 2>> {log}
+                bgzip -f $REF_BASE 2>> {log}
+            fi
+        fi
+        
+        # Create fasta index if it doesn't exist
         if [ ! -f "{params.reference}.fai" ]; then
-            faidx {params.reference} 2>> {log} || samtools faidx {params.reference} 2>> {log}
+            samtools faidx {params.reference} 2>> {log}
         fi
         
         python3 {input.script} \

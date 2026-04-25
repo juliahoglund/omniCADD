@@ -14,6 +14,8 @@ dependencies:
   - biopython>=1.80
   - msaconverter
   - numpy
+  - samtools  # For bgzip and faidx indexing
+  - htslib    # Provides bgzip
   
   # System libraries
   - bzip2
