@@ -292,10 +292,57 @@ rule maf_sorter:
 
 
 # Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers.
+
+
+# Prepare reference genome for ancestral extraction (bgzip + index)
+rule prepare_reference_genome:
+    input:
+        ref=config["mark_ancestor"]["reference_genome"],
+    output:
+        ref_bgz="results/reference/reference_genome.fa.gz",
+        ref_idx="results/reference/reference_genome.fa.gz.fai",
+    log:
+        "results/logs/prepare_reference_genome/prepare.log",
+    conda:
+        get_conda_env("ancestor")
+    threads: 1
+    resources:
+        mem_mb=4096,
+        runtime=60,
+        time=60,
+        partition=get_resource("gen_ancestor_seq", "partition"),
+    shell:
+        """
+        mkdir -p $(dirname {output.ref_bgz})
+        
+        # Check if input is already bgzip compressed
+        if [[ "{input.ref}" == *.gz ]]; then
+            MAGIC=$(od -An -tx1 -N4 {input.ref} | tr -d ' ')
+            
+            if [[ "$MAGIC" == "1f8b0804" ]]; then
+                echo "Input is already bgzip compressed, creating symlink" > {log}
+                ln -sf $(realpath {input.ref}) {output.ref_bgz} 2>> {log}
+            else
+                echo "Input is gzip (not bgzip), recompressing..." > {log}
+                gunzip -c {input.ref} | bgzip -c > {output.ref_bgz} 2>> {log}
+            fi
+        else
+            echo "Input is uncompressed, compressing with bgzip..." > {log}
+            bgzip -c {input.ref} > {output.ref_bgz} 2>> {log}
+        fi
+        
+        # Create fasta index
+        samtools faidx {output.ref_bgz} 2>> {log}
+        echo "Reference preparation complete" >> {log}
+        """
+
+
+# Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers.
 rule gen_ancestor_seq:
     input:
         maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
         script="workflow/scripts/ancestral_generation/extract_ancestor.py",
+        ref_idx="results/reference/reference_genome.fa.gz.fai",
     output:
         f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
     log:
@@ -311,33 +358,12 @@ rule gen_ancestor_seq:
     params:
         species_name=get_alignment_config()["name_species_interest"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
-        reference=config["mark_ancestor"]["reference_genome"],
     shell:
         """
-        # Ensure reference is in bgzip format for pyfaidx
-        REF_BASE=$(echo {params.reference} | sed 's/\.gz$//')
-        
-        if [[ "{params.reference}" == *.gz ]]; then
-            # Check if it's BGZF compressed (bgzip) by looking at magic bytes
-            if ! zcat {params.reference} 2>/dev/null | head -c 1 > /dev/null 2>&1; then
-                echo "Reference appears to be bgzip compressed already" >> {log}
-            elif gunzip -t {params.reference} 2>/dev/null; then
-                # It's regular gzip, need to recompress with bgzip
-                echo "Recompressing reference with bgzip..." >> {log}
-                gunzip -c {params.reference} > $REF_BASE 2>> {log}
-                bgzip -f $REF_BASE 2>> {log}
-            fi
-        fi
-        
-        # Create fasta index if it doesn't exist
-        if [ ! -f "{params.reference}.fai" ]; then
-            samtools faidx {params.reference} 2>> {log}
-        fi
-        
         python3 {input.script} \
          -i {input.maf} \
          -o {output} \
          -a {params.ancestor} \
          -n {params.species_name} \
-         -r {params.reference}.fai 2>> {log}
+         -r {input.ref_idx} 2>> {log}
         """
