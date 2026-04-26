@@ -159,7 +159,7 @@ rule maf_ro_conservation:
         time=get_resource("maf_ro", "time"),
         partition=get_resource("maf_ro", "partition"),
     params:
-        order=lambda wildcards: get_alignment_config().get("conservation_species_order", get_alignment_config()["filter_order"]),
+        order=get_conservation_species_order(),
     shell:
         "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
