@@ -133,7 +133,7 @@ def get_conservation_species_order():
     """
     Get species order for conservation files, ensuring ancestor is included.
     Conservation files need the ancestor for ancestral extraction when paths are shared.
-    Returns: Space-separated string of species names including the ancestor.
+    Returns: Comma-separated string of species names including the ancestor.
     """
     alignment_config = get_alignment_config()
     ancestor_name = config["mark_ancestor"].get("name_ancestor", "")
@@ -143,12 +143,12 @@ def get_conservation_species_order():
     
     # If ancestor is configured and not already in the order, add it at the beginning
     if ancestor_name and ancestor_name not in order:
-        # Assume order is space-separated string
-        order_parts = order.split()
+        # Order is comma-separated for mafRowOrderer
+        order_parts = order.split(",")
         # Insert ancestor after the reference species (first in list)
         if len(order_parts) > 0:
             order_parts.insert(1, ancestor_name)
-            order = " ".join(order_parts)
+            order = ",".join(order_parts)
     
     return order
 
