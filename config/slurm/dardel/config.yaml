@@ -21,6 +21,9 @@ local-cores: 1
 latency-wait: 60
 keep-going: True
 rerun-incomplete: True
+rerun-triggers:
+  - mtime
+  - input
 
 default-resources:
   slurm_account: "naiss2026-3-90"
