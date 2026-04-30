@@ -61,13 +61,11 @@ def get_maf_ro_output(wildcards):
 
 def get_sort_by_chr_output(wildcards):
     """
-    Return appropriate sorted MAF output depending on whether paths are merged.
-    When species orders match, returns conservation path to avoid duplication.
+    Return sorted MAF output path.
+    Note: Always returns merged (ancestral) path, not conservation path,
+    because extraction requires both reference and ancestor species.
     """
-    if should_skip_ancestral_path():
-        return f"results/alignment/merged_conservation/chr{wildcards.chr}.maf"
-    else:
-        return f"results/alignment/merged/chr{wildcards.chr}.maf.gz"
+    return f"results/alignment/merged/chr{wildcards.chr}.maf.gz"
 
 
 def get_gene_annotation_file():
@@ -158,8 +156,9 @@ def gather_part_files():
     Gather all alignment part files based on configuration.
     Used by: ancestral_generation.smk
     
-    If species orders are identical (should_skip_ancestral_path returns True),
-    returns conservation files directly to avoid duplicate processing.
+    Note: Always returns row_ordered files (with both reference and ancestor species)
+    even when species orders are identical, because ancestral extraction requires both.
+    The conservation path optimization only applies to scoring, not extraction.
     """
     alignment_config = get_alignment_config()
     input_pattern = f"{alignment_config['path']}{{part}}.{alignment_config['type']}"
@@ -170,12 +169,9 @@ def gather_part_files():
         if not any(pattern in part for pattern in alignment_config["exclude_patterns"]):
             parts_filtered.append(part)
 
-    # If species orders are identical, use conservation outputs directly
-    if should_skip_ancestral_path():
-        infiles = expand(f"results/alignment/row_ordered_conservation/{{part}}.maf.lz4", part=parts_filtered)
-    else:
-        # Normal path: use row_ordered outputs
-        infiles = expand(f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered)
+    # Always use row_ordered outputs (not conservation) for extraction path
+    # Conservation files only have ancestor species, but extraction needs both reference and ancestor
+    infiles = expand(f"results/alignment/row_ordered/{{part}}.maf.lz4", part=parts_filtered)
 
     # Handle the case when no files are found
     if len(infiles) == 0:

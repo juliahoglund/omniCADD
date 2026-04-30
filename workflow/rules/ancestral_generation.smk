@@ -101,12 +101,11 @@ rule maf_df:
 
 # Reorders species within any alignment block, so that the wanted species are in front.
 # (it also removes sequences that are not from species given in the order)
+# Note: Always processes dedup files (not symlinked to conservation) because extraction
+# needs both reference species and ancestor. Conservation path optimization only applies to scoring.
 rule maf_ro:
     input:
         dedup="results/alignment/dedup/{part}.maf.lz4",
-        conservation=lambda wildcards: (
-            f"results/alignment/row_ordered_conservation/{wildcards.part}.maf.lz4" if should_skip_ancestral_path() else []
-        ),
     output:
         temp("results/alignment/row_ordered/{part}.maf.lz4"),
     log:
@@ -123,19 +122,9 @@ rule maf_ro:
         partition=get_resource("maf_ro", "partition"),
     params:
         order=get_alignment_config()["filter_order"],
-        skip_processing=should_skip_ancestral_path(),
     shell:
         """
-        if [ "{params.skip_processing}" = "True" ]; then
-            # Optimization: symlink to conservation output (dependency ensures it exists)
-            mkdir -p $(dirname {output})
-            [ -e {output} ] && rm {output}
-            ln -s $(realpath {input.conservation}) {output}
-            echo "Species orders identical - symlinking to conservation output: {input.conservation}" > {log}
-        else
-            # Normal processing: run mafRowOrderer
-            lz4 -dc {input.dedup} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}
-        fi
+        lz4 -dc {input.dedup} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}
         """
 
 
@@ -195,15 +184,12 @@ rule sort_by_chr_conservation:
 
 
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
+# Note: Always processes row_ordered files (not conservation) because extraction needs both
+# reference species and ancestor. Conservation path optimization only applies to scoring.
 rule sort_by_chr:
     input:
-        maf=lambda wildcards: [] if should_skip_ancestral_path() else gather_part_files(),
+        maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
-        conservation=lambda wildcards: (
-            expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"])
-            if should_skip_ancestral_path()
-            else []
-        ),
     output:
         expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"]),
     log:
@@ -222,24 +208,10 @@ rule sort_by_chr:
         chromosomes=config["chromosomes"]["karyotype"],
         ancestor=config["mark_ancestor"]["name_ancestor"],
         directory=lambda w, output: os.path.dirname(output[0]),
-        conservation_dir=lambda w, output: os.path.dirname(output[0]).replace("merged", "merged_conservation"),
-        skip_optimization=should_skip_ancestral_path(),
     shell:
         """
-        if [ -n "$(ls -A {params.conservation_dir}/*.maf 2>/dev/null)" ] && [ "{params.skip_optimization}" = "True" ]; then
-            # Optimization: compress all conservation outputs for ancestral path
-            mkdir -p {params.directory}
-            mkdir -p $(dirname {log})
-            for maf_file in {params.conservation_dir}/*.maf; do
-                chr_name=$(basename $maf_file .maf)
-                gzip -c $maf_file > {params.directory}/${{chr_name}}.maf.gz
-            done
-            echo "Species orders identical - compressed all conservation outputs" > {log}
-        else
-            # Normal processing: run sort_by_chromosome.py with compression
-            mkdir -p $(dirname {log})
-            python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} --compress > {log} 2>&1
-        fi
+        mkdir -p $(dirname {log})
+        python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} --compress > {log} 2>&1
         """
 
 
