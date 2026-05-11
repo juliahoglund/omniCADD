@@ -191,7 +191,7 @@ rule sort_by_chr:
         maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
-        expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"]),
+        temp(expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"])),
     log:
         "results/logs/sort_by_chr/all_chr.log",
     conda:
@@ -236,7 +236,7 @@ rule maf_str:
     params:
         species_label=get_alignment_config()["name_species_interest"],
     shell:
-        "gzip -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | gzip > {output} 2>> {log} && gzip -9 {input} 2>> {log}"
+        "gzip -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | gzip > {output} 2>> {log}"
 
 
 # Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
@@ -244,7 +244,7 @@ rule maf_sorter:
     input:
         "results/alignment/stranded/chr{chr}.maf.gz",
     output:
-        "results/alignment/sorted/chr{chr}.maf.gz",
+        temp("results/alignment/sorted/chr{chr}.maf.gz"),
     log:
         "results/logs/maf_sorter/chr{chr}.log",
     # conda:
