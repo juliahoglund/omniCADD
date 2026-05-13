@@ -32,10 +32,6 @@ jobname: "{rule}.{jobid}"
 # Ensure resources are passed to SLURM
 retries: 2
 
-# SLURM executor options
-executor-options:
-  slurm-unit-for-runtime: "m"  # Explicitly use minutes for runtime
-
 default-resources:
   slurm_account: "naiss2026-3-90"
   slurm_partition: "shared"
