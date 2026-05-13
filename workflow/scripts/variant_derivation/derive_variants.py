@@ -120,7 +120,13 @@ def main(args):
     index_outer = (args.start, args.start + 350000)
     input_snps.readline()  # Skip header
     snp_line = input_snps.readline()
-    snp_pos = int(snp_line.strip().split('\t')[1])
+    
+    # Handle empty frequency file (no variants passed filter)
+    if not snp_line.strip():
+        print(f'No population variants found for Chr{args.chrom} - processing ancestral differences only')
+        snp_pos = float('inf')  # Sentinel value - no SNPs to match
+    else:
+        snp_pos = int(snp_line.strip().split('\t')[1])
 
     while index_outer[0] <= anc_length:
         # Fetch the reference and ancestral sequence.
@@ -141,9 +147,12 @@ def main(args):
                     write_line(args.chrom, i + index_outer[0], ref_seq[i], snp_allele, output)
                     try:
                         snp_line = input_snps.readline()
-                        snp_pos = int(snp_line.strip().split('\t')[1])
+                        if snp_line.strip():
+                            snp_pos = int(snp_line.strip().split('\t')[1])
+                        else:
+                            snp_pos = float('inf')  # No more SNPs
                     except Exception:
-                        pass
+                        snp_pos = float('inf')
 
                 # Checking if case 3 (or 2) derived snp is given
                 elif (anc.upper() != ref_seq[i]) and (anc.upper() != snp_allele) and (anc.upper() != '-'):
@@ -151,16 +160,22 @@ def main(args):
                     write_line(args.chrom, i + index_outer[0], ref_seq[i], snp_allele, output)
                     try:
                         snp_line = input_snps.readline()
-                        snp_pos = int(snp_line.strip().split('\t')[1])
+                        if snp_line.strip():
+                            snp_pos = int(snp_line.strip().split('\t')[1])
+                        else:
+                            snp_pos = float('inf')  # No more SNPs
                     except Exception:
-                        pass
+                        snp_pos = float('inf')
 
                 else:
                     try:
                         snp_line = input_snps.readline()
-                        snp_pos = int(snp_line.strip().split('\t')[1])
+                        if snp_line.strip():
+                            snp_pos = int(snp_line.strip().split('\t')[1])
+                        else:
+                            snp_pos = float('inf')  # No more SNPs
                     except Exception:
-                        pass
+                        snp_pos = float('inf')
 
             elif anc.upper() != '-':
                 # Checking if case 5 (or 3) derived variant
