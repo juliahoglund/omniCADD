@@ -40,35 +40,38 @@ default-resources:
   tasks: 1
   slurm_extra: "--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err"
 
+# Map runtime to SLURM time format  
+default-storage-provider: none
+
 # Conda and Apptainer paths
 conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-envs"
 
-# Per-rule overrides — mirrors config/resources.yaml but converted to minutes
+# Per-rule overrides — runtime in minutes, will be converted to HH:MM:SS by executor
 # Only rules with values different from the defaults above are listed
 set-resources:
   # Step 1: Ancestral sequence
   maf_ro:
-    runtime: 720
+    runtime: 720  # 12 hours
     mem_mb: 49152
   maf_df:
-    runtime: 600
+    runtime: 600  # 10 hours
     mem_mb: 32768
   mark_ancestor:
-    runtime: 480
+    runtime: 480  # 8 hours
     mem_mb: 24576
   reconstruct_ancestor:
-    runtime: 960
+    runtime: 960  # 16 hours
     mem_mb: 49152
   fit_phylo_model:
-    runtime: 720
+    runtime: 720  # 12 hours
     mem_mb: 32768
 
   # Step 2: Derive variants
   freq_files:
-    runtime: 60
+    runtime: 60  # 1 hour
     mem_mb: 8192
   gen_derived:
-    runtime: 120
+    runtime: 120  # 2 hours
     mem_mb: 16384
 
   # Step 3: Simulate variants
