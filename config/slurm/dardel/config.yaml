@@ -29,13 +29,20 @@ rerun-triggers:
 # Job naming for easier troubleshooting
 jobname: "{rule}.{jobid}"
 
+# Ensure resources are passed to SLURM
+retries: 2
+
+# SLURM executor options
+executor-options:
+  slurm-unit-for-runtime: "m"  # Explicitly use minutes for runtime
+
 default-resources:
   slurm_account: "naiss2026-3-90"
   slurm_partition: "shared"
   runtime: 240
   mem_mb: 8192
   tasks: 1
-  slurm_extra: "--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err --time={resources.runtime}"
+  slurm_extra: "--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err"
 
 # Conda and Apptainer paths
 conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-envs"
