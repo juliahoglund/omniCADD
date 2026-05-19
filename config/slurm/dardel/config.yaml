@@ -23,8 +23,7 @@ latency-wait: 60
 keep-going: True
 rerun-incomplete: True
 rerun-triggers:
-  - mtime
-  - input
+  - input  # Only rerun if input files actually changed, not just mtime
 
 # Job naming for easier troubleshooting
 jobname: "{rule}.{jobid}"
