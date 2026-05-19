@@ -34,18 +34,27 @@ rule freq_files:
         chr_prefix=get_alignment_config()["chrom_prefix"],
     shell:
         """
-        # Run vcftools - may fail if no variants pass filter (which is valid)
+        set +e  # Disable exit on error for this script
+        
+        # Ensure output directory exists
+        mkdir -p $(dirname {output})
+        mkdir -p $(dirname {log})
+        
+        # Run vcftools and capture output explicitly
         vcftools --gzvcf {input} \
             --chr {params.chr_prefix}{wildcards.chr} \
             --remove-indels \
             --non-ref-af {params.min_non_ref_freq} \
             --max-non-ref-af 1.0 \
-            --stdout --freq > {output} 2> {log} || true
+            --stdout --freq 2>> {log} | tee {output} || true
         
         # Ensure output file exists (create empty with header if needed)
         if [ ! -f {output} ] || [ ! -s {output} ]; then
+            echo "Creating empty output file with header" >> {log}
             echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
             echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
+        else
+            echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
         fi
         """
 
