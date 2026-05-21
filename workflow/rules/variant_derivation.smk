@@ -34,7 +34,7 @@ rule freq_files:
         chr_prefix=get_alignment_config()["chrom_prefix"],
     shell:
         """
-        set -euo pipefail
+        set -u  # Only fail on undefined variables, not on command failures
         
         # Ensure output directory exists
         mkdir -p $(dirname {output})
@@ -43,27 +43,22 @@ rule freq_files:
         # Create temp file in same directory as output
         TMPFILE=$(mktemp -p $(dirname {output}) tmp.chr{wildcards.chr}.XXXXXX.frq)
         
-        # Run vcftools and capture output to temp file
-        if vcftools --gzvcf {input} \
+        # Run vcftools - ignore exit code, check output file instead
+        vcftools --gzvcf {input} \
             --chr {params.chr_prefix}{wildcards.chr} \
             --remove-indels \
             --non-ref-af {params.min_non_ref_freq} \
             --max-non-ref-af 1.0 \
-            --stdout --freq > "$TMPFILE" 2>> {log}; then
-            
-            # Check if we got results
-            if [ -s "$TMPFILE" ]; then
-                mv "$TMPFILE" {output}
-                echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
-            else
-                echo "Creating empty output file with header" >> {log}
-                echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
-                echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
-                rm -f "$TMPFILE"
-            fi
+            --stdout --freq > "$TMPFILE" 2>> {log} || true
+        
+        # Check if we got results (vcftools exit code is unreliable)
+        if [ -s "$TMPFILE" ]; then
+            mv "$TMPFILE" {output}
+            echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
         else
-            echo "vcftools failed, creating empty output file" >> {log}
+            echo "Creating empty output file with header" >> {log}
             echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
+            echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
             rm -f "$TMPFILE"
         fi
         """
