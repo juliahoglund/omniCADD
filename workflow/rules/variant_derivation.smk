@@ -34,30 +34,38 @@ rule freq_files:
         chr_prefix=get_alignment_config()["chrom_prefix"],
     shell:
         """
-        set +e  # Disable exit on error for this script
+        set -euo pipefail
         
         # Ensure output directory exists
         mkdir -p $(dirname {output})
         mkdir -p $(dirname {log})
         
-        # Run vcftools and capture output explicitly
-        vcftools --gzvcf {input} \
+        # Create temp file in same directory as output
+        TMPFILE=$(mktemp -p $(dirname {output}) tmp.chr{wildcards.chr}.XXXXXX.frq)
+        
+        # Run vcftools and capture output to temp file
+        if vcftools --gzvcf {input} \
             --chr {params.chr_prefix}{wildcards.chr} \
             --remove-indels \
             --non-ref-af {params.min_non_ref_freq} \
             --max-non-ref-af 1.0 \
-            --stdout --freq 2>> {log} | tee {output} || true
-        
-        # Ensure output file exists (create empty with header if needed)
-        if [ ! -f {output} ] || [ ! -s {output} ]; then
-            echo "Creating empty output file with header" >> {log}
-            echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
-            echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
+            --stdout --freq > "$TMPFILE" 2>> {log}; then
+            
+            # Check if we got results
+            if [ -s "$TMPFILE" ]; then
+                mv "$TMPFILE" {output}
+                echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
+            else
+                echo "Creating empty output file with header" >> {log}
+                echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
+                echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
+                rm -f "$TMPFILE"
+            fi
         else
-            echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
+            echo "vcftools failed, creating empty output file" >> {log}
+            echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
+            rm -f "$TMPFILE"
         fi
-        
-        exit 0  # Always succeed - output validation happens via file existence
         """
 
 
