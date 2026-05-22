@@ -34,14 +34,13 @@ rule freq_files:
         chr_prefix=get_alignment_config()["chrom_prefix"],
     shell:
         """
-        set -u  # Only fail on undefined variables, not on command failures
-        
         # Ensure output directory exists
-        mkdir -p $(dirname {output})
-        mkdir -p $(dirname {log})
+        mkdir -p $(dirname {output}) || exit 1
+        mkdir -p $(dirname {log}) || exit 1
         
         # Create temp file in same directory as output
-        TMPFILE=$(mktemp -p $(dirname {output}) tmp.chr{wildcards.chr}.XXXXXX.frq)
+        TMPFILE=$(mktemp -p $(dirname {output}) tmp.chr{wildcards.chr}.XXXXXX.frq) || exit 1
+        echo "Created temp file: $TMPFILE" >> {log}
         
         # Run vcftools - ignore exit code, check output file instead
         vcftools --gzvcf {input} \
@@ -51,16 +50,24 @@ rule freq_files:
             --max-non-ref-af 1.0 \
             --stdout --freq > "$TMPFILE" 2>> {log} || true
         
+        # Sync to ensure write completes
+        sync
+        echo "vcftools completed, checking output..." >> {log}
+        
         # Check if we got results (vcftools exit code is unreliable)
-        if [ -s "$TMPFILE" ]; then
-            mv "$TMPFILE" {output}
+        if [ -f "$TMPFILE" ] && [ -s "$TMPFILE" ]; then
+            echo "Temp file exists with size: $(stat -c%s "$TMPFILE") bytes" >> {log}
+            mv "$TMPFILE" {output} || exit 1
+            sync
             echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
         else
-            echo "Creating empty output file with header" >> {log}
+            echo "No temp file or empty, creating header-only file" >> {log}
             echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
             echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
             rm -f "$TMPFILE"
         fi
+        
+        echo "Script completed successfully" >> {log}
         """
 
 
