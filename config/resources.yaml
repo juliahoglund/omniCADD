@@ -51,13 +51,14 @@ fit_phylo_model:
 ### STEP 2: VARIANT DERIVATION ####
 ###################################
 freq_files:
-  mem_mb: 8192
+  mem_mb: 16384  # 16GB for large chromosomes
   threads: 1
-  time: "04:00:00"
+  time: "02:00:00"  # 2 hours for large VCF files
 
 gen_derived:
   mem_mb: 16384
   threads: 2
+  time: "02:00:00"  # 2 hours
   time: "08:00:00"
 
 snp_filter:

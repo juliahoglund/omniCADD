@@ -37,7 +37,7 @@ default-resources:
   runtime: 240
   mem_mb: 8192
   tasks: 1
-  slurm_extra: "'--job-name={rule}.{jobid} --output=slurm/slurm_%x_%j.out --error=slurm/slurm_%x_%j.err'"
+  slurm_extra: "'--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err'"
 
 # Map runtime to SLURM time format  
 default-storage-provider: none
