@@ -25,19 +25,17 @@ rerun-incomplete: True
 rerun-triggers:
   - input  # Only rerun if input files actually changed, not just mtime
 
-# Job naming for easier troubleshooting
-jobname: "{rule}.{jobid}"
-
 # Ensure resources are passed to SLURM
 retries: 2
 
 default-resources:
   slurm_account: "naiss2026-3-90"
   slurm_partition: "shared"
+  slurm_job_name: "{rule}_{wildcards}"
   runtime: 240
   mem_mb: 8192
   tasks: 1
-  slurm_extra: "'--output=slurm/slurm_%j.out --error=slurm/slurm_%j.err'"
+  slurm_extra: "'--output=slurm/slurm_%x_%j.out --error=slurm/slurm_%x_%j.err'"
 
 # Map runtime to SLURM time format  
 default-storage-provider: none

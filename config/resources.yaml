@@ -54,12 +54,13 @@ freq_files:
   mem_mb: 16384  # 16GB for large chromosomes
   threads: 1
   time: "02:00:00"  # 2 hours for large VCF files
+  runtime: 120  # Same as time, in minutes - for SLURM executor
 
 gen_derived:
   mem_mb: 16384
   threads: 2
   time: "02:00:00"  # 2 hours
-  time: "08:00:00"
+  runtime: 120
 
 snp_filter:
   mem_mb: 8192

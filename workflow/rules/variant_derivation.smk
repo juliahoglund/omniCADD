@@ -26,7 +26,6 @@ rule freq_files:
     threads: get_resource("freq_files", "threads")
     resources:
         mem_mb=get_resource("freq_files", "mem_mb"),
-        runtime=get_resource("freq_files", "runtime"),
         time=get_resource("freq_files", "time"),
         partition=get_resource("freq_files", "partition"),
     params:
@@ -89,7 +88,6 @@ rule gen_derived:
     threads: get_resource("gen_derived", "threads")
     resources:
         mem_mb=get_resource("gen_derived", "mem_mb"),
-        runtime=get_resource("gen_derived", "runtime"),
         time=get_resource("gen_derived", "time"),
         partition=get_resource("gen_derived", "partition"),
     params:
@@ -129,7 +127,6 @@ rule snp_filter:
     threads: get_resource("snp_filter", "threads")
     resources:
         mem_mb=get_resource("snp_filter", "mem_mb"),
-        runtime=get_resource("snp_filter", "runtime"),
         time=get_resource("snp_filter", "time"),
         partition=get_resource("snp_filter", "partition"),
     shell:
@@ -152,7 +149,6 @@ rule merge_by_chr:
     threads: get_resource("merge_by_chr", "threads")
     resources:
         mem_mb=get_resource("merge_by_chr", "mem_mb"),
-        runtime=get_resource("merge_by_chr", "runtime"),
         time=get_resource("merge_by_chr", "time"),
         partition=get_resource("merge_by_chr", "partition"),
     shell:
