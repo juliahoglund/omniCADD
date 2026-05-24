@@ -42,116 +42,85 @@ default-storage-provider: none
 # Conda and Apptainer paths
 conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-envs"
 
-# Per-rule overrides — runtime in minutes, will be converted to HH:MM:SS by executor
+# Per-rule overrides — memory only (time is set in resources.yaml)
 # Only rules with values different from the defaults above are listed
 set-resources:
   # Step 1: Ancestral sequence
   maf_ro:
-    runtime: 720  # 12 hours
     mem_mb: 49152
   maf_df:
-    runtime: 600  # 10 hours
     mem_mb: 32768
   mark_ancestor:
-    runtime: 480  # 8 hours
     mem_mb: 24576
   reconstruct_ancestor:
-    runtime: 960  # 16 hours
     mem_mb: 49152
   fit_phylo_model:
-    runtime: 720  # 12 hours
     mem_mb: 32768
 
   # Step 2: Derive variants
   freq_files:
-    runtime: 120  # 2 hours - increased for large VCF files
     mem_mb: 16384  # 16GB - increased for large chromosomes
   gen_derived:
-    runtime: 120  # 2 hours
     mem_mb: 16384
 
   # Step 3: Simulate variants
   simulate_indels:
-    runtime: 960
     mem_mb: 32768
 
   # Step 4: Summary report
   create_stats_report:
-    runtime: 480
     mem_mb: 49152
   create_summary:
-    runtime: 360
     mem_mb: 32768
 
   # Step 5: Annotate variants
   run_vep_combine:
-    runtime: 720
     mem_mb: 49152
   process_vep_combine:
-    runtime: 480
     mem_mb: 32768
   run_snpeff:
-    runtime: 720
     mem_mb: 49152
   process_snpeff_derived:
-    runtime: 360
     mem_mb: 32768
   process_snpeff_simulated:
-    runtime: 360
     mem_mb: 32768
   augustus_predict_genes:
-    runtime: 720
     mem_mb: 32768
   compute_gerp:
-    runtime: 480
     mem_mb: 32768
   phylo_fit_combine:
-    runtime: 480
     mem_mb: 32768
 
   # Step 6: Combine annotations
   combine_annotations_combine:
-    runtime: 720
     mem_mb: 65536
   combine_annotations_snpeff_combine:
-    runtime: 720
     mem_mb: 65536
 
   # Step 7: Train & test model
   train_test_model:
-    runtime: 1440
     mem_mb: 98304
 
   # Step 8: Score variants
   run_genome_vep:
-    runtime: 960
     mem_mb: 49152
   process_genome_vep:
-    runtime: 720
     mem_mb: 49152
   run_genome_snpeff:
-    runtime: 960
     mem_mb: 49152
   process_genome_snpeff:
-    runtime: 720
     mem_mb: 49152
   prepare_whole_genome:
-    runtime: 960
     mem_mb: 65536
   score_variants:
-    runtime: 1440
     mem_mb: 98304
   sort_raw_scores:
-    runtime: 480
     mem_mb: 49152
 
   # Alignment generation
   align_species:
-    runtime: 960
     mem_mb: 49152
   filter_alignments:
-    runtime: 480
     mem_mb: 32768
   sort_bam:
-    runtime: 360
     mem_mb: 32768
