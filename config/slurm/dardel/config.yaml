@@ -37,9 +37,7 @@ default-resources:
   runtime: 240
   mem_mb: 8192
   tasks: 1
-
-# SLURM extra arguments - %j is the SLURM job ID, %x is the job name
-slurm_extra: "--job-name={rule}.{jobid} --output=slurm/slurm_%x_%j.out --error=slurm/slurm_%x_%j.err"
+  slurm_extra: "'--job-name={rule}.{jobid} --output=slurm/slurm_%x_%j.out --error=slurm/slurm_%x_%j.err'"
 
 # Map runtime to SLURM time format  
 default-storage-provider: none
