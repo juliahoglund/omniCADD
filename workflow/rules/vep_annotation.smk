@@ -18,7 +18,6 @@ rule vep_cache:
     threads: get_resource("vep_cache", "threads")
     resources:
         mem_mb=get_resource("vep_cache", "mem_mb"),
-        runtime=get_resource("vep_cache", "runtime"),
         time=get_resource("vep_cache", "time"),
         partition=get_resource("vep_cache", "partition"),
     params:
@@ -45,7 +44,6 @@ rule run_vep:
     threads: get_resource("run_vep", "threads")
     resources:
         mem_mb=get_resource("run_vep", "mem_mb"),
-        runtime=get_resource("run_vep", "runtime"),
         time=get_resource("run_vep", "time"),
         partition=get_resource("run_vep", "partition"),
     params:
@@ -75,7 +73,6 @@ rule process_vep:
     threads: get_resource("process_vep", "threads")
     resources:
         mem_mb=get_resource("process_vep", "mem_mb"),
-        runtime=get_resource("process_vep", "runtime"),
         time=get_resource("process_vep", "time"),
         partition=get_resource("process_vep", "partition"),
     shell:

@@ -36,7 +36,6 @@ rule fit_phylo_model:
     threads: get_resource("fit_phylo_model", "threads")
     resources:
         mem_mb=get_resource("fit_phylo_model", "mem_mb"),
-        runtime=get_resource("fit_phylo_model", "runtime"),
         time=get_resource("fit_phylo_model", "time"),
         partition=get_resource("fit_phylo_model", "partition"),
     params:
@@ -62,7 +61,6 @@ rule reconstruct_ancestor:
     threads: get_resource("reconstruct_ancestor", "threads")
     resources:
         mem_mb=get_resource("reconstruct_ancestor", "mem_mb"),
-        runtime=get_resource("reconstruct_ancestor", "runtime"),
         time=get_resource("reconstruct_ancestor", "time"),
         partition=get_resource("reconstruct_ancestor", "partition"),
     params:
