@@ -67,8 +67,8 @@ set-resources:
 
   # Step 2: Derive variants
   freq_files:
-    runtime: 60  # 1 hour
-    mem_mb: 8192
+    runtime: 120  # 2 hours - increased for large VCF files
+    mem_mb: 16384  # 16GB - increased for large chromosomes
   gen_derived:
     runtime: 120  # 2 hours
     mem_mb: 16384
