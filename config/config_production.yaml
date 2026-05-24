@@ -11,7 +11,7 @@ chromosomes:
 
 # Reference genome paths
 generate_variants:
-  reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/omniCADD/resources/genome/Sus_scrofa.Sscrofa11.1.dna.primary_assembly.{chr}.fa"
+  reference_genome_wildcard: "resources/genome/Sus_scrofa.Sscrofa11.1.dna.primary_assembly.{chr}.fa"
   population_vcf: "resources/pop-level-VCF/DomPig_Chr{chr}.vcf.gz"
   derive:
     frequency_threshold: 0.9

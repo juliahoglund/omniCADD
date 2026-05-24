@@ -2,11 +2,13 @@
 # Automatically converts .fa.gz (gzip) to .fa (uncompressed) for pysam compatibility
 rule decompress_genome_fasta:
     input:
-        fasta="resources/genome/{prefix}.{chr}.fa.gz",
+        fasta="resources/genome/{prefix}.fa.gz",
     output:
-        fasta="resources/genome/{prefix}.{chr}.fa",
+        fasta="resources/genome/{prefix}.fa",
+    wildcard_constraints:
+        prefix="[^/]+",  # Match anything except path separator
     log:
-        "results/logs/decompress_genome_fasta/{prefix}.{chr}.log",
+        "results/logs/decompress_genome_fasta/{prefix}.log",
     conda:
         get_conda_env("common")
     threads: 1
