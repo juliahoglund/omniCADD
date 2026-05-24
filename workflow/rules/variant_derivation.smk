@@ -38,33 +38,35 @@ rule freq_files:
         mkdir -p $(dirname {output}) || exit 1
         mkdir -p $(dirname {log}) || exit 1
         
-        # Create temp file in same directory as output
-        TMPFILE=$(mktemp -p $(dirname {output}) tmp.chr{wildcards.chr}.XXXXXX.frq) || exit 1
-        echo "Created temp file: $TMPFILE" >> {log}
+        echo "Starting freq_files for chr{wildcards.chr}" >> {log}
         
-        # Run vcftools - ignore exit code, check output file instead
+        # Run vcftools with direct output file (not stdout redirect)
+        # Remove .frq extension as vcftools adds it automatically
+        OUTBASE=$(dirname {output})/chr{wildcards.chr}_tmp
+        
         vcftools --gzvcf {input} \
             --chr {params.chr_prefix}{wildcards.chr} \
             --remove-indels \
             --non-ref-af {params.min_non_ref_freq} \
             --max-non-ref-af 1.0 \
-            --stdout --freq > "$TMPFILE" 2>> {log} || true
+            --freq \
+            --out "$OUTBASE" 2>> {log} || true
         
-        # Sync to ensure write completes
-        sync
-        echo "vcftools completed, checking output..." >> {log}
+        echo "vcftools command completed" >> {log}
         
-        # Check if we got results (vcftools exit code is unreliable)
-        if [ -f "$TMPFILE" ] && [ -s "$TMPFILE" ]; then
-            echo "Temp file exists with size: $(stat -c%s "$TMPFILE") bytes" >> {log}
-            mv "$TMPFILE" {output} || exit 1
-            sync
-            echo "Output file created successfully: $(wc -l < {output}) lines" >> {log}
+        # vcftools creates OUTBASE.frq automatically
+        VCFOUT="${{OUTBASE}}.frq"
+        
+        # Check if we got results
+        if [ -f "$VCFOUT" ] && [ -s "$VCFOUT" ]; then
+            echo "Output file exists: $VCFOUT with size $(stat -c%s "$VCFOUT" 2>/dev/null || stat -f%z "$VCFOUT") bytes" >> {log}
+            mv "$VCFOUT" {output} || exit 1
+            echo "Moved to final location: $(wc -l < {output}) lines" >> {log}
         else
-            echo "No temp file or empty, creating header-only file" >> {log}
+            echo "No output file or empty, creating header-only file" >> {log}
             echo -e "CHROM\\tPOS\\tN_ALLELES\\tN_CHR\\t{{ALLELE:FREQ}}" > {output}
             echo "No variants passed filter (frequency threshold {params.min_non_ref_freq})" >> {log}
-            rm -f "$TMPFILE"
+            rm -f "$VCFOUT"
         fi
         
         echo "Script completed successfully" >> {log}
