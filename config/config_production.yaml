@@ -4,14 +4,15 @@ data_tier: "custom"
 
 chromosomes:
   # All autosomes + X chromosome
-  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X' ]
-  train: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X' ]
-  score: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15_17', '16', '18', 'X' ]
+  autosomes: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18' ]
+  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
+  train: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
+  score: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
 
 # Reference genome paths
 generate_variants:
-  reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/hoglu001/omniCADD/genomeBoar/Wild_Boar_chr{chr}.fa"
-  population_vcf: "resources/pop-level-VCF/WildBoar_Chr{chr}.vcf.gz"
+  reference_genome_wildcard: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/omniCADD/resources/genome/Sus_scrofa.Sscrofa11.1.dna.primary_assembly.{chr}.fa"
+  population_vcf: "resources/pop-level-VCF/DomPig_Chr{chr}.vcf.gz"
   derive:
     frequency_threshold: 0.9
 

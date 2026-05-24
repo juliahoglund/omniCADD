@@ -1,3 +1,37 @@
+# Rule: Decompress genome FASTA files
+# Automatically converts .fa.gz (gzip) to .fa (uncompressed) for pysam compatibility
+rule decompress_genome_fasta:
+    input:
+        fasta="resources/genome/{prefix}.{chr}.fa.gz",
+    output:
+        fasta="resources/genome/{prefix}.{chr}.fa",
+    log:
+        "results/logs/decompress_genome_fasta/{prefix}.{chr}.log",
+    conda:
+        get_conda_env("common")
+    threads: 1
+    resources:
+        mem_mb=4096,
+        time="00:30:00",
+        partition="core",
+    shell:
+        """
+        # Check if input is gzip-compressed
+        if file {input.fasta} | grep -q "gzip compressed"; then
+            echo "Decompressing gzipped FASTA: {input.fasta}" > {log}
+            gunzip -c {input.fasta} > {output.fasta} 2>> {log}
+        elif file {input.fasta} | grep -q "ASCII text"; then
+            # Already uncompressed, just copy
+            echo "FASTA already uncompressed, copying: {input.fasta}" > {log}
+            cp {input.fasta} {output.fasta} 2>> {log}
+        else
+            echo "ERROR: Unknown file format for {input.fasta}" >> {log}
+            exit 1
+        fi
+        echo "Done: $(wc -l < {output.fasta}) lines" >> {log}
+        """
+
+
 # Rule: Split FASTA by chromosome
 rule split_fasta_by_chromosome:
     input:
