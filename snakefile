@@ -3,7 +3,7 @@ from glob import glob
 import os
 
 ##### pipeline version ######
-omniCADD_version = "0.0.1"
+omniCADD_version = "0.1.0"  # Modular workflow structure
 
 ##### set minimum snakemake version #####
 min_version("7.21.0")
@@ -30,15 +30,23 @@ SCRIPTS_EMF2MAF = "workflow/emftomaf.pl"
 SCRIPTS_HELPER = "workflow/data_helper.py"
 
 ##### load modules  #####
-include: "workflow/rules/common.smk"
-include: "workflow/rules/1_extract_ancestor.smk"        # step one
-include: "workflow/rules/2_derive_variants.smk"         # step two
-include: "workflow/rules/3_simulate_variants.smk"       # step three
-include: "workflow/rules/4_summary_report.smk"          # step four
-include: "workflow/rules/5_annotate_vars.smk"   	# step five
-include: "workflow/rules/6_combine_annotations.smk"  	# step six
-include: "workflow/rules/7_train_test_model.smk"     	# step seven
-include: "workflow/rules/8_score_variants.smk"  	# step eight
+include: "workflow/rules/config_helpers.smk"            # configuration utilities
+include: "workflow/rules/common.smk"                     # common functions and rules
+include: "workflow/rules/data_preparation.smk"           # data preprocessing
+include: "workflow/rules/ancestral_generation.smk"       # ancestral sequence extraction
+include: "workflow/rules/ancestral_reconstruction.smk"   # phylogenetic reconstruction
+include: "workflow/rules/variant_derivation.smk"         # derive variants from ancestral seqs
+include: "workflow/rules/variant_simulation.smk"         # simulate variants
+include: "workflow/rules/summary_report.smk"             # summary and reports
+include: "workflow/rules/prepare_annotation.smk"         # annotation preparation
+include: "workflow/rules/vep_annotation.smk"             # VEP annotation
+include: "workflow/rules/snpeff_annotation.smk"          # snpEff annotation
+include: "workflow/rules/gerp_annotation.smk"            # GERP++ conservation
+include: "workflow/rules/phast_annotation.smk"           # phastCons/phyloP conservation
+include: "workflow/rules/gene_prediction.smk"            # gene prediction (Augustus)
+include: "workflow/rules/combine_annotations.smk"        # combine all annotations
+include: "workflow/rules/train_test_model.smk"           # train ML model
+include: "workflow/rules/score_variants.smk"             # score variants with trained model
 
 ##### target rules #####
 rule all:

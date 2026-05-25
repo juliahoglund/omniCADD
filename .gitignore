@@ -56,3 +56,7 @@ output/worflow-Page-2.drawio.png
 QUICK_REFERENCE.md
 workflow/docker/augustus/README.md
 boar_tmp_HOWTO.md
+__pycache__/
+*.py[cod]
+*.class
+*.so
