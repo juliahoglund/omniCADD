@@ -9,7 +9,7 @@ rule derive_impute_means:
             chr=config["chromosomes"]["karyotype"],
         ),
         processing=config["annotation_config"]["processing"],
-        script="workflow/scripts/step_6_combine_annotations/derive_means.py",
+        script="workflow/scripts/combine_annotations/derive_means.py",
     output:
         imputation=report("results/dataset/imputation_dict.txt", category="Logs"),
     log:
@@ -39,7 +39,7 @@ rule column_analysis:
             "results/dataset/simulated/chr{chr}_annotated.tsv",
             chr=config["chromosomes"]["karyotype"],
         ),
-        script="workflow/scripts/step_6_combine_annotations/column_analysis.py",
+        script="workflow/scripts/combine_annotations/column_analysis.py",
     output:
         relevance=report("results/figures/column_analysis/relevance.tsv", category="Column Analysis"),
         derived_cor=report(
@@ -79,7 +79,7 @@ rule prepare_data:
         imputation="results/dataset/imputation_dict.txt",
         processing=config["annotation_config"]["processing"],
         interactions=config["annotation_config"]["interactions"],
-        script="workflow/scripts/step_6_combine_annotations/prepare_annotated_data.py",
+        script="workflow/scripts/combine_annotations/prepare_annotated_data.py",
     output:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",

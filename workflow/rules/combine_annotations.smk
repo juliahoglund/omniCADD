@@ -37,7 +37,7 @@ Uses the conservation alignment (all species preserved) so GERP/phastCons/phyloP
 have the full phylogenetic context.
 """
     input:
-        script="workflow/scripts/step_6_combine_annotations/split_alignments.py",
+        script="workflow/scripts/combine_annotations/split_alignments.py",
         maf="results/alignment/merged_conservation/chr{chr}.maf",
     output:
         directory("results/alignment/splitted/chr{chr}/"),
@@ -323,7 +323,7 @@ constraint BED for merging with variant annotations.
             chr=wc.chr,
             part=get_alignment_parts(wc),
         ),
-        script="workflow/scripts/step_6_combine_annotations/combine_constraint.py",
+        script="workflow/scripts/combine_annotations/combine_constraint.py",
     output:
         bed="results/annotation/constraint/constraint_chr{chr}.bed",
     log:
@@ -355,7 +355,7 @@ if should_include_vep():
         input:
             annotation="results/annotation/vep/{type}/chr{chr}_vep.tsv",
             constraint="results/annotation/constraint/constraint_chr{chr}.bed",
-            script="workflow/scripts/step_6_combine_annotations/merge_annotations.py",
+            script="workflow/scripts/combine_annotations/merge_annotations.py",
         output:
             annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
         log:
@@ -378,7 +378,7 @@ if should_include_snpeff():
         input:
             annotation="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
             constraint="results/annotation/constraint/constraint_chr{chr}.bed",
-            script="workflow/scripts/step_6_combine_annotations/merge_annotations.py",
+            script="workflow/scripts/combine_annotations/merge_annotations.py",
         output:
             annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
         log:

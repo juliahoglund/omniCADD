@@ -16,7 +16,7 @@ Params can be adjusted for any given species of interest.
 
 rule create_summary:
     input:
-        script="workflow/scripts/step_4_summary_report/generate_summary_info.R",
+        script="workflow/scripts/summary_report/generate_summary_info.R",
         raw_snps="results/simulated_variants/raw_snps/all_chr.vcf",
         filtered_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         derived_vars="results/derived_variants/singletons/all_chr.vcf",
@@ -72,7 +72,7 @@ if config["stats_report"]["annotation"] == "True":
         input:
             gff=config["stats_report"]["gff"],
             file=config["stats_report"]["prefix"],
-            script="workflow/scripts/step_4_summary_report/fasta2bed.py",
+            script="workflow/scripts/summary_report/fasta2bed.py",
         output:
             regions="results/visualisation/CDS.regions.bed",
             coverage="results/visualisation/CDS.coverage.bed",
@@ -99,7 +99,7 @@ if config["stats_report"]["annotation"] == "True":
 
 rule create_datafiles:
     input:
-        script="workflow/scripts/step_4_summary_report/stats_report.R",
+        script="workflow/scripts/summary_report/stats_report.R",
         tree=config["stats_report"]["tree"],
         ideogram="results/visualisation/indexfile.txt",
         annotation=("results/visualisation/Ancestor.bed" if config["stats_report"]["annotation"] == "True" else []),
@@ -178,4 +178,4 @@ rule summary_report_with_gene_prediction:
         time=get_resource("summary_report_with_gene_prediction", "time"),
         partition=get_resource("summary_report_with_gene_prediction", "partition"),
     shell:
-        "Rscript workflow/scripts/step_4_summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report} 2> {log}"
+        "Rscript workflow/scripts/summary_report/generate_summary_info.R {input.combined} {input.gff} {output.report} 2> {log}"

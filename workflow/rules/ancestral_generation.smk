@@ -16,7 +16,7 @@ either with the emf2maf.pl script of with the msaconverter.
 """
 
 # Set correct script path for modular structure
-SCRIPTS_1 = "workflow/scripts/step_1_extract_ancestor/"
+SCRIPTS_1 = "workflow/scripts/ancestral_generation/"
 
 import sys
 from snakemake.io import expand, glob_wildcards
@@ -39,7 +39,7 @@ rule clean_ambiguous:
         time=lambda wildcards, attempt: get_resource("clean_ambiguous", "time") * attempt,
         partition=get_resource("clean_ambiguous", "partition"),
     shell:
-        "python3 workflow/scripts/step_1_extract_ancestor/clean_maf.py -i {input} -o {output} 2> {log}"
+        "python3 workflow/scripts/ancestral_generation/clean_maf.py -i {input} -o {output} 2> {log}"
 
 
 # Identifies the most recent common ancestor between two given species and marks it with an identifier.
@@ -53,7 +53,7 @@ rule clean_ambiguous:
 rule mark_ancestor:
     input:
         maf=lambda wildcards: get_mark_ancestor_input_maf(wildcards),
-        script="workflow/scripts/step_1_extract_ancestor/mark_ancestor.py",
+        script="workflow/scripts/ancestral_generation/mark_ancestor.py",
     output:
         temp("results/alignment/marked_ancestor/{part}.maf.gz"),
     log:
@@ -157,7 +157,7 @@ rule maf_ro_conservation:
 rule sort_by_chr_conservation:
     input:
         maf=gather_part_files_conservation(),
-        script="workflow/scripts/step_1_extract_ancestor/sort_by_chromosome.py",
+        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
         expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"]),
     log:
@@ -189,7 +189,7 @@ rule sort_by_chr_conservation:
 rule sort_by_chr:
     input:
         maf=gather_part_files(),
-        script="workflow/scripts/step_1_extract_ancestor/sort_by_chromosome.py",
+        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
         temp(expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"])),
     log:
@@ -313,7 +313,7 @@ rule prepare_reference_genome:
 rule gen_ancestor_seq:
     input:
         maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
-        script="workflow/scripts/step_1_extract_ancestor/extract_ancestor.py",
+        script="workflow/scripts/ancestral_generation/extract_ancestor.py",
         ref_idx="results/reference/reference_genome.fa.gz.fai",
     output:
         f"results/ancestral_seq/{config['mark_ancestor']['name_ancestor']}/chr{{chr}}.fa",
