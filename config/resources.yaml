@@ -1,0 +1,212 @@
+---
+# Computational resources for omniCADD pipeline rules
+# Only rules that differ from defaults need to be specified
+# All others automatically use default_resources
+
+############################
+### DEFAULT RESOURCES ######
+############################
+default_resources:
+  threads: 1
+  time: "04:00:00"
+  mem_mb: 8192
+  mem_per_cpu: 8192
+  partition: "core"
+
+#######################################################
+### RESOURCE-INTENSIVE RULES (override defaults) ######
+#######################################################
+# Only specify rules that need more resources than defaults
+# Format: rule_name: {threads: X, mem_mb: Y, time: "HH:MM:SS"}
+
+##################################
+### STEP 1: ANCESTRAL SEQUENCE ###
+##################################
+maf_ro:
+  mem_mb: 49152
+  threads: 6
+  time: "12:00:00"
+
+maf_df:
+  mem_mb: 32768
+  threads: 4
+  time: "10:00:00"
+
+mark_ancestor:
+  mem_mb: 24576
+  threads: 3
+  time: "08:00:00"
+
+reconstruct_ancestor:
+  mem_mb: 49152
+  threads: 6
+  time: "16:00:00"
+
+fit_phylo_model:
+  mem_mb: 32768
+  threads: 4
+  time: "12:00:00"
+
+###################################
+### STEP 2: VARIANT DERIVATION ####
+###################################
+freq_files:
+  mem_mb: 16384  # 16GB for large chromosomes
+  threads: 1
+  time: "02:00:00"  # 2 hours for large VCF files
+
+gen_derived:
+  mem_mb: 16384
+  threads: 2
+  time: "02:00:00"  # 2 hours
+
+snp_filter:
+  mem_mb: 8192
+  threads: 1
+  time: "02:00:00"
+
+merge_by_chr:
+  mem_mb: 8192
+  threads: 1
+  time: "01:00:00"
+
+####################################
+### STEP 3: SIMULATE VARIANTS ######
+####################################
+simulate_indels:
+  mem_mb: 32768
+  threads: 4
+  time: "16:00:00"
+
+######################################
+### STEP 4: SUMMARY REPORT ###########
+######################################
+create_stats_report:
+  mem_mb: 49152
+  threads: 6
+  time: "08:00:00"
+
+create_summary:
+  mem_mb: 32768
+  threads: 4
+  time: "06:00:00"
+
+######################################
+### STEP 5: ANNOTATE VARIANTS ########
+######################################
+run_vep_combine:
+  mem_mb: 49152
+  threads: 6
+  time: "12:00:00"
+
+process_vep_combine:
+  mem_mb: 32768
+  threads: 4
+  time: "08:00:00"
+
+run_snpeff:
+  mem_mb: 49152
+  threads: 6
+  time: "12:00:00"
+
+process_snpeff_derived:
+  mem_mb: 32768
+  threads: 4
+  time: "06:00:00"
+
+process_snpeff_simulated:
+  mem_mb: 32768
+  threads: 4
+  time: "06:00:00"
+
+augustus_predict_genes:
+  mem_mb: 32768
+  threads: 4
+  time: "12:00:00"
+
+compute_gerp:
+  mem_mb: 32768
+  threads: 4
+  time: "08:00:00"
+
+phylo_fit_combine:
+  mem_mb: 32768
+  threads: 4
+  time: "08:00:00"
+
+#########################################
+### STEP 6: COMBINE ANNOTATIONS #########
+#########################################
+combine_annotations_combine:
+  mem_mb: 65536
+  threads: 8
+  time: "12:00:00"
+
+combine_annotations_snpeff_combine:
+  mem_mb: 65536
+  threads: 8
+  time: "12:00:00"
+
+#######################################
+### STEP 7: TRAIN & TEST MODEL ########
+#######################################
+train_test_model:
+  mem_mb: 98304
+  threads: 12
+  time: "24:00:00"
+
+#####################################
+### STEP 8: SCORE VARIANTS ##########
+#####################################
+run_genome_vep:
+  mem_mb: 49152
+  threads: 6
+  time: "16:00:00"
+
+process_genome_vep:
+  mem_mb: 49152
+  threads: 6
+  time: "12:00:00"
+
+run_genome_snpeff:
+  mem_mb: 49152
+  threads: 6
+  time: "16:00:00"
+
+process_genome_snpeff:
+  mem_mb: 49152
+  threads: 6
+  time: "12:00:00"
+
+prepare_whole_genome:
+  mem_mb: 65536
+  threads: 8
+  time: "16:00:00"
+
+score_variants:
+  mem_mb: 98304
+  threads: 12
+  time: "24:00:00"
+
+sort_raw_scores:
+  mem_mb: 49152
+  threads: 6
+  time: "08:00:00"
+
+####################################
+### ALIGNMENT GENERATION ###########
+####################################
+align_species:
+  mem_mb: 49152
+  threads: 6
+  time: "16:00:00"
+
+filter_alignments:
+  mem_mb: 32768
+  threads: 4
+  time: "08:00:00"
+
+sort_bam:
+  mem_mb: 32768
+  threads: 4
+  time: "06:00:00"
