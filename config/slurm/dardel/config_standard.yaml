@@ -1,0 +1,163 @@
+# Test configuration: STANDARD (all data available)
+# Scenario: Well-annotated species with full resources
+# Use this to test workflows with existing GFF, VEP cache, MAF alignments, etc.
+
+containers:
+  vep: "docker://juliahoglund/vep:111.0"
+  maftools: "docker://juliahoglund/maftools:latest"
+  snpeff: "docker://juliahoglund/snpeff:latest"
+
+# data_tier: "custom"  # Using explicit config below instead of presets
+species_name: "sus_scrofa"
+genome_version: "Sscrofa11.1"
+chromosomes:
+  autosomes: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18' ]
+  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
+  train: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18' ]
+  score: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18' ]
+  naming:
+    convention: "numeric"
+    include_scaffolds: false
+    standardize:
+      enabled: false
+      patterns: []
+preprocessing:
+  reference_genome:
+    needs_formatting: false
+    needs_filtering: false
+    needs_indexing: false
+  population_vcf:
+    needs_processing: false
+    chromosome_prefix: "Chr"
+gene_annotation:
+  source: "gff"
+  gff: 'resources/Sus_scrofa_ref.gff3.gz'
+  gtf: ''
+  predict_genes: false
+  ancestral_mode: "alignment"
+  augustus:
+    enabled: false
+    species_model: "human"
+    species: "human"
+    output_format: "gff3"
+    parameters: "--protein=on --codingseq=on --introns=on --start=on --stop=on --cds=on"
+  convert_gff_to_gtf: false
+ancestral_sequence:
+  source: "alignment"
+  alignment:
+    enabled: true
+    alignments:
+      44_mammals.epo:
+        path: 'resources/alignment/44_mammals.epo/'
+        type: 'maf.gz'
+        clean_maf: true
+        ancestral_label: "Ancestor_Pig_Cow"
+        filter_order: "sus_scrofa,Ancestor_Pig_Cow,Cricetulus_griseus_CHOK1GS_HDv1,Microtus_ochrogaster_MicOch1.0,Peromyscus_maniculatus_bairdii_HU_Pman_2.1,Mus_musculus_reference_CL57BL6_strain,Mus_caroli_strain_CAROLI_EIJ,Mus_pahari_strain_PAHARI_EIJ,Rattus_norvegicus_reference_strain,Cavia_porcellus_Cavpor3.0,Marmota_marmota_marmota_marMar2.1,Sciurus_vulgaris_mSciVul1.1,Oryctolagus_cuniculus_OryCun2.0,Pan_troglodytes_Pan_tro_3.0,Pan_paniscus_panpan1.1,Homo_sapiens_GRCh38,Gorilla_gorilla_gorilla_gorGor4,Pongo_abelii_Susie_PABv2,Nomascus_leucogenys_Nleu_3.0,Macaca_mulatta_Mmul_10,Macaca_fascicularis_Macaca_fascicularis_6.0,Papio_anubis_Panubis1.0,Chlorocebus_sabaeus_ChlSab1.1,Callithrix_jacchus_mCalJac1.pat.X,Microcebus_murinus_Mmur_3.0,Monodon_monoceros_NGI_Narwhal_1,Delphinapterus_leucas_ASM228892v3,Phocoena_sinus_mPhoSin1.pri,Physeter_macrocephalus_ASM283717v2,Balaenoptera_musculus_mBalMus1.v2,Ovis_aries_reference_breed,Capra_hircus_reference_breed,Bos_taurus_reference_breed,Bos_indicus_x_Bos_taurus_UOA_Brahman_1,Bos_grunniens_LU_Bosgru_v3.0,Cervus_hanglu_yarkandensis_CEY_v1,Catagonus_wagneri_CatWag_v2_BIUU_UCD,Camelus_dromedarius_CamDro2,Rhinolophus_ferrumequinum_mRhiFer1_v1.p,Panthera_pardus_PanPar1.0,Panthera_leo_PanLeo1.0,Canis_lupus_familiaris_reference_breed,Canis_lupus_dingo_ASM325472v1,Equus_caballus_breed_thoroughbred,Loxodonta_africana_loxAfr3"
+        conservation_species_order: "sus_scrofa,Ancestor_Pig_Cow,Cricetulus_griseus_CHOK1GS_HDv1,Microtus_ochrogaster_MicOch1.0,Peromyscus_maniculatus_bairdii_HU_Pman_2.1,Mus_musculus_reference_CL57BL6_strain,Mus_caroli_strain_CAROLI_EIJ,Mus_pahari_strain_PAHARI_EIJ,Rattus_norvegicus_reference_strain,Cavia_porcellus_Cavpor3.0,Marmota_marmota_marmota_marMar2.1,Sciurus_vulgaris_mSciVul1.1,Oryctolagus_cuniculus_OryCun2.0,Pan_troglodytes_Pan_tro_3.0,Pan_paniscus_panpan1.1,Homo_sapiens_GRCh38,Gorilla_gorilla_gorilla_gorGor4,Pongo_abelii_Susie_PABv2,Nomascus_leucogenys_Nleu_3.0,Macaca_mulatta_Mmul_10,Macaca_fascicularis_Macaca_fascicularis_6.0,Papio_anubis_Panubis1.0,Chlorocebus_sabaeus_ChlSab1.1,Callithrix_jacchus_mCalJac1.pat.X,Microcebus_murinus_Mmur_3.0,Monodon_monoceros_NGI_Narwhal_1,Delphinapterus_leucas_ASM228892v3,Phocoena_sinus_mPhoSin1.pri,Physeter_macrocephalus_ASM283717v2,Balaenoptera_musculus_mBalMus1.v2,Ovis_aries_reference_breed,Capra_hircus_reference_breed,Bos_taurus_reference_breed,Bos_indicus_x_Bos_taurus_UOA_Brahman_1,Bos_grunniens_LU_Bosgru_v3.0,Cervus_hanglu_yarkandensis_CEY_v1,Catagonus_wagneri_CatWag_v2_BIUU_UCD,Camelus_dromedarius_CamDro2,Rhinolophus_ferrumequinum_mRhiFer1_v1.p,Panthera_pardus_PanPar1.0,Panthera_leo_PanLeo1.0,Canis_lupus_familiaris_reference_breed,Canis_lupus_dingo_ASM325472v1,Equus_caballus_breed_thoroughbred,Loxodonta_africana_loxAfr3"
+        exclude_patterns: [ "scaffold", "epo.Y" ]
+        name_species_interest: "sus_scrofa"
+        chrom_prefix: ""  # number only; no prefix
+  reconstruct:
+    enabled: false
+    method: "align_to_reference"
+    input_fasta: "resources/ancestral/Ancestor.fasta"
+    tools:
+      bbmap:
+        read_length: 150
+        quality: 40
+      bwa:
+        threads: 32
+        scoring: "-B 3 -O 4,4"
+      samtools:
+        min_quality: 2
+      htsbox:
+        min_quality: 30
+        min_base_quality: 30
+        min_length: 35
+    format_gaps: true
+  outgroup:
+    enabled: false
+    species: "bos_taurus"
+mark_ancestor:
+  ancestral_alignment: "44_mammals.epo"
+  name_ancestor: 'Ancestor_Pig_Cow'
+  sp1_tree_ab: 'Sscr'
+  sp2_tree_ab: 'Btau'
+  reference_genome: 'resources/genome/Sus_scrofa_ref.fa.gz'
+generate_variants:
+  reference_genome_wildcard: "resources/genome/Sus_scrofa.Sscrofa11.1.dna.primary_assembly.{chr}.fa"
+  population_vcf: "resources/pop-level-VCF/DomPig_Chr{chr}.vcf.gz"
+  derive:
+    frequency_threshold: 0.9
+  simulate:
+    overestimation_factor: 5
+annotation:
+  variant_annotator: "vep"
+  vep:
+    enabled: true
+    cache:
+      directory: '/sw/data/vep/111.0'
+      should_install: false
+      install_params: "--CACHE_VERSION 111 -s sus_scrofa -y Sscrofa11.1"
+    options: "--everything --fork 2"
+  snpeff:
+    enabled: false
+    database:
+      exists: false
+      name: "sus_scrofa_custom"
+      path: "resources/snpEff/data/"
+    build:
+      annotation_format: "gff3"
+      genome_fasta: "resources/genome/Sus_scrofa_ref.fa"
+      config_file: "resources/snpEff/snpEff.config"
+    run:
+      options: "-v -stats"
+      output_format: "vcf"
+  sift:
+    enabled: false
+    database:
+      exists: false
+      parent_dir: "resources/SIFT4G/"
+  conservation:
+    gerp:
+      enabled: true
+      alignment: '44_mammals.epo'
+      n_chunks: 30
+      tree: 'resources/tree_44_mammals.nwk'
+    phast:
+      enabled: true
+      phastCons: true
+      phyloP: true
+      tree: |
+        ((((((((Cricetulus_griseus_CHOK1GS_HDv1:0.02331,Microtus_ochrogaster_MicOch1.0:0.02605)Cricetidae:0.00176,Peromyscus_maniculatus_bairdii_HU_Pman_2.1:0.02125)Cricetidae:0.00606,(((Mus_musculus_reference_CL57BL6_strain:0.00814,Mus_caroli_strain_CAROLI_EIJ:0.00867)Mus:0.00509,Mus_pahari_strain_PAHARI_EIJ:0.01121)Mus:0.00907,Rattus_norvegicus_reference_strain:0.02018)Murinae:0.01501)Muroidea:0.03858,Cavia_porcellus_Cavpor3.0:0.06846)Rodentia:0.00199,(Marmota_marmota_marmota_marMar2.1:0.02069,Sciurus_vulgaris_mSciVul1.1:0.02098)Sciuridae:0.01752)Rodentia:0.0053,Oryctolagus_cuniculus_OryCun2.0:0.05566)Glires:0.00284,((((((((Pan_troglodytes_Pan_tro_3.0:0.00168,Pan_paniscus_panpan1.1:0.00306)Pan:0.00278,Homo_sapiens_GRCh38:0.00274)Homininae:0.00104,Gorilla_gorilla_gorilla_gorGor4:0.00701)Homininae:0.00342,Pongo_abelii_Susie_PABv2:0.00671)Hominidae:0.00117,Nomascus_leucogenys_Nleu_3.0:0.01685)Hominoidea:0.00357,(((Macaca_mulatta_Mmul_10:0.00115,Macaca_fascicularis_Macaca_fascicularis_6.0:0.00533)Macaca:0.0028,Papio_anubis_Panubis1.0:0.00472)Cercopithecinae:0.00117,Chlorocebus_sabaeus_ChlSab1.1:0.00518)Cercopithecinae:0.00859)Catarrhini:0.00562,Callithrix_jacchus_mCalJac1.pat.X:0.02358)Simiiformes:0.01713,Microcebus_murinus_Mmur_3.0:0.03684)Primates:0.00432)Euarchontoglires:0.00439,(((((((((Monodon_monoceros_NGI_Narwhal_1:0.00197,Delphinapterus_leucas_ASM228892v3:0.00236)Monodontidae:0.00247,Phocoena_sinus_mPhoSin1.pri:0.0061)Odontoceti:0.00841,Physeter_macrocephalus_ASM283717v2:0.01179)Odontoceti:0.00166,Balaenoptera_musculus_mBalMus1.v2:0.01245)Cetacea:0.01498,(((Ovis_aries_reference_breed:0.00323,Capra_hircus_reference_breed:0.00334)Caprinae:0.00759,((Bos_taurus_reference_breed:0.00078,Bos_indicus_x_Bos_taurus_UOA_Brahman_1:0.00105)Bos:0.00146,Bos_grunniens_LU_Bosgru_v3.0:0.01194)Bos:0.01023)Bovidae:0.00393,Cervus_hanglu_yarkandensis_CEY_v1:0.0123)Pecora:0.02052)Artiodactyla:0.00458,(Catagonus_wagneri_CatWag_v2_BIUU_UCD:0.01739,Sus_scrofa_reference_breed:0.02226)Suina:0.01581)Artiodactyla:0.00238,Camelus_dromedarius_CamDro2:0.03147)Artiodactyla:0.00795,Rhinolophus_ferrumequinum_mRhiFer1_v1.p:0.0438)Laurasiatheria:0.00124,(((Panthera_pardus_PanPar1.0:0.00079,Panthera_leo_PanLeo1.0:0.00164)Panthera:0.02393,(Canis_lupus_familiaris_reference_breed:0.00154,Canis_lupus_dingo_ASM325472v1:0.00155)Canis_lupus:0.0263)Carnivora:0.01067,Equus_caballus_breed_thoroughbred:0.02949)Laurasiatheria:0.00143)Laurasiatheria:0.00618)Boreoeutheria:0.005,Loxodonta_africana_loxAfr3:0.05129)Eutheria;
+      tree_species: ".*"
+      train_precision: "HIGH"
+      phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
+      phyloP_params: "--method=LRT --mode=CONACC"
+  grantham_matrix: "resources/grantham_matrix/grantham_table.tsv"
+annotation_config:
+  processing: "config/annot_processing_config.tsv"
+  interactions: "config/annot_combination_config.tsv"
+stats_report:
+  enabled: true
+  annotation: true
+  prefix: 'resources/genome/Sus_scrofa.Sscrofa11.1.dna.primary_assembly.'
+  tree: 'resources/tree_44_mammals.nwk'
+  ingroup: 'sus scrofa'
+  outgroup: 'bos taurus'
+model:
+  n_folds: 10
+  test_params:
+    c: [0.1, 1.0, 10.0]
+    max_iter: [100]
+  final_params:
+    c: 10.0
+    max_iter: 100
+  column_subsets:
+    All: "SPECIAL KEY, uses all columns"
+parallelization:
+  alignment_positions_per_file: 100000
+  whole_genome_positions_per_file: 500000
+  alignment_chunks: 30
+  memory: 60000
+dataset_memory_mb: 60000

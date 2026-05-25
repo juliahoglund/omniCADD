@@ -1,0 +1,88 @@
+# Production configuration - Full chromosome set with Augustus gene prediction
+
+data_tier: "custom"
+
+chromosomes:
+  # All autosomes + X chromosome
+  autosomes: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18' ]
+  karyotype: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
+  train: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
+  score: [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', 'X' ]
+
+# Reference genome paths
+generate_variants:
+  reference_genome_wildcard: "resources/genome/Sus_scrofa.Sscrofa11.1.dna.primary_assembly.{chr}.fa"
+  population_vcf: "resources/pop-level-VCF/DomPig_Chr{chr}.vcf.gz"
+  derive:
+    frequency_threshold: 0.9
+
+# Gene annotation with Augustus
+gene_annotation:
+  source: "augustus"
+  predict_genes: true
+  augustus:
+    species: "human"  # Best mammalian model available
+    hints: null
+    options: "--strand=both --UTR=on --softmasking=on --gff3=on"
+
+# Container images
+containers:
+  augustus: "docker://juliahoglund/augustus:bioconda-3x"
+  snpeff: "docker://juliahoglund/augustus:bioconda-3x"
+
+# SNPEff annotation
+annotation:
+  variant_annotator: "snpeff"
+  snpeff:
+    enabled: true
+    database:
+      name: "wild_boar_full"
+      path: "results/snpeff/data/"
+    build:
+      config_file: ".tests/snpEff/snpEff.config"
+      annotation_format: "gff3"
+      allow_empty: false  # Strict validation for production
+      options: "-noCheckCds -noCheckProtein"
+    run:
+      options: "-v -noStats"
+  grantham_matrix: ".tests/grantham/grantham_matrix.tsv"
+  
+  # Conservation annotation (GERP, phastCons, phyloP)
+  gerp:
+    enabled: true
+    alignment: '43_mammals.epo'
+    n_chunks: 30
+    tree: 'resources/tree_43_mammals.nwk'
+  
+  phast:
+    enabled: true
+    phastCons: true
+    phyloP: true
+    tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))'
+    tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
+    train_precision: "HIGH"
+    phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
+    phyloP_params: "--method=LRT --mode=CONACC"
+
+# Ancestral sequences (pre-computed, skip alignment extraction)
+ancestral_sequence:
+  source: "alignment"  # Use pre-computed ancestral sequences
+  skip_extraction: true  # Don't run alignment-based extraction, sequences already exist
+
+# Minimal alignment config (needed for chromosome prefix in vcftools)
+alignment:
+  chrom_prefix: "chr"  # Chromosome prefix in VCF files
+  name_species_interest: "sus_scrofa"
+
+# Parallelization settings for alignment splitting
+parallelization:
+  alignment_positions_per_file: 500000
+  alignment_chunks: 30
+
+# Use merged karyotype FASTA for steps that require a single genome file
+mark_ancestor:
+  name_ancestor: 'Ancestor_Pig_Cow'
+  reference_genome: "results/genome/merged_genome.fa"
+
+stats_report:
+  enabled: false

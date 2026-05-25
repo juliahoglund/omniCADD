@@ -1,0 +1,126 @@
+# Snakemake SLURM profile for PDC Dardel
+# Requires Snakemake 8+ and snakemake-executor-plugin-slurm
+#
+# USAGE (from a screen/tmux session on a login node):
+#   module load PDC bioinfo-tools apptainer
+#   conda activate omnicadd
+#   snakemake --profile config/slurm/dardel -n   # dry-run
+#   snakemake --profile config/slurm/dardel       # full run
+
+# Profile and SLURM executor settings
+executor: slurm
+jobs: 50  # Max simultaneous jobs - reduced to be more considerate on shared cluster
+cores: 8
+use-conda: True
+use-apptainer: true
+apptainer-args: "--bind /sw,/cfs/klemming"
+apptainer-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/singularity-cache"
+restart-times: 2
+max-jobs-per-second: 1
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 60
+keep-going: True
+rerun-incomplete: True
+rerun-triggers:
+  - input  # Only rerun if input files actually changed, not just mtime
+
+# Ensure resources are passed to SLURM
+retries: 2
+
+default-resources:
+  slurm_account: "naiss2026-3-90"
+  slurm_partition: "shared"
+  slurm_job_name: "{rule}_{wildcards}"
+  mem_mb: 8192
+  tasks: 1
+  slurm_extra: "'--output=slurm/slurm_%x_%j.out --error=slurm/slurm_%x_%j.err'"
+
+# Map runtime to SLURM time format  
+default-storage-provider: none
+
+# Conda and Apptainer paths
+conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-envs"
+
+# Per-rule overrides — memory only (time is set in resources.yaml)
+# Only rules with values different from the defaults above are listed
+set-resources:
+  # Step 1: Ancestral sequence
+  maf_ro:
+    mem_mb: 49152
+  maf_df:
+    mem_mb: 32768
+  mark_ancestor:
+    mem_mb: 24576
+  reconstruct_ancestor:
+    mem_mb: 49152
+  fit_phylo_model:
+    mem_mb: 32768
+
+  # Step 2: Derive variants
+  freq_files:
+    mem_mb: 16384  # 16GB - increased for large chromosomes
+  gen_derived:
+    mem_mb: 16384
+
+  # Step 3: Simulate variants
+  simulate_indels:
+    mem_mb: 32768
+
+  # Step 4: Summary report
+  create_stats_report:
+    mem_mb: 49152
+  create_summary:
+    mem_mb: 32768
+
+  # Step 5: Annotate variants
+  run_vep_combine:
+    mem_mb: 49152
+  process_vep_combine:
+    mem_mb: 32768
+  run_snpeff:
+    mem_mb: 49152
+  process_snpeff_derived:
+    mem_mb: 32768
+  process_snpeff_simulated:
+    mem_mb: 32768
+  augustus_predict_genes:
+    mem_mb: 32768
+  compute_gerp:
+    mem_mb: 32768
+  phylo_fit_combine:
+    mem_mb: 32768
+
+  # Step 6: Combine annotations
+  combine_annotations_combine:
+    mem_mb: 65536
+  combine_annotations_snpeff_combine:
+    mem_mb: 65536
+
+  # Step 7: Train & test model
+  train_test_model:
+    mem_mb: 98304
+
+  # Step 8: Score variants
+  run_genome_vep:
+    mem_mb: 49152
+  process_genome_vep:
+    mem_mb: 49152
+  run_genome_snpeff:
+    mem_mb: 49152
+  process_genome_snpeff:
+    mem_mb: 49152
+  prepare_whole_genome:
+    mem_mb: 65536
+  score_variants:
+    mem_mb: 98304
+  sort_raw_scores:
+    mem_mb: 49152
+
+  # Alignment generation
+  align_species:
+    mem_mb: 49152
+  filter_alignments:
+    mem_mb: 32768
+  sort_bam:
+    mem_mb: 32768
