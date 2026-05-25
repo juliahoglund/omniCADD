@@ -3,6 +3,32 @@ Workflow Overview
 
 omniCADD processes genomic data through 8 sequential steps to generate CADD scores.
 
+Interactive Workflow Diagram
+-----------------------------
+
+.. raw:: html
+
+   <div style="border: 1px solid #ccc; border-radius: 8px; overflow: hidden; margin: 20px 0;">
+      <iframe src="_static/omniCADD_workflow_dag.html" 
+              width="100%" 
+              height="900px" 
+              style="border: none; display: block;">
+      </iframe>
+   </div>
+   <p style="text-align: center; margin-top: -10px;">
+      <a href="_static/omniCADD_workflow_dag.html" target="_blank" 
+         style="font-size: 0.9em; color: #2980B9;">
+         ↗ Open interactive diagram in new window
+      </a>
+   </p>
+
+The diagram above shows the complete omniCADD pipeline with:
+
+* **Color-coded swimlanes** for different data tiers (Standard vs Limited)
+* **Interactive nodes** — hover over any step to see configuration details
+* **Highlight toggles** — filter by Standard Tier, Limited Tier, or Conservation paths
+* **Direct links** to the GitHub repository
+
 Pipeline Architecture
 ---------------------
 
@@ -441,5 +467,3 @@ See Also
 --------
 
 * :doc:`configuration` - Configure pipeline parameters
-* :doc:`cluster_execution` - Run on HPC clusters
-* :doc:`troubleshooting` - Common issues and solutions

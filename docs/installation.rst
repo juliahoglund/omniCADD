@@ -20,7 +20,7 @@ Software Requirements
 Required Software
 ^^^^^^^^^^^^^^^^^
 
-* **Snakemake** ≥ 7.0
+* **Snakemake** ≥ 8.0 (≥ 9.0 recommended; required for HPC/SLURM execution via ``snakemake-executor-plugin-slurm``)
 * **Conda** or **Mamba** (mamba recommended for faster installation)
 * **Git** for cloning the repository
 
@@ -100,7 +100,7 @@ Check that Snakemake is installed correctly:
 .. code-block:: bash
 
    snakemake --version
-   # Should output: 7.x.x or higher
+   # Should output: 8.x.x or higher (7.21+ also works)
 
 Test the workflow:
 
@@ -177,10 +177,9 @@ Next Steps
 
 After successful installation:
 
-1. ✅ Proceed to :doc:`quickstart` for a quick tutorial
-2. ✅ Read :doc:`input_data` to prepare your genomic resources
-3. ✅ Configure the pipeline in :doc:`configuration`
-4. ✅ Run the workflow following the user guide
+1. ✅ Read :doc:`input_data` to prepare your genomic resources
+2. ✅ Configure the pipeline in :doc:`configuration`
+3. ✅ Run the workflow following the user guide
 
 Additional Resources
 --------------------

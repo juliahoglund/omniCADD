@@ -43,7 +43,6 @@ Quick Links
    :caption: Getting Started
    
    installation
-   quickstart
    
 .. toctree::
    :maxdepth: 2
@@ -51,31 +50,23 @@ Quick Links
    
    SETUP
    DARDEL_SETUP
-   DOCKER_SLURM_GUIDE
 
 .. toctree::
    :maxdepth: 2
    :caption: User Guide
    
    workflow
+   workflow_diagram
    configuration
    input_data
    output_data
+   DATA_TIERS
    
 .. toctree::
    :maxdepth: 2
    :caption: Advanced Topics
    
-   cluster_execution
-   containers
-   troubleshooting
-   
-.. toctree::
-   :maxdepth: 1
-   :caption: Reference
-   
-   workflow_steps
-   api
+   BUILD_ALIGNMENT_WORKFLOW
 
 Workflow Overview
 -----------------
@@ -123,7 +114,7 @@ Requirements
 Software Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-* **Snakemake** ≥ 7.0
+* **Snakemake** ≥ 8.0 (or ≥7.21 via conda)
 * **Conda/Mamba** for environment management
 * **Docker** or **Singularity/Apptainer** (optional, for containerized execution)
 
@@ -241,10 +232,10 @@ Kircher, M., Witten, D., Jain, P. et al. A general framework for estimating the 
   *Genet Sel Evol* **52**, 4 (2020). https://doi.org/10.1186/s12711-020-0528-9
 
 * Groß C, Bortoluzzi C, de Ridder D, Megens HJ, Groenen MAM, et al. Prioritizing sequence variants in conserved non-coding elements in the chicken genome using chCADD. 
-  *PLOS Genetics* **16**(9): e1009027 (2020). https://doi.org/10.1371/journal.pgen.1009027
+  *PLOS Genetics* 16(9): e1009027 (2020). https://doi.org/10.1371/journal.pgen.1009027
 
 **Ensembl VEP**:
 
 McLaren W, Gil L, Hunt SE, Riat HS, Ritchie GR, Thormann A, Flicek P, Cunningham F. 
-The Ensembl Variant Effect Predictor. *Genome Biology* **17**(1):122 (2016). 
+The Ensembl Variant Effect Predictor. *Genome Biology* 17(1):122 (2016). 
 https://doi.org/10.1186/s13059-016-0974-4
