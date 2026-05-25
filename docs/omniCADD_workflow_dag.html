@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>omniCADD Workflow DAG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f2f5;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a237e, #1565c0);
+            color: white;
+            padding: 18px 28px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        header p {
+            opacity: 0.75;
+            margin-top: 3px;
+            font-size: 0.82rem;
+        }
+
+        header a {
+            color: #90CAF9;
+            text-decoration: none;
+        }
+
+        .top-bar {
+            background: white;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 28px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .ltitle {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+
+        .leg {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.72rem;
+            color: #444;
+            white-space: nowrap;
+        }
+
+        .lsw {
+            width: 16px;
+            height: 12px;
+            border-radius: 3px;
+            border: 1.5px solid;
+            flex-shrink: 0;
+        }
+
+        .controls {
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 8px 28px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .clabel {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .btn {
+            padding: 4px 13px;
+            border-radius: 20px;
+            border: 1.5px solid;
+            cursor: pointer;
+            font-size: 0.74rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            transition: 0.15s all;
+            background: white;
+        }
+
+        .btn-std {
+            border-color: #2E75B6;
+            color: #2E75B6;
+        }
+
+        .btn-std.on {
+            background: #2E75B6;
+            color: white;
+        }
+
+        .btn-lim {
+            border-color: #7030A0;
+            color: #7030A0;
+        }
+
+        .btn-lim.on {
+            background: #7030A0;
+            color: white;
+        }
+
+        .btn-con {
+            border-color: #C55A11;
+            color: #C55A11;
+        }
+
+        .btn-con.on {
+            background: #C55A11;
+            color: white;
+        }
+
+        .diagram-wrapper {
+            overflow-x: auto;
+            padding: 18px 22px;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: #1a1a2e;
+            color: white;
+            padding: 9px 13px;
+            border-radius: 7px;
+            font-size: 0.74rem;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            max-width: 280px;
+            line-height: 1.55;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        }
+
+        .tip-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+        }
+
+        .tip-config {
+            font-family: monospace;
+            font-size: 0.68rem;
+            color: #90CAF9;
+            white-space: pre;
+            margin-top: 4px;
+        }
+
+        /* Print styles for PDF export */
+        @media print {
+            @page {
+                size: A3 landscape;
+                margin: 0.5cm;
+            }
+            
+            body {
+                background: white;
+            }
+            
+            header, .top-bar, .controls {
+                display: none;
+            }
+            
+            .diagram-wrapper {
+                padding: 0;
+                overflow: visible;
+            }
+            
+            #svg {
+                width: 100%;
+                height: auto;
+            }
+            
+            .tooltip {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>omniCADD Workflow DAG</h1>
+        <p>Config-driven pipeline &nbsp;·&nbsp;
+            <a href="https://github.com/juliahoglund/omniCADD/tree/restructure" target="_blank">
+                juliahoglund/omniCADD @ restructure
+            </a>
+        </p>
+    </header>
+
+    <div class="top-bar">
+        <div class="legend">
+            <span class="ltitle">Swimlanes:</span>
+            <div class="leg">
+                <div class="lsw" style="background:#EBF3FB;border-color:#2E75B6"></div>Standard Tier
+            </div>
+            <div class="leg">
+                <div class="lsw" style="background:#F3EBF8;border-color:#7030A0"></div>Limited Tier
+            </div>
+            <div class="leg">
+                <div class="lsw" style="background:#EBF5EB;border-color:#375623"></div>Core Pipeline
+            </div>
+            <div class="leg">
+                <div class="lsw" style="background:#FEF3E8;border-color:#C55A11"></div>Conservation (optional)
+            </div>
+            <div class="leg">
+                <div class="lsw" style="background:#FFFBE6;border-color:#9A7200"></div>Model &amp; Output
+            </div>
+            <span class="ltitle" style="margin-left:8px">Nodes:</span>
+            <div class="leg">
+                <div class="lsw" style="background:#F0F0F0;border-color:#888;border-style:dashed"></div>Input file
+            </div>
+            <div class="leg">
+                <div class="lsw" style="background:#FFD700;border-color:#9A7200"></div>Final output ★
+            </div>
+            <div class="leg">
+                <div class="lsw" style="background:#E8E8E8;border-color:#aaa;opacity:0.6"></div>Disabled/future
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <span class="clabel">Highlight path:</span>
+        <button class="btn btn-std on" id="btn-std" onclick="toggle('std')">Standard Tier</button>
+        <button class="btn btn-lim" id="btn-lim" onclick="toggle('lim')">Limited Tier</button>
+        <button class="btn btn-con on" id="btn-con" onclick="toggle('con')">Conservation</button>
+        <span class="clabel" style="margin-left:10px; font-weight:400; color:#777;">Hover any node for config
+            details</span>
+    </div>
+
+    <div class="diagram-wrapper">
+        <!--
+  LAYOUT (all y values):
+  Standard lane:    y=8   – 168  (h=160)  cy=88
+  GUTTER 1:         y=168 – 198  (h=30)   routing highway
+  Limited lane:     y=198 – 348  (h=150)  cy=273
+  GUTTER 2:         y=348 – 378  (h=30)   routing highway
+  Core lane:        y=378 – 528  (h=150)  cy=453
+  GUTTER 3:         y=528 – 558  (h=30)   routing highway
+  Conservation:     y=558 – 648  (h=90)   cy=603
+  GUTTER 4:         y=648 – 678  (h=30)   routing highway
+  Model & Output:   y=678 – 818  (h=140)  cy=748
+
+  RIGHT MARGIN HIGHWAY: x=1748  (used for long cross-lane arrows)
+  SVG: 1760 × 826
+-->
+        <svg id="svg" width="1760" height="1056" viewBox="0 0 1760 1056" xmlns="http://www.w3.org/2000/svg"
+            style="display:block;">
+            <defs>
+                <filter id="sh">
+                    <feDropShadow dx="1" dy="1" stdDeviation="2" flood-opacity="0.12" />
+                </filter>
+                <marker id="ab" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0,8 3,0 6" fill="#2E75B6" />
+                </marker>
+                <marker id="ap" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0,8 3,0 6" fill="#7030A0" />
+                </marker>
+                <marker id="ag" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0,8 3,0 6" fill="#375623" />
+                </marker>
+                <marker id="ao" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0,8 3,0 6" fill="#C55A11" />
+                </marker>
+                <marker id="agy" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0,8 3,0 6" fill="#888" />
+                </marker>
+                <marker id="aud" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0,8 3,0 6" fill="#9A7200" />
+                </marker>
+            </defs>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- SWIMLANE BACKGROUNDS                                -->
+            <!-- ═══════════════════════════════════════════════════ -->
+
+            <!-- Standard -->
+            <rect x="8" y="8" width="1744" height="200" rx="10" fill="#EBF3FB" stroke="#2E75B6" stroke-width="1.5" />
+            <rect x="8" y="8" width="70" height="200" rx="8" fill="#2E75B6" />
+            <text transform="rotate(-90,43,108)" text-anchor="middle" font-family="Inter" font-size="10.5"
+                font-weight="700" fill="white">
+                <tspan x="43" y="102">Standard Tier</tspan>
+                <tspan x="43" y="117">(alignment-based)</tspan>
+            </text>
+
+            <!-- Limited -->
+            <rect x="8" y="248" width="1744" height="190" rx="10" fill="#F3EBF8" stroke="#7030A0" stroke-width="1.5" />
+            <rect x="8" y="248" width="70" height="190" rx="8" fill="#7030A0" />
+            <text transform="rotate(-90,43,343)" text-anchor="middle" font-family="Inter" font-size="10.5"
+                font-weight="700" fill="white">
+                <tspan x="43" y="337">Limited Tier</tspan>
+                <tspan x="43" y="352">(alignment-free)</tspan>
+            </text>
+
+            <!-- Core -->
+            <rect x="8" y="478" width="1744" height="190" rx="10" fill="#EBF5EB" stroke="#375623" stroke-width="1.5" />
+            <rect x="8" y="478" width="70" height="190" rx="8" fill="#375623" />
+            <text transform="rotate(-90,43,573)" text-anchor="middle" font-family="Inter" font-size="10.5"
+                font-weight="700" fill="white">
+                <tspan x="43" y="567">Core Pipeline</tspan>
+                <tspan x="43" y="582">(shared steps)</tspan>
+            </text>
+
+            <!-- Conservation -->
+            <rect x="8" y="708" width="1744" height="120" rx="10" fill="#FEF3E8" stroke="#C55A11" stroke-width="1.5" />
+            <rect x="8" y="708" width="70" height="120" rx="8" fill="#C55A11" />
+            <text transform="rotate(-90,43,768)" text-anchor="middle" font-family="Inter" font-size="10.5"
+                font-weight="700" fill="white">
+                <tspan x="43" y="762">Conservation</tspan>
+                <tspan x="43" y="777">Annotation</tspan>
+            </text>
+
+            <!-- Model & Output -->
+            <rect x="8" y="868" width="1744" height="180" rx="10" fill="#FFFBE6" stroke="#9A7200" stroke-width="1.5" />
+            <rect x="8" y="868" width="70" height="180" rx="8" fill="#9A7200" />
+            <text transform="rotate(-90,43,958)" text-anchor="middle" font-family="Inter" font-size="10.5"
+                font-weight="700" fill="white">
+                <tspan x="43" y="952">Model &amp;</tspan>
+                <tspan x="43" y="967">Output</tspan>
+            </text>
+
+            <!-- Gutter labels (subtle) -->
+            <text x="86" y="226" font-family="Inter" font-size="7.5" fill="#aaa" font-style="italic">routing</text>
+            <text x="86" y="456" font-family="Inter" font-size="7.5" fill="#aaa" font-style="italic">routing</text>
+            <text x="86" y="686" font-family="Inter" font-size="7.5" fill="#aaa" font-style="italic">routing</text>
+            <text x="86" y="846" font-family="Inter" font-size="7.5" fill="#aaa" font-style="italic">routing</text>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- NODE HELPERS: cx±68 = left/right edges, cy±26=top/bottom -->
+            <!-- ═══════════════════════════════════════════════════ -->
+
+            <!-- ─── STANDARD TIER (cy=88) ─── -->
+
+            <g class="node" id="n-maf" data-title="MAF Alignment Files"
+                data-desc="Multi-alignment format files from a reference alignment (e.g. 43-mammals EPO). Required input for the standard tier."
+                data-config="ancestral_sequence:
+  source: &quot;alignment&quot;
+  alignment:
+    enabled: true
+    alignments:
+      43_mammals.epo:
+        path: 'resources/alignment/'">
+                <rect x="86" y="82" width="136" height="52" rx="8" fill="#F0F0F0" stroke="#888" stroke-width="1.5"
+                    stroke-dasharray="5,3" filter="url(#sh)" />
+                <text x="154" y="101" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#444">MAF Alignment</text>
+                <text x="154" y="116" text-anchor="middle" font-family="Inter" font-size="10" fill="#666">Files
+                    (input)</text>
+                <text x="154" y="129" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#2E75B6"
+                    font-style="italic">source: alignment</text>
+            </g>
+
+            <g class="node std-path" id="n-cleanmaf" data-title="Clean &amp; Sort MAF"
+                data-desc="rule: ancestral_generation.smk. Removes ambiguous nucleotides, sorts alignment blocks by focal species coordinates, flips blocks on negative strand."
+                data-config="(standard tier — no extra config needed)
+mark_ancestor:
+  ancestral_label: &quot;Ancestor_Pig_Cow&quot;
+  filter_order: &quot;sus_scrofa,Ancestor_Pig_Cow,...&quot;">
+                <rect x="258" y="82" width="136" height="52" rx="8" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="326" y="101" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1a3a5c">Clean &amp; Sort MAF</text>
+                <text x="326" y="116" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#2c5282">ancestral_generation</text>
+            </g>
+
+            <g class="node std-path" id="n-markanc" data-title="Mark Ancestor in MAF"
+                data-desc="Identifies and marks the ancestral node in the MAF alignment tree using species tree abbreviations. Reconstructs the ancestor sequence per chromosome from marked blocks."
+                data-config="mark_ancestor:
+  name_ancestor: 'Ancestor_Pig_Cow'
+  sp1_tree_ab: 'Sscr'
+  sp2_tree_ab: 'Btau'
+  reference_genome: 'resources/genome/Sus_scrofa_ref.fa'">
+                <rect x="432" y="82" width="136" height="52" rx="8" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="500" y="101" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1a3a5c">Mark Ancestor</text>
+                <text x="500" y="116" text-anchor="middle" font-family="Inter" font-size="10" fill="#2c5282">in MAF
+                    alignment</text>
+            </g>
+
+            <g class="node std-path" id="n-extract" data-title="Extract Ancestor Sequence"
+                data-desc="Outputs per-chromosome ancestral FASTA files extracted from the marked MAF. These feed into the variant derivation step."
+                data-config="ancestral_sequence:
+  source: &quot;alignment&quot;
+mark_ancestor:
+  name_ancestor: 'Ancestor_Pig_Cow'">
+                <rect x="606" y="82" width="146" height="52" rx="8" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="679" y="101" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1a3a5c">Extract Ancestor</text>
+                <text x="679" y="116" text-anchor="middle" font-family="Inter" font-size="10" fill="#2c5282">Sequence
+                    (per chr)</text>
+            </g>
+
+            <!-- ─── LIMITED TIER (cy=273) ─── -->
+
+            <g class="node lim-path" id="n-preprocess" data-title="Preprocess Reference Genome"
+                data-desc="Optional step. Linearises multi-line FASTA, filters scaffolds by chromosome list, creates FAI index. Runs only if any flag is enabled. Used by limited tier by default."
+                data-config="preprocessing:
+  reference_genome:
+    needs_formatting: true   # linearize FASTA
+    needs_filtering: true    # remove scaffolds
+    needs_indexing: true     # create FAI">
+                <rect x="86" y="317" width="136" height="52" rx="8" fill="#C9A3E5" stroke="#7030A0" stroke-width="1.5"
+                    stroke-dasharray="4,3" filter="url(#sh)" />
+                <text x="154" y="336" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#3d0070">Preprocess</text>
+                <text x="154" y="351" text-anchor="middle" font-family="Inter" font-size="10" fill="#5a0a9e">Reference
+                    Genome</text>
+                <text x="154" y="363" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#7030A0"
+                    font-style="italic">optional</text>
+            </g>
+
+            <g class="node lim-path" id="n-genepred" data-title="Gene Prediction (Augustus)"
+                data-desc="rule: gene_prediction.smk. De-novo gene prediction using Augustus when no existing annotation is available (limited tier). Uses a model species (e.g. human) as training data. Alternatively, provide GFF or GTF directly."
+                data-config="gene_annotation:
+  source: &quot;augustus&quot;  # gff | gtf | augustus | none
+  predict_genes: true
+  augustus:
+    enabled: true
+    species_model: &quot;human&quot;
+    output_format: &quot;gff3&quot;">
+                <rect x="258" y="317" width="136" height="52" rx="8" fill="#C9A3E5" stroke="#7030A0" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="326" y="336" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#3d0070">Gene Prediction</text>
+                <text x="326" y="351" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#5a0a9e">(Augustus)</text>
+                <text x="326" y="363" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#7030A0"
+                    font-style="italic">source: augustus</text>
+            </g>
+
+            <g class="node lim-path" id="n-reconst" data-title="Reconstruct Ancestor Sequence"
+                data-desc="rule: ancestral_reconstruction.smk. Aligns an ancestral FASTA to the reference genome using BBMap/BWA + samtools + htsbox. Used when no MAF alignment is available (limited tier)."
+                data-config="ancestral_sequence:
+  source: &quot;reconstruct&quot;
+  reconstruct:
+    enabled: true
+    method: &quot;align_to_reference&quot;
+    input_fasta: &quot;resources/ancestral/Ancestor.fasta&quot;
+    tools:
+      bbmap:
+        read_length: 150">
+                <rect x="432" y="317" width="136" height="52" rx="8" fill="#C9A3E5" stroke="#7030A0" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="500" y="336" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#3d0070">Reconstruct</text>
+                <text x="500" y="351" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#5a0a9e">Ancestor</text>
+                <text x="500" y="363" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#7030A0"
+                    font-style="italic">source: reconstruct</text>
+            </g>
+
+            <g class="node std-path" id="n-gff" data-title="GFF / GTF Gene Annotation Files"
+                data-desc="Existing gene annotation files from Ensembl or custom sources. Used directly when species is well-annotated (standard tier). Passed to VEP for functional annotation."
+                data-config="gene_annotation:
+  source: &quot;gff&quot;   # or &quot;gtf&quot;
+  gff: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gff3.gz'
+  gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
+  predict_genes: false">
+                <rect x="740" y="317" width="136" height="52" rx="8" fill="#F0F0F0" stroke="#888" stroke-width="1.5"
+                    stroke-dasharray="5,3" filter="url(#sh)" />
+                <text x="808" y="336" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#444">GFF / GTF</text>
+                <text x="808" y="351" text-anchor="middle" font-family="Inter" font-size="10" fill="#555">Annotation
+                    Files</text>
+                <text x="808" y="363" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#2E75B6"
+                    font-style="italic">source: gff / gtf</text>
+            </g>
+
+            <!-- ─── CORE PIPELINE (cy=453) ─── -->
+
+            <g class="node" id="n-vcf" data-title="Population VCF"
+                data-desc="Population-wide variant call file. One VCF per chromosome. Used to compute allele frequencies for deriving observed variants."
+                data-config="generate_variants:
+  population_vcf: &quot;resources/pop-level-VCF/chr{chr}.vcf.gz&quot;">
+                <rect x="86" y="547" width="136" height="52" rx="8" fill="#F0F0F0" stroke="#888" stroke-width="1.5"
+                    stroke-dasharray="5,3" filter="url(#sh)" />
+                <text x="154" y="566" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#444">Population VCF</text>
+                <text x="154" y="581" text-anchor="middle" font-family="Inter" font-size="10" fill="#666">(per
+                    chromosome)</text>
+                <text x="154" y="593" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#777"
+                    font-style="italic">input</text>
+            </g>
+
+            <g class="node core-path" id="n-freq" data-title="Frequency Files"
+                data-desc="rule: freq_files (variant_derivation.smk). Runs vcftools to compute per-SNP allele frequencies. Filters by frequency threshold and removes indels."
+                data-config="generate_variants:
+  derive:
+    frequency_threshold: 0.9  # min non-ref allele freq">
+                <rect x="258" y="547" width="136" height="52" rx="8" fill="#C6EFCE" stroke="#375623" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="326" y="566" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1e3e10">Frequency Files</text>
+                <text x="326" y="581" text-anchor="middle" font-family="Inter" font-size="10" fill="#375623">freq_files
+                    rule</text>
+            </g>
+
+            <g class="node core-path" id="n-derive" data-title="Derive Variants"
+                data-desc="rules: gen_derived, snp_filter, merge_by_chr (variant_derivation.smk). Uses ancestral sequence + reference genome + allele frequencies to derive observed variants. Separates singletons from adjacent SNPs."
+                data-config="generate_variants:
+  reference_genome_wildcard: &quot;resources/genome/Sus_scrofa_ref_{chr}.fa&quot;
+  population_vcf: &quot;resources/pop-level-VCF/chr{chr}.vcf.gz&quot;
+  derive:
+    frequency_threshold: 0.9">
+                <rect x="432" y="547" width="136" height="52" rx="8" fill="#C6EFCE" stroke="#375623" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="500" y="566" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1e3e10">Derive Variants</text>
+                <text x="500" y="581" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#375623">frequency-based</text>
+            </g>
+
+            <g class="node core-path" id="n-simulate" data-title="Simulate Variants"
+                data-desc="rule: variant_simulation.smk. Simulates neutral variants using a GTR model with a substitution rate estimated from the real variants. Overestimation factor controls simulation volume."
+                data-config="generate_variants:
+  simulate:
+    overestimation_factor: 5">
+                <rect x="606" y="547" width="136" height="52" rx="8" fill="#C6EFCE" stroke="#375623" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="674" y="566" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1e3e10">Simulate Variants</text>
+                <text x="674" y="581" text-anchor="middle" font-family="Inter" font-size="10" fill="#375623">GTR
+                    model</text>
+            </g>
+
+            <g class="node core-path" id="n-report" data-title="Summary Stats Report"
+                data-desc="rule: summary_report.smk. Optional QC step. Generates statistics on derived/simulated variant counts, annotation coverage, and substitution patterns. Can be disabled."
+                data-config="stats_report:
+  enabled: true
+  annotation: true
+  ingroup: 'sus scrofa'
+  outgroup: 'bos taurus'">
+                <rect x="780" y="547" width="132" height="52" rx="8" fill="#C6EFCE" stroke="#375623" stroke-width="1.5"
+                    stroke-dasharray="4,3" filter="url(#sh)" />
+                <text x="846" y="566" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1e3e10">Summary Report</text>
+                <text x="846" y="581" text-anchor="middle" font-family="Inter" font-size="10" fill="#375623">QC /
+                    stats</text>
+                <text x="846" y="593" text-anchor="middle" font-family="Inter" font-size="8.5" fill="#555"
+                    font-style="italic">optional</text>
+            </g>
+
+            <!-- VEP (above centre) -->
+            <g class="node std-path" id="n-vep" data-title="VEP Annotation"
+                data-desc="rule: vep_annotation.smk. Ensembl Variant Effect Predictor. Standard tier: species in Ensembl database. Requires VEP cache directory. Annotates both derived and simulated variants."
+                data-config="annotation:
+  variant_annotator: &quot;vep&quot;  # or &quot;both&quot;
+  vep:
+    enabled: true
+    cache:
+      directory: '$VEP_CACHE'
+      should_install: false
+    options: &quot;--everything --fork 2&quot;">
+                <rect x="960" y="540" width="136" height="48" rx="8" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="1028" y="559" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1a3a5c">VEP Annotation</text>
+                <text x="1028" y="575" text-anchor="middle" font-family="Inter" font-size="9.5"
+                    fill="#2c5282">variant_annotator: vep</text>
+            </g>
+
+            <!-- SNPEff (below centre) -->
+            <g class="node lim-path" id="n-snpeff" data-title="SNPEff Annotation"
+                data-desc="rule: snpeff_annotation.smk. Used when species is not in Ensembl or for limited tier. Can build a custom SNPEff database from GFF3 + reference genome."
+                data-config="annotation:
+  variant_annotator: &quot;snpeff&quot;  # or &quot;both&quot;
+  snpeff:
+    enabled: true
+    database:
+      exists: false
+      name: &quot;sus_scrofa_custom&quot;
+      path: &quot;resources/snpEff/data/&quot;
+    build:
+      annotation_format: &quot;gff3&quot;">
+                <rect x="960" y="598" width="136" height="48" rx="8" fill="#C9A3E5" stroke="#7030A0" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="1028" y="617" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#3d0070">SNPEff Annotation</text>
+                <text x="1028" y="633" text-anchor="middle" font-family="Inter" font-size="9.5"
+                    fill="#5a0a9e">variant_annotator: snpeff</text>
+            </g>
+
+            <g class="node core-path" id="n-combine" data-title="Combine Annotations"
+                data-desc="rule: combine_annotations.smk. Merges all annotation outputs (VEP or SNPEff + conservation scores) into a single TSV per chromosome per variant type. Applies processing and interaction configs."
+                data-config="annotation_config:
+  processing: &quot;config/annot_processing_config.tsv&quot;
+  interactions: &quot;config/annot_combination_config.tsv&quot;">
+                <rect x="1148" y="547" width="136" height="52" rx="8" fill="#C6EFCE" stroke="#375623" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="1216" y="566" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#1e3e10">Combine</text>
+                <text x="1216" y="581" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#375623">Annotations</text>
+            </g>
+
+            <!-- ─── CONSERVATION (cy=603) ─── -->
+
+            <g class="node con-path" id="n-gerp" data-title="GERP Annotation"
+                data-desc="rule: gerp_annotation.smk. Genomic Evolutionary Rate Profiling. Parallelised into chunks across the MAF alignment. Produces per-site GERP scores."
+                data-config="annotation:
+  conservation:
+    gerp:
+      enabled: true
+      alignment: '43_mammals.epo'
+      n_chunks: 30
+      tree: 'resources/tree_43_mammals.nwk'">
+                <rect x="780" y="744" width="120" height="48" rx="8" fill="#FCE4D6" stroke="#C55A11" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="840" y="763" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#6b2d00">GERP</text>
+                <text x="840" y="779" text-anchor="middle" font-family="Inter" font-size="9.5"
+                    fill="#9b3c00">gerp.enabled: true</text>
+            </g>
+
+            <g class="node con-path" id="n-phastcons" data-title="phastCons Annotation"
+                data-desc="rule: phast_annotation.smk. Conservation probabilities using a phylogenetic HMM. Requires a species phylogenetic tree in Newick format."
+                data-config="annotation:
+  conservation:
+    phast:
+      enabled: true
+      phastCons: true
+      tree: '(camelus_dromedarius,...,sus_scrofa,...)'
+      train_precision: &quot;HIGH&quot;
+      phastCons_params: &quot;--target-coverage 0.3 ...&quot;">
+                <rect x="920" y="744" width="128" height="48" rx="8" fill="#FCE4D6" stroke="#C55A11" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="984" y="763" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#6b2d00">phastCons</text>
+                <text x="984" y="779" text-anchor="middle" font-family="Inter" font-size="9.5"
+                    fill="#9b3c00">phast.phastCons: true</text>
+            </g>
+
+            <g class="node con-path" id="n-phylop" data-title="phyloP Annotation"
+                data-desc="rule: phast_annotation.smk. Phylogenetic p-values for conservation and acceleration. Uses the same tree as phastCons. Tests each site with likelihood ratio test."
+                data-config="annotation:
+  conservation:
+    phast:
+      enabled: true
+      phyloP: true
+      phyloP_params: &quot;--method=LRT --mode=CONACC&quot;">
+                <rect x="1062" y="744" width="120" height="48" rx="8" fill="#FCE4D6" stroke="#C55A11" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="1122" y="763" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#6b2d00">phyloP</text>
+                <text x="1122" y="779" text-anchor="middle" font-family="Inter" font-size="9.5"
+                    fill="#9b3c00">phast.phyloP: true</text>
+            </g>
+
+            <g class="node" id="n-sift" data-title="SIFT Annotation (disabled)"
+                data-desc="SIFT4G functional annotation. Currently disabled in the pipeline. Can be enabled via config when a SIFT4G database is available."
+                data-config="annotation:
+  sift:
+    enabled: false  # currently disabled
+    database:
+      exists: false
+      parent_dir: &quot;resources/SIFT4G/&quot;">
+                <rect x="1202" y="744" width="120" height="48" rx="8" fill="#E8E8E8" stroke="#aaa" stroke-width="1.5"
+                    stroke-dasharray="5,3" opacity="0.6" />
+                <text x="1262" y="763" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#777">SIFT</text>
+                <text x="1262" y="779" text-anchor="middle" font-family="Inter" font-size="9.5"
+                    fill="#999">sift.enabled: false</text>
+            </g>
+
+            <!-- ─── MODEL & OUTPUT (cy=748) ─── -->
+
+            <g class="node out-path" id="n-impute" data-title="Impute &amp; Prepare Data"
+                data-desc="rules: derive_impute_means + prepare_data (data_preparation.smk). Derives an imputation dictionary from simulated annotated TSVs, then formats all annotated variants into .npz matrix files for model training."
+                data-config="(uses annotation_config.processing
+and annotation_config.interactions
+from config.yaml)">
+                <rect x="86" y="922" width="140" height="52" rx="8" fill="#FFEB9C" stroke="#9A7200" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="156" y="941" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#5a4200">Impute &amp; Prepare</text>
+                <text x="156" y="956" text-anchor="middle" font-family="Inter" font-size="10" fill="#7a5900">Data (→
+                    .npz files)</text>
+            </g>
+
+            <g class="node out-path" id="n-train" data-title="Train &amp; Test Model"
+                data-desc="rule: train_test_model.smk. Trains a logistic regression model with k-fold cross-validation on combined derived + simulated variants. Tests on held-out chromosomes. Produces final model weights."
+                data-config="model:
+  n_folds: 10
+  test_params:
+    c: [0.1, 1.0, 10.0]
+    max_iter: [100]
+  final_params:
+    c: 10.0
+    max_iter: 100">
+                <rect x="270" y="922" width="140" height="52" rx="8" fill="#FFEB9C" stroke="#9A7200" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="340" y="941" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#5a4200">Train &amp; Test</text>
+                <text x="340" y="956" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#7a5900">Model</text>
+            </g>
+
+            <g class="node out-path" id="n-gensubs" data-title="Generate All Substitutions"
+                data-desc="rule: score_variants.smk. Generates all possible single-nucleotide substitutions across the focal species genome for each scoring chromosome. These are then annotated and scored."
+                data-config="chromosomes:
+  score: [ '1', '2', '3', '4', '5' ]">
+                <rect x="460" y="922" width="140" height="52" rx="8" fill="#FFEB9C" stroke="#9A7200" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="530" y="941" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#5a4200">Generate All</text>
+                <text x="530" y="956" text-anchor="middle" font-family="Inter" font-size="10"
+                    fill="#7a5900">Substitutions</text>
+            </g>
+
+            <g class="node out-path" id="n-score" data-title="Score Variants"
+                data-desc="rule: score_variants.smk. Annotates all possible substitutions with the same pipeline, then applies the trained model to produce CADD scores for every position in the genome."
+                data-config="chromosomes:
+  score: [ '1', '2', '3', '4', '5' ]">
+                <rect x="650" y="922" width="140" height="52" rx="8" fill="#FFEB9C" stroke="#9A7200" stroke-width="1.5"
+                    filter="url(#sh)" />
+                <text x="720" y="941" text-anchor="middle" font-family="Inter" font-size="11" font-weight="600"
+                    fill="#5a4200">Score Variants</text>
+                <text x="720" y="956" text-anchor="middle" font-family="Inter" font-size="10" fill="#7a5900">apply
+                    model</text>
+            </g>
+
+            <!-- CADD Scores (FINAL OUTPUT) -->
+            <g class="node out-path" id="n-cadd" data-title="Genome-wide CADD Scores ★"
+                data-desc="The final output of the omniCADD pipeline: CADD scores for all possible single-nucleotide variants across the focal species genome. Equivalent to the original CADD scores but for non-model organisms."
+                data-config="(final output — no config needed)">
+                <rect x="842" y="915" width="150" height="66" rx="12" fill="#FFD700" stroke="#9A7200" stroke-width="2.5"
+                    filter="url(#sh)" />
+                <text x="917" y="937" text-anchor="middle" font-family="Inter" font-size="12" font-weight="700"
+                    fill="#4a3000">Genome-wide</text>
+                <text x="917" y="953" text-anchor="middle" font-family="Inter" font-size="12" font-weight="700"
+                    fill="#4a3000">CADD Scores</text>
+                <text x="917" y="973" text-anchor="middle" font-family="Inter" font-size="15">★</text>
+            </g>
+
+            <!-- Data tier badge -->
+            <rect x="1380" y="18" width="330" height="84" rx="8" fill="white" stroke="#ccc" stroke-width="1" />
+            <text x="1545" y="36" text-anchor="middle" font-family="Inter" font-size="10" font-weight="700"
+                fill="#333">DATA TIER PRESETS</text>
+            <rect x="1390" y="44" width="145" height="22" rx="5" fill="#EBF3FB" stroke="#2E75B6" stroke-width="1" />
+            <text x="1463" y="59" text-anchor="middle" font-family="Inter" font-size="9" font-weight="600"
+                fill="#1a3a5c">standard tier</text>
+            <rect x="1543" y="44" width="157" height="22" rx="5" fill="#F3EBF8" stroke="#7030A0" stroke-width="1" />
+            <text x="1622" y="59" text-anchor="middle" font-family="Inter" font-size="9" font-weight="600"
+                fill="#3d0070">limited tier</text>
+            <text x="1390" y="79" font-family="Inter" font-size="8" fill="#444">standard: alignment + GFF + VEP</text>
+            <text x="1390" y="93" font-family="Inter" font-size="8" fill="#444">limited: reconstruct + Augustus +
+                SNPEff</text>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- ARROWS                                              -->
+            <!--                                                     -->
+            <!-- Routing rules:                                      -->
+            <!--  • Same-lane: straight horizontal                   -->
+            <!--  • Adjacent lane: through the gutter (30px band)   -->
+            <!--  • Skip lane: RIGHT MARGIN highway at x=1748       -->
+            <!-- ═══════════════════════════════════════════════════ -->
+
+            <!-- ── Standard internal (cy=108) ── -->
+            <path d="M222,108 L258,108" stroke="#2E75B6" stroke-width="1.8" fill="none" marker-end="url(#ab)" />
+            <path d="M394,108 L432,108" stroke="#2E75B6" stroke-width="1.8" fill="none" marker-end="url(#ab)" />
+            <path d="M568,108 L606,108" stroke="#2E75B6" stroke-width="1.8" fill="none" marker-end="url(#ab)" />
+
+            <!-- Extract Ancestor → Derive Variants
+     Blue dashed along BOTTOM edge of Core lane, coming up from underneath -->
+            <path d="M752,108 L1748,108 L1748,660 L500,660 L500,599\" stroke="#2E75B6" stroke-width="1.8" fill="none"
+                stroke-dasharray="7,4" marker-end="url(#ab)" />
+            <text x="1748" y="350" text-anchor="middle" font-family="Inter" font-size="8" fill="#2E75B6"
+                transform="rotate(-90,1748,350)">Standard → Core</text>
+
+            <!-- ── Limited internal (cy=343) ── -->
+            <path d="M222,343 L258,343" stroke="#7030A0" stroke-width="1.8" fill="none" marker-end="url(#ap)" />
+            <path d="M394,343 L432,343" stroke="#7030A0" stroke-width="1.8" fill="none" marker-end="url(#ap)" />
+
+            <!-- Reconstruct → Derive Variants
+     DETOUR: straight down through gutter2 (y=438–478) -->
+            <path d="M500,369 L500,458 L500,547" stroke="#7030A0" stroke-width="1.8" fill="none" stroke-dasharray="7,4"
+                marker-end="url(#ap)" />
+
+            <!-- Gene Predict → SNPEff
+     90-degree angles (not curved), purple dashed, goes up and over -->
+            <path d="M394,343 L394,240 L1700,240 L1700,622 L1096,622" stroke="#7030A0" stroke-width="1.5" fill="none"
+                stroke-dasharray="6,4" opacity="0.85" marker-end="url(#ap)" />
+
+            <!-- GFF/GTF → VEP
+     DETOUR: straight down through gutter2, into Core lane, curve to VEP -->
+            <path d="M808,369 L808,458 L808,540 L960,540" stroke="#888" stroke-width="1.4" fill="none"
+                stroke-dasharray="5,4" opacity="0.9" marker-end="url(#agy)" />
+
+            <!-- ── Core internal ── -->
+            <!-- Pop VCF → Freq Files -->
+            <path d="M222,573 L258,573" stroke="#375623" stroke-width="1.8" fill="none" marker-end="url(#ag)" />
+            <!-- Freq Files → Derive Variants -->
+            <path d="M394,573 L432,573" stroke="#375623" stroke-width="1.8" fill="none" marker-end="url(#ag)" />
+            <!-- Derive → Simulate -->
+            <path d="M568,573 L606,573" stroke="#375623" stroke-width="1.8" fill="none" marker-end="url(#ag)" />
+            <!-- Simulate → Summary Report (optional dashed) -->
+            <path d="M742,573 L780,573" stroke="#375623" stroke-width="1.4" fill="none" stroke-dasharray="4,3"
+                marker-end="url(#ag)" opacity="0.7" />
+            <!-- Simulate → VEP (curves around TOP of Summary Report) -->
+            <path d="M742,547 Q846,520 912,540 L960,564" stroke="#375623" stroke-width="1.6" fill="none" marker-end="url(#ag)" />
+            <!-- Simulate → SNPEff (curves around BOTTOM of Summary Report) -->
+            <path d="M742,599 Q846,626 912,606 L960,615" stroke="#375623" stroke-width="1.6" fill="none" marker-end="url(#ag)" />
+            <!-- VEP → Combine -->
+            <path d="M1096,564 Q1122,564 1148,564" stroke="#2E75B6" stroke-width="1.8" fill="none"
+                marker-end="url(#ab)" />
+            <!-- SNPEff → Combine -->
+            <path d="M1096,622 Q1122,604 1148,588" stroke="#7030A0" stroke-width="1.6" fill="none"
+                marker-end="url(#ap)" />
+
+            <!-- ── Conservation → Core (Combine)
+     Simple direct paths like previous iteration ── -->
+
+            <!-- GERP → Combine -->
+            <path d="M840,744 L840,693 L1210,693 L1210,599" stroke="#C55A11" stroke-width="1.5" fill="none"
+                marker-end="url(#ao)" />
+
+            <!-- phastCons → Combine -->
+            <path d="M984,744 L984,693 L1216,693 L1216,599" stroke="#C55A11" stroke-width="1.5" fill="none"
+                marker-end="url(#ao)" />
+
+            <!-- phyloP → Combine -->
+            <path d="M1122,744 L1122,693 L1222,693 L1222,599" stroke="#C55A11" stroke-width="1.5" fill="none"
+                marker-end="url(#ao)" />
+
+            <!-- ── Combine → Model
+     Simpler direct routing down through gutter ── -->
+
+            <!-- Combine → Impute (training path) - exits RIGHT, offset above, to right of SIFT, then left to Impute -->
+            <path d="M1284,565 L1360,565 L1360,848 L156,848 L156,922" stroke="#9A7200" stroke-width="1.8"
+                fill="none" stroke-dasharray="7,4" marker-end="url(#aud)" />
+
+            <!-- Combine → Gen Subs (scoring path) - exits RIGHT, offset below, to right of SIFT, down to Generate All -->
+            <path d="M1284,581 L1360,581 L1360,843 L530,843 L530,922" stroke="#9A7200" stroke-width="1.6" fill="none"
+                stroke-dasharray="6,4" opacity="0.85" marker-end="url(#aud)" />
+
+            <!-- ── Model internal ── -->
+            <!-- Impute → Train -->
+            <path d="M226,948 L270,948" stroke="#9A7200" stroke-width="1.8" fill="none" marker-end="url(#aud)" />
+            <!-- Train → Score (arches UNDER Generate All box) -->
+            <path d="M410,948 Q465,985 530,985 Q595,985 650,948" stroke="#9A7200" stroke-width="1.6" fill="none"
+                marker-end="url(#aud)" />
+            <!-- Gen Subs → Score -->
+            <path d="M600,948 L650,948" stroke="#9A7200" stroke-width="1.8" fill="none" marker-end="url(#aud)" />
+            <!-- Score → CADD -->
+            <path d="M790,948 L842,948" stroke="#9A7200" stroke-width="2" fill="none" marker-end="url(#aud)" />
+
+        </svg>
+    </div>
+
+    <div class="tooltip" id="tooltip">
+        <div class="tip-title" id="ttitle"></div>
+        <div id="tdesc" style="margin-bottom:5px; line-height:1.5"></div>
+        <div class="tip-config" id="tconfig"></div>
+    </div>
+
+    <script>
+        const tt = document.getElementById('tooltip');
+        document.querySelectorAll('.node').forEach(n => {
+            n.style.cursor = 'pointer';
+            n.addEventListener('mouseenter', () => {
+                document.getElementById('ttitle').textContent = (n.dataset.title || '').replace(/&amp;/g, '&');
+                document.getElementById('tdesc').textContent = n.dataset.desc || '';
+                document.getElementById('tconfig').textContent = n.dataset.config || '';
+                tt.style.display = 'block';
+            });
+            n.addEventListener('mousemove', e => {
+                tt.style.left = (e.clientX + 14) + 'px';
+                tt.style.top = (e.clientY - 8) + 'px';
+            });
+            n.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+        });
+
+        const HL = {
+            std: ['n-maf', 'n-cleanmaf', 'n-markanc', 'n-extract', 'n-gff', 'n-vep'],
+            lim: ['n-preprocess', 'n-genepred', 'n-reconst', 'n-snpeff'],
+            con: ['n-gerp', 'n-phastcons', 'n-phylop'],
+        };
+        const state = { std: true, lim: true, con: true };
+
+        function toggle(k) {
+            state[k] = !state[k];
+            document.getElementById('btn-' + k).classList.toggle('on', state[k]);
+            applyHL();
+        }
+
+        function applyHL() {
+            // reset all
+            document.querySelectorAll('.node *').forEach(el => el.style.opacity = '1');
+            // dim inactive highlighted groups
+            Object.entries(HL).forEach(([k, ids]) => {
+                if (!state[k]) {
+                    ids.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.querySelectorAll('*').forEach(x => x.style.opacity = '0.25');
+                    });
+                }
+            });
+        }
+
+        applyHL();
+    </script>
+</body>
+
+</html>
