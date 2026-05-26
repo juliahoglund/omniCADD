@@ -46,6 +46,19 @@ def get_resource(rule_name, resource_type, default=None):
     Returns:
         Resource value from config or default
     """
+    # Default values for different resource types if not specified
+    DEFAULT_RESOURCES = {
+        "threads": 1,
+        "mem_mb": 4096,
+        "time": "01:00:00",
+        "partition": "shared",
+        "runtime": None  # Deprecated, should not be used
+    }
+    
+    # If no default provided, use standard defaults
+    if default is None:
+        default = DEFAULT_RESOURCES.get(resource_type)
+    
     try:
         # Try to get from resources config
         if "resources" in config and rule_name in config["resources"]:
