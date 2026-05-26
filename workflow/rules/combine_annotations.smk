@@ -29,36 +29,8 @@ wildcard_constraints:
 ##### GERP #####
 ################
 
-
-checkpoint split_alignment:
-    """
-Splits the MAF alignment into fixed-size chunks for parallel GERP/PHAST scoring.
-Uses the conservation alignment (all species preserved) so GERP/phastCons/phyloP
-have the full phylogenetic context.
-"""
-    input:
-        script="workflow/scripts/combine_annotations/split_alignments.py",
-        maf="results/alignment/merged_conservation/chr{chr}.maf",
-    output:
-        directory("results/alignment/splitted/chr{chr}/"),
-    log:
-        "results/logs/split_alignment/chr{chr}.log",
-    conda:
-        get_conda_env("alignment")
-    threads: get_resource("split_alignment_combine", "threads")
-    resources:
-        mem_mb=get_resource("split_alignment_combine", "mem_mb"),
-        runtime=get_resource("split_alignment_combine", "runtime"),
-        time=get_resource("split_alignment_combine", "time"),
-        partition=get_resource("split_alignment_combine", "partition"),
-    params:
-        blocksize=config["parallelization"]["alignment_positions_per_file"],
-    shell:
-        """
-        mkdir -p {output}
-        python3 {input.script} -i {input.maf} -o {output} -s {params.blocksize} 2> {log}
-        """
-
+# Note: split_alignment checkpoint is defined in gerp_annotation.smk
+# and is shared by both GERP and PHAST annotation processing
 
 # script from mugsy [ref];
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
@@ -75,7 +47,6 @@ rule convert_alignment_combine:
     threads: get_resource("convert_alignment_combine", "threads")
     resources:
         mem_mb=get_resource("convert_alignment_combine", "mem_mb"),
-        runtime=get_resource("convert_alignment_combine", "runtime"),
         time=get_resource("convert_alignment_combine", "time"),
         partition=get_resource("convert_alignment_combine", "partition"),
     shell:
@@ -96,7 +67,6 @@ rule format_alignment_combine:
     threads: get_resource("format_alignment_combine", "threads")
     resources:
         mem_mb=get_resource("format_alignment_combine", "mem_mb"),
-        runtime=get_resource("format_alignment_combine", "runtime"),
         time=get_resource("format_alignment_combine", "time"),
         partition=get_resource("format_alignment_combine", "partition"),
     shell:
@@ -119,7 +89,6 @@ rule prune_columns_combine:
     threads: get_resource("prune_columns_combine", "threads")
     resources:
         mem_mb=get_resource("prune_columns_combine", "mem_mb"),
-        runtime=get_resource("prune_columns_combine", "runtime"),
         time=get_resource("prune_columns_combine", "time"),
         partition=get_resource("prune_columns_combine", "partition"),
     shell:
@@ -147,7 +116,6 @@ This analysis is run as one job per genome chunk.
     threads: get_resource("compute_gerp_combine", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("compute_gerp_combine", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("compute_gerp_combine", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("compute_gerp_combine", "time") * attempt,
         partition=get_resource("compute_gerp_combine", "partition"),
     params:
@@ -179,7 +147,6 @@ This analysis is run as one job per genome chunk, but is internally run per cont
     threads: get_resource("gerp2coords_combine", "threads")
     resources:
         mem_mb=get_resource("gerp2coords_combine", "mem_mb"),
-        runtime=get_resource("gerp2coords_combine", "runtime"),
         time=get_resource("gerp2coords_combine", "time"),
         partition=get_resource("gerp2coords_combine", "partition"),
     params:
@@ -205,7 +172,6 @@ rule phylo_fit_combine:
     threads: get_resource("phylo_fit_combine", "threads")
     resources:
         mem_mb=get_resource("phylo_fit_combine", "mem_mb"),
-        runtime=get_resource("phylo_fit_combine", "runtime"),
         time=get_resource("phylo_fit_combine", "time"),
         partition=get_resource("phylo_fit_combine", "partition"),
     params:
@@ -237,7 +203,6 @@ rule run_phastCons_combine:
     threads: get_resource("run_phastCons_combine", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("run_phastCons_combine", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("run_phastCons_combine", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("run_phastCons_combine", "time") * attempt,
         partition=get_resource("run_phastCons_combine", "partition"),
     params:
@@ -263,7 +228,6 @@ rule run_phyloP_combine:
     threads: get_resource("run_phyloP_combine", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("run_phyloP_combine", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("run_phyloP_combine", "runtime") * attempt,
         time=lambda wildcards, attempt: get_resource("run_phyloP_combine", "time") * attempt,
         partition=get_resource("run_phyloP_combine", "partition"),
     params:
@@ -290,7 +254,6 @@ rule wig2bed_combine:
     threads: get_resource("wig2bed_combine", "threads")
     resources:
         mem_mb=get_resource("wig2bed_combine", "mem_mb"),
-        runtime=get_resource("wig2bed_combine", "runtime"),
         time=get_resource("wig2bed_combine", "time"),
         partition=get_resource("wig2bed_combine", "partition"),
     shell:
@@ -333,7 +296,7 @@ constraint BED for merging with variant annotations.
     threads: get_resource("combine_constraint", "threads")
     resources:
         mem_mb=get_resource("combine_constraint", "mem_mb"),
-        runtime=get_resource("combine_constraint", "runtime"),
+
         time=get_resource("combine_constraint", "time"),
         partition=get_resource("combine_constraint", "partition"),
     shell:
@@ -365,7 +328,6 @@ if should_include_vep():
         threads: get_resource("combine_annotations_combine", "threads")
         resources:
             mem_mb=get_resource("combine_annotations_combine", "mem_mb"),
-            runtime=get_resource("combine_annotations_combine", "runtime"),
             time=get_resource("combine_annotations_combine", "time"),
             partition=get_resource("combine_annotations_combine", "partition"),
         shell:
@@ -388,7 +350,6 @@ if should_include_snpeff():
         threads: get_resource("combine_annotations_snpeff_combine", "threads")
         resources:
             mem_mb=get_resource("combine_annotations_snpeff_combine", "mem_mb"),
-            runtime=get_resource("combine_annotations_snpeff_combine", "runtime"),
             time=get_resource("combine_annotations_snpeff_combine", "time"),
             partition=get_resource("combine_annotations_snpeff_combine", "partition"),
         shell:
