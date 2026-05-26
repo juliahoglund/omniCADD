@@ -37,7 +37,6 @@ rule create_summary:
     threads: get_resource("create_summary", "threads")
     resources:
         mem_mb=get_resource("create_summary", "mem_mb"),
-        runtime=get_resource("create_summary", "runtime"),
         time=get_resource("create_summary", "time"),
         partition=get_resource("create_summary", "partition"),
     params:
@@ -84,7 +83,6 @@ if config["stats_report"]["annotation"] == "True":
         threads: get_resource("create_input", "threads")
         resources:
             mem_mb=get_resource("create_input", "mem_mb"),
-            runtime=get_resource("create_input", "runtime"),
             time=get_resource("create_input", "time"),
             partition=get_resource("create_input", "partition"),
         shell:
@@ -114,7 +112,6 @@ rule create_datafiles:
     threads: get_resource("create_datafiles", "threads")
     resources:
         mem_mb=get_resource("create_datafiles", "mem_mb"),
-        runtime=get_resource("create_datafiles", "runtime"),
         time=get_resource("create_datafiles", "time"),
         partition=get_resource("create_datafiles", "partition"),
     params:
@@ -147,7 +144,6 @@ rule raw_singleton_stats:
     threads: get_resource("raw_singleton_stats", "threads")
     resources:
         mem_mb=get_resource("raw_singleton_stats", "mem_mb"),
-        runtime=get_resource("raw_singleton_stats", "runtime"),
         time=get_resource("raw_singleton_stats", "time"),
         partition=get_resource("raw_singleton_stats", "partition"),
     shell:
@@ -174,7 +170,6 @@ rule summary_report_with_gene_prediction:
     threads: get_resource("summary_report_with_gene_prediction", "threads")
     resources:
         mem_mb=get_resource("summary_report_with_gene_prediction", "mem_mb"),
-        runtime=get_resource("summary_report_with_gene_prediction", "runtime"),
         time=get_resource("summary_report_with_gene_prediction", "time"),
         partition=get_resource("summary_report_with_gene_prediction", "partition"),
     shell:
