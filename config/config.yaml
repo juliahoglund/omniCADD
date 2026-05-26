@@ -1,3 +1,10 @@
+##### CONTAINER IMAGES #####
+containers:
+  augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
+  snpeff: "docker://juliahoglund/snpeff:latest"
+  maftools: "docker://juliahoglund/maftools:latest"
+  vep: "docker://juliahoglund/vep:111.0"
+
 ##### GLOBAL SETTINGS #####
 species_name: "sus_scrofa"
 genome_version: "Sus_scrofa11.1"
