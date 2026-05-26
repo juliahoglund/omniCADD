@@ -284,7 +284,7 @@ rule snpeff_create_config:
     output:
         config_file = config["annotation"]["snpeff"]["build"]["config_file"]
     shell:
-        """
+        r"""
         set -euo pipefail
 
         CONFIG={params.config_file}
