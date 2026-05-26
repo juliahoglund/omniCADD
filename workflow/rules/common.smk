@@ -14,14 +14,14 @@ import sys
 import glob
 
 # Add  script variables
-SCRIPTS_1 = "../scripts/step_1_extract_ancestor/"
-SCRIPTS_2 = "../scripts/step_2_derive_variants/"
-SCRIPTS_3 = "../scripts/step_3_simulate_variants/"
-SCRIPTS_4 = "../scripts/step_4_summary_report/"
+SCRIPTS_1 = "../scripts/ancestral_generation/"
+SCRIPTS_2 = "../scripts/variant_derivation/"
+SCRIPTS_3 = "../scripts/variant_simulation/"
+SCRIPTS_4 = "../scripts/summary_report/"
 SCRIPTS_5 = "../scripts/step_5_annotate_variants/"
-SCRIPTS_6 = "../scripts/step_6_combine_annotations/"
-SCRIPTS_7 = "../scripts/step_7_train_test_model/"
-SCRIPTS_8 = "../scripts/step_8_score_variants/"
+SCRIPTS_6 = "../scripts/combine_annotations/"
+SCRIPTS_7 = "../scripts/train_test_model/"
+SCRIPTS_8 = "../scripts/score_variants/"
 
 SCRIPTS_SIFT = "scripts/step_5_annotate_variants/sift/"
 SCRIPTS_FASTA2BED = "../scripts/fasta2bed.py"
