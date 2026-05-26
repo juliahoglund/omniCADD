@@ -87,7 +87,7 @@ create_stats_report:
   time: "08:00:00"
 
 create_summary:
-  mem_mb: 65536  # 64 GB - R script loads all VCF + ancestral sequences (used ~30GB, doubling for safety)
+  mem_mb: 98304  # 96 GB - R script consistently uses ~30GB, 3x headroom for larger genomes
   threads: 4
   time: "06:00:00"
 
