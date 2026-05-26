@@ -82,7 +82,7 @@ stats_report:
   gtf: 'resources/Sus_scrofa.Sscrofa11.1.111.chr.gtf.gz'
   is_gtf: 'False' # Set to True if using GTF instead of GFF
   prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
-  tree: 'resources/tree_43_mammals.nwk' # Consistent with annotation.gerp.tree
+  tree: 'resources/tree_44_mammals.nwk' # 44 species (sus_scrofa + Ancestor_Pig_Cow + 42 outgroups)
   ingroup: 'sus scrofa' # Must be lowercase
   outgroup: 'bos taurus'
 
