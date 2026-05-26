@@ -87,9 +87,14 @@ create_stats_report:
   time: "08:00:00"
 
 create_summary:
-  mem_mb: 98304  # 96 GB - R script consistently uses ~30GB, 3x headroom for larger genomes
-  threads: 4
-  time: "06:00:00"
+  mem_mb: 8192  # 8 GB - Python streaming (was 96 GB for R!)
+  threads: 2
+  time: "01:00:00"
+
+create_datafiles:
+  mem_mb: 4096  # 4 GB - Python plotly visualization
+  threads: 2
+  time: "00:30:00"
 
 ######################################
 ### STEP 5: ANNOTATE VARIANTS ########

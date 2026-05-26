@@ -16,7 +16,7 @@ Params can be adjusted for any given species of interest.
 
 rule create_summary:
     input:
-        script="workflow/scripts/summary_report/generate_summary_info.R",
+        script="workflow/scripts/summary_report/generate_summary_info.py",
         raw_snps="results/simulated_variants/raw_snps/all_chr.vcf",
         filtered_snps="results/simulated_variants/filtered_snps/all_chr.vcf",
         derived_vars="results/derived_variants/singletons/all_chr.vcf",
@@ -28,12 +28,12 @@ rule create_summary:
         raw_log="results/visualisation/raw_summary.log",
         filtered_log="results/visualisation/filtered_summary.log",
     output:
-        r_clump="results/visualisation/graphs.RData",
+        json_data="results/visualisation/graphs.json",
         indexfile="results/visualisation/indexfile.txt",
     log:
         "results/logs/create_summary.log",
     conda:
-        get_conda_env("r_stats")
+        get_conda_env("summary_report_py")
     threads: get_resource("create_summary", "threads")
     resources:
         mem_mb=get_resource("create_summary", "mem_mb"),
@@ -43,25 +43,20 @@ rule create_summary:
         ancestral_dir=lambda wildcards, input: os.path.dirname(input.ancestral_files[0]) + "/",
     shell:
         """
-        # create genomewide ancestral fasta file
-        cat {params.ancestral_dir}*.fa > {params.ancestral_dir}Ancestor.fa 2>> {log}
-
         # create "ideogram file" / "fasta index"
-        cat {params.ancestral_dir}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, "0", $2}}' | sort -g > indexfile.txt 2>> {log}
+        cat {params.ancestral_dir}*.fai | cut -f2 -d"." | cut -f1,2 | awk '{{print $1, "0", $2}}' | sort -g > {output.indexfile} 2>> {log}
 
-        # Run R script (no renv activation)
-        Rscript {input.script} \
+        # Run Python script (memory-efficient streaming)
+        python {input.script} \
         -s {input.raw_snps} \
         -t {input.filtered_snps} \
         -d {input.derived_vars} \
-        -r indexfile.txt \
+        -r {output.indexfile} \
         -a {params.ancestral_dir} \
         -p {input.parameter_log} \
         -u {input.raw_log} \
-        -f {input.filtered_log} 2>> {log}
-
-        mv graphs.RData {output.r_clump} 2>> {log}
-        mv indexfile.txt {output.indexfile} 2>> {log}
+        -f {input.filtered_log} \
+        -o {output.json_data} 2>> {log}
         """
 
 
@@ -97,38 +92,27 @@ if config["stats_report"]["annotation"] == "True":
 
 rule create_datafiles:
     input:
-        script="workflow/scripts/summary_report/stats_report.R",
-        tree=config["stats_report"]["tree"],
-        ideogram="results/visualisation/indexfile.txt",
-        annotation=("results/visualisation/Ancestor.bed" if config["stats_report"]["annotation"] == "True" else []),
-        bedfile=("results/visualisation/CDS.regions.bed" if config["stats_report"]["annotation"] == "True" else []),
-        coverage=("results/visualisation/CDS.coverage.bed" if config["stats_report"]["annotation"] == "True" else []),
+        script="workflow/scripts/summary_report/generate_html_report.py",
+        json_data="results/visualisation/graphs.json",
     output:
         "results/visualisation/stats_report.html",
     log:
         "results/logs/create_datafiles.log",
     conda:
-        get_conda_env("r_stats")
+        get_conda_env("summary_report_py")
     threads: get_resource("create_datafiles", "threads")
     resources:
         mem_mb=get_resource("create_datafiles", "mem_mb"),
         time=get_resource("create_datafiles", "time"),
         partition=get_resource("create_datafiles", "partition"),
     params:
-        ingroup=config["stats_report"]["ingroup"],
-        outgroup=config["stats_report"]["outgroup"],
+        title="omniCADD Variant Summary Report",
     shell:
         """
-        Rscript -e "rmarkdown::render('{input.script}', \
-         params=list( \
-         tree='{input.tree}', \
-         ideogram='{input.ideogram}', \
-         annotation='{input.annotation}', \
-         bedfile='{input.bedfile}', \
-         coverage='{input.coverage}', \
-         ingroup='{params.ingroup}', \
-         outgroup='{params.outgroup}' \
-         ), output_dir='results/visualisation/')" 2> {log}
+        python {input.script} \
+        -i {input.json_data} \
+        -o {output} \
+        --title '{params.title}' 2> {log}
         """
 
 

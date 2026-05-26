@@ -1,0 +1,15 @@
+# Conda environment for Python-based summary report generation
+# Replaces R-based workflow with memory-efficient Python implementation
+
+name: summary_report_py
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - python>=3.9
+  - numpy>=1.20
+  - pandas>=1.3
+  - plotly>=5.0
+  - kaleido  # For static image export (optional)
