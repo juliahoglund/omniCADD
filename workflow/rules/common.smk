@@ -72,6 +72,32 @@ def get_resource(rule_name, resource_type, default=None):
         return default
 
 
+def get_vep_source_vcf(wildcards):
+    """Get source VCF file for VEP annotation based on variant type."""
+    if wildcards.type == "derived":
+        return f"results/derived_variants/singletons/chr{wildcards.chr}.vcf.gz"
+    elif wildcards.type == "simulated":
+        return f"results/simulated_variants/trimmed_snps/chr{wildcards.chr}.vcf.gz"
+    else:
+        return f"results/{wildcards.type}_variants/chr{wildcards.chr}.vcf.gz"
+
+
+def get_vep_source_index(wildcards):
+    """Get index file for VEP source VCF."""
+    vcf = get_vep_source_vcf(wildcards)
+    return f"{vcf}.tbi"
+
+
+def get_vep_source_vep_output(wildcards):
+    """Get VEP output file path."""
+    if wildcards.type == "derived":
+        return f"results/derived_variants/singletons/chr{wildcards.chr}_vep_output.tsv"
+    elif wildcards.type == "simulated":
+        return f"results/simulated_variants/trimmed_snps/chr{wildcards.chr}_vep_output.tsv"
+    else:
+        return f"results/{wildcards.type}_variants/chr{wildcards.chr}_vep_output.tsv"
+
+
 def get_alignment_config():
     """Get the correct alignment configuration based on the configured name (mark_ancestor: ancestral_alignment)."""
     # Try to get the name from config, falling back to any available or 43_mammals.epo
