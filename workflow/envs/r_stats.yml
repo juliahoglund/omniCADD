@@ -6,6 +6,7 @@ channels:
 dependencies:
   - r-base=4.3
   # Core R packages for data manipulation and visualization
+  - r-tidyverse  # Meta-package including ggplot2, dplyr, tidyr, readr, etc.
   - r-ggplot2
   - r-dplyr
   - r-tidyr
@@ -14,6 +15,15 @@ dependencies:
   - r-forcats
   - r-purrr
   - r-tibble
+  
+  # Graphics dependencies (needed by tidyverse)
+  - r-ragg  # Modern text and graphics rendering
+  - r-textshaping  # Text rendering engine
+  - fribidi  # System library for text shaping
+  - freetype  # Font rendering
+  - libpng  # PNG support
+  - libjpeg-turbo  # JPEG support
+  - libtiff  # TIFF support
   
   # Statistical and modeling packages
   - r-mass
