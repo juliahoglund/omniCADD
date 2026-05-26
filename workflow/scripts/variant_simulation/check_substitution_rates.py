@@ -168,6 +168,7 @@ ACn, AGn, ATn, CAn, CGn, CTn, GAn, GCn, GTn, TAn, TCn, TGn = 0, 0, 0, 0, 0, 0, 0
 CA, CG, CT, GA, GC, GT = 0, 0, 0, 0, 0, 0
 
 def process_vcf(vcf_file, chrom_list, log_file):
+    global mut, mutCpG, ACn, AGn, ATn, CAn, CGn, CTn, GAn, GCn, GTn, TAn, TCn, TGn, CA, CG, CT, GA, GC, GT
     for c in chrom_list:
         write = 0
         for line in vcf_file:
