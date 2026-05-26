@@ -87,7 +87,7 @@ create_stats_report:
   time: "08:00:00"
 
 create_summary:
-  mem_mb: 32768
+  mem_mb: 65536  # 64 GB - R script loads all VCF + ancestral sequences (used ~30GB, doubling for safety)
   threads: 4
   time: "06:00:00"
 
