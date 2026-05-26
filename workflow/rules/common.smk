@@ -185,7 +185,7 @@ def load_tsv_configuration(file: str) -> dict:
     return samples
 
 
-script = workflow.source_path("../scripts/step_1_extract_ancestor/clean_maf.py")
+script = workflow.source_path("../scripts/ancestral_generation/clean_maf.py")
 
 
 def ensure_dir(path):
