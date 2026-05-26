@@ -34,6 +34,27 @@ def get_conda_env(env_name):
     return f"workflow/envs/{env_name}.yml"
 
 
+def get_resource(rule_name, resource_type, default=None):
+    """
+    Get resource value for a rule from config.
+    
+    Args:
+        rule_name: Name of the rule
+        resource_type: Type of resource (threads, mem_mb, time, partition, runtime)
+        default: Default value if not found in config
+        
+    Returns:
+        Resource value from config or default
+    """
+    try:
+        # Try to get from resources config
+        if "resources" in config and rule_name in config["resources"]:
+            return config["resources"][rule_name].get(resource_type, default)
+        return default
+    except (KeyError, AttributeError, TypeError):
+        return default
+
+
 """
 Global wildcard constraints, ease matching of wildcards in rules.
 Chr is constrained to only be numbers or letters.
