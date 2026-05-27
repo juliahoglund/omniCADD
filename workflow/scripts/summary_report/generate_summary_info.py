@@ -119,7 +119,7 @@ def is_transition(ref, alt):
 
 def process_vcf_streaming(vcf_path, bin_size=100000):
     """
-    Process VCF file in streaming fashion.
+    Process VCF file in streaming fashion with minimal memory.
     
     Returns:
         per_chrom: dict with per-chromosome statistics
@@ -131,8 +131,10 @@ def process_vcf_streaming(vcf_path, bin_size=100000):
         'transversions': 0,
         'cpg': 0,
         'non_cpg': 0,
-        'positions': []  # Store for binning
     })
+    
+    # Store bins as dict: {chrom: {bin_start: count}}
+    binned_counts = defaultdict(lambda: defaultdict(int))
     
     print(f"Processing {vcf_path}...")
     
@@ -153,7 +155,10 @@ def process_vcf_streaming(vcf_path, bin_size=100000):
             
             # Count totals
             per_chrom[chrom]['total'] += 1
-            per_chrom[chrom]['positions'].append(pos)
+            
+            # Bin position immediately without storing
+            bin_start = (pos // bin_size) * bin_size
+            binned_counts[chrom][bin_start] += 1
             
             # Count CpG
             if 'CpG' in info:
@@ -167,29 +172,19 @@ def process_vcf_streaming(vcf_path, bin_size=100000):
                 else:
                     per_chrom[chrom]['transversions'] += 1
     
-    # Create binned data for visualization
+    # Convert binned counts to output format
     binned_data = {}
-    for chrom, data in per_chrom.items():
-        if not data['positions']:
-            continue
-        
-        positions = np.array(data['positions'])
-        max_pos = positions.max()
-        
-        # Create bins
-        bins = np.arange(0, max_pos + bin_size, bin_size)
-        hist, bin_edges = np.histogram(positions, bins=bins)
-        
+    for chrom, bins in binned_counts.items():
         binned_data[chrom] = []
-        for i in range(len(hist)):
-            if hist[i] > 0:
+        for bin_start in sorted(bins.keys()):
+            if bins[bin_start] > 0:
                 binned_data[chrom].append({
-                    'start': int(bin_edges[i]),
-                    'end': int(bin_edges[i + 1]),
-                    'count': int(hist[i])
+                    'start': int(bin_start),
+                    'end': int(bin_start + bin_size),
+                    'count': int(bins[bin_start])
                 })
     
-    # Calculate fractions and clean up positions
+    # Calculate fractions
     for chrom, data in per_chrom.items():
         total = data['total']
         if total > 0:
@@ -202,9 +197,6 @@ def process_vcf_streaming(vcf_path, bin_size=100000):
             data['frac_transversions'] = 0
             data['frac_cpg'] = 0
             data['frac_non_cpg'] = 0
-        
-        # Remove positions list to save memory
-        del data['positions']
     
     return dict(per_chrom), binned_data
 
