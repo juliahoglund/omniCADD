@@ -3,7 +3,7 @@ containers:
   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
   snpeff: "docker://juliahoglund/snpeff:latest"
   maftools: "docker://juliahoglund/maftools:latest"
-  vep: "docker://juliahoglund/vep:111.0"
+  vep: "docker://ensemblorg/ensembl-vep:release_111.0"
 
 ##### GLOBAL SETTINGS #####
 species_name: "sus_scrofa"
@@ -66,9 +66,9 @@ annotation:
     phyloP_params: "--method=LRT --mode=CONACC"
   vep:
     cache:
-      directory: '$VEP_CACHE' # Environment variable or path like: resources/vep
-      should_install: False # Set to True to auto-install VEP cache
-      install_params: "--CACHE_VERSION 110 -s sus_scrofa -y Sscrofa11.1"
+      directory: '/sw/data/vep/111.0' # Shared VEP cache on Dardel/UPPMAX; must match container version
+      should_install: False
+      install_params: "--CACHE_VERSION 111 -s sus_scrofa -y Sscrofa11.1"
 
 annotation_config:
   processing: "config/annot_processing_config.tsv"
