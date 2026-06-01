@@ -14,7 +14,7 @@ Params can be adjusted for any given species of interest.
 """
 
 
-rule create_summary:
+rule create_datafiles:
     input:
         script="workflow/scripts/summary_report/generate_summary_info.py",
         raw_snps="results/simulated_variants/raw_snps/all_chr.vcf",
@@ -31,14 +31,14 @@ rule create_summary:
         json_data="results/visualisation/graphs.json",
         indexfile="results/visualisation/indexfile.txt",
     log:
-        "results/logs/create_summary.log",
+        "results/logs/create_datafiles.log",
     conda:
         get_conda_env("summary_report_py")
-    threads: get_resource("create_summary", "threads")
+    threads: get_resource("create_datafiles", "threads")
     resources:
-        mem_mb=get_resource("create_summary", "mem_mb"),
-        time=get_resource("create_summary", "time"),
-        partition=get_resource("create_summary", "partition"),
+        mem_mb=get_resource("create_datafiles", "mem_mb"),
+        time=get_resource("create_datafiles", "time"),
+        partition=get_resource("create_datafiles", "partition"),
     params:
         ancestral_dir=lambda wildcards, input: os.path.dirname(input.ancestral_files[0]) + "/",
     shell:
@@ -90,21 +90,21 @@ if config["stats_report"]["annotation"] == "True":
             """
 
 
-rule create_datafiles:
+rule create_summary:
     input:
         script="workflow/scripts/summary_report/generate_html_report.py",
         json_data="results/visualisation/graphs.json",
     output:
         "results/visualisation/stats_report.html",
     log:
-        "results/logs/create_datafiles.log",
+        "results/logs/create_summary.log",
     conda:
         get_conda_env("summary_report_py")
-    threads: get_resource("create_datafiles", "threads")
+    threads: get_resource("create_summary", "threads")
     resources:
-        mem_mb=get_resource("create_datafiles", "mem_mb"),
-        time=get_resource("create_datafiles", "time"),
-        partition=get_resource("create_datafiles", "partition"),
+        mem_mb=get_resource("create_summary", "mem_mb"),
+        time=get_resource("create_summary", "time"),
+        partition=get_resource("create_summary", "partition"),
     params:
         title="omniCADD Variant Summary Report",
     shell:

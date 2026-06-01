@@ -70,10 +70,10 @@ set-resources:
   # Step 4: Summary report (Python-based, memory-efficient)
   create_stats_report:
     mem_mb: 8192  # 8 GB - Python streaming
-  create_summary:
-    mem_mb: 8192  # 8 GB - Python streaming (was 96 GB for R!)
   create_datafiles:
-    mem_mb: 4096  # 4 GB - Python plotting
+    mem_mb: 8192  # 8 GB - Python streaming (VCF processing)
+  create_summary:
+    mem_mb: 4096  # 4 GB - Python HTML rendering
 
   # Step 5: Annotate variants
   run_vep_combine:

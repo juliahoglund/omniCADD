@@ -122,11 +122,16 @@ def create_variant_counts_plot(data):
     return fig
 
 
+def _chrom_sort_key(x):
+    """Sort key for chromosome names: numerics first, then strings (e.g. X, Y)."""
+    return (0, int(x)) if x.isdigit() else (1, x)
+
+
 def create_mutation_type_plot(data, dataset_name='simulated'):
     """Create stacked bar plot of mutation types."""
     per_chrom = data[dataset_name]['per_chrom']
     
-    chromosomes = sorted(per_chrom.keys(), key=lambda x: int(x) if x.isdigit() else x)
+    chromosomes = sorted(per_chrom.keys(), key=_chrom_sort_key)
     
     transitions = [per_chrom[c]['transitions'] for c in chromosomes]
     transversions = [per_chrom[c]['transversions'] for c in chromosomes]
@@ -171,7 +176,7 @@ def create_mutation_fractions_plot(data, dataset_name='simulated'):
     """Create plot of mutation type fractions."""
     per_chrom = data[dataset_name]['per_chrom']
     
-    chromosomes = sorted(per_chrom.keys(), key=lambda x: int(x) if x.isdigit() else x)
+    chromosomes = sorted(per_chrom.keys(), key=_chrom_sort_key)
     
     frac_ti = [per_chrom[c]['frac_transitions'] * 100 for c in chromosomes]
     frac_tv = [per_chrom[c]['frac_transversions'] * 100 for c in chromosomes]
@@ -224,7 +229,7 @@ def create_distribution_plot(data, dataset_name='simulated', chrom=None):
     if chrom and chrom in binned:
         chromosomes = [chrom]
     else:
-        chromosomes = sorted(binned.keys(), key=lambda x: int(x) if x.isdigit() else x)
+        chromosomes = sorted(binned.keys(), key=_chrom_sort_key)
     
     fig = go.Figure()
     
