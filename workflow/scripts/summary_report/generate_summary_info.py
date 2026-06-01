@@ -78,21 +78,19 @@ def open_maybe_gzip(filepath):
     return open(filepath, 'r')
 
 
-def read_fai_index(filepath):
+def count_nongap_bases(fasta_filepath):
     """
-    Read FASTA index (.fai) file.
-    Format: NAME LENGTH ...
-    Returns dict of {chrom: length}
+    Stream through a FASTA file and count non-gap, non-N bases.
+    The ancestral sequence uses '-' for positions with no coverage.
+    This gives the actual covered bases, not the total aligned length.
     """
-    index = {}
-    with open(filepath, 'r') as f:
+    count = 0
+    with open_maybe_gzip(fasta_filepath) as f:
         for line in f:
-            if line.strip():
-                parts = line.strip().split('\t')
-                chrom = parts[0]
-                length = int(parts[1])
-                index[chrom] = length
-    return index
+            if line.startswith('>'):
+                continue
+            count += sum(1 for c in line.strip() if c not in ('-', 'N', 'n'))
+    return count
 
 
 def read_reference_index(filepath):
@@ -225,29 +223,26 @@ def main():
     print("Reading reference genome index...")
     reference_index = read_reference_index(args.reference)
     
-    print("Reading ancestral sequence indices...")
-    # Find all .fai files in ancestor directory
+    print("Reading ancestral sequence files (counting non-gap bases)...")
+    # Stream .fa files directly - .fai reports total length including '-' gaps
+    # which equals reference length. We need actual covered (non-gap) bases.
     ancestor_dir = Path(args.ancestor)
     ancestor_index = {}
-    
-    for fai_file in sorted(ancestor_dir.glob('*.fai')):
-        # Robustly extract chromosome name from .fa.fai or .fai
-        fname = fai_file.name
-        # Remove .fa.fai or .fai
-        if fname.endswith('.fa.fai'):
-            chrom_name = fname[:-7]  # Remove .fa.fai
-        elif fname.endswith('.fai'):
-            chrom_name = fname[:-4]  # Remove .fai
+
+    for fa_file in sorted(ancestor_dir.glob('*.fa')):
+        # Robustly extract chromosome name from chr1.fa or chr1.fa.gz
+        fname = fa_file.name
+        if fname.endswith('.fa.gz'):
+            chrom_name = fname[:-6]
+        elif fname.endswith('.fa'):
+            chrom_name = fname[:-3]
         else:
-            chrom_name = fai_file.stem
+            chrom_name = fa_file.stem
         # Remove 'chr' prefix if present
         if chrom_name.startswith('chr'):
             chrom_name = chrom_name[3:]
-        fai_data = read_fai_index(fai_file)
-        # FASTA files have one sequence, use first entry
-        for seq_name, length in fai_data.items():
-            ancestor_index[chrom_name] = length
-            break
+        print(f"  Counting non-gap bases in {fa_file.name}...")
+        ancestor_index[chrom_name] = count_nongap_bases(str(fa_file))
     
     print(f"Found {len(ancestor_index)} ancestral chromosomes")
     
