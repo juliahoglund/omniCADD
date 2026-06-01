@@ -231,7 +231,18 @@ def main():
     ancestor_index = {}
     
     for fai_file in sorted(ancestor_dir.glob('*.fai')):
-        chrom_name = fai_file.stem.replace('chr', '')
+        # Robustly extract chromosome name from .fa.fai or .fai
+        fname = fai_file.name
+        # Remove .fa.fai or .fai
+        if fname.endswith('.fa.fai'):
+            chrom_name = fname[:-7]  # Remove .fa.fai
+        elif fname.endswith('.fai'):
+            chrom_name = fname[:-4]  # Remove .fai
+        else:
+            chrom_name = fai_file.stem
+        # Remove 'chr' prefix if present
+        if chrom_name.startswith('chr'):
+            chrom_name = chrom_name[3:]
         fai_data = read_fai_index(fai_file)
         # FASTA files have one sequence, use first entry
         for seq_name, length in fai_data.items():
