@@ -62,3 +62,4 @@ __pycache__/
 *.so
 /docs
 config/slurm/dardel/start_omnicadd.sh
+check-before-push.sh
