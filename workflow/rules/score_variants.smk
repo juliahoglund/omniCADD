@@ -88,7 +88,7 @@ This rule expects SIFT scores to be available but this is not the case for many 
 rule run_genome_vep:
     input:
         vcf="results/whole_genome_variants/chr{chr}/{part}.vcf.gz",
-        script=workflow.source_path(f"{SCRIPTS_5}vep.sh"),
+        script=workflow.source_path("../scripts/vep_annotation/vep.sh"),
         cache=(
             rules.vep_cache.output
             if config["annotation"]["vep"]["cache"]["should_install"] == "True"
@@ -135,7 +135,7 @@ rule process_genome_vep:
         grantham=workflow.source_path(
             "../../resources/grantham_matrix/grantham_table.tsv"
         ),
-        script=workflow.source_path(f"{SCRIPTS_5}VEP_process.py"),
+        script=workflow.source_path("../scripts/vep_annotation/VEP_process.py"),
     log:
         "results/logs/score_variants/process_genome_vep/chr{chr}_{part}.log",
     conda:

@@ -1,0 +1,23 @@
+name: alignment
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  # Core tools for alignment generation
+  - minimap2
+  - samtools
+  - htsbox
+  - biopython>=1.80
+  - python=3.10
+  - pip
+  - setuptools
+  - wheel
+  # For split_fasta_by_chromosome.py and general scripting
+  - numpy
+  - lz4  # For sort_by_chromosome.py (reading lz4 compressed files)
+  # For compatibility with other rules
+  - bcftools
+  - gzip
+  - pigz
+  - zlib

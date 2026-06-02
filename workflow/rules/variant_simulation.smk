@@ -223,6 +223,8 @@ with each thread requiring less memory.
 
 
 rule split_by_chrom:
+    wildcard_constraints:
+        type="[a-zA-Z0-9_]+",
     input:
         vcf="results/simulated_variants/trimmed_{type}/all_chr.vcf.gz",
         index="results/simulated_variants/trimmed_{type}/all_chr.vcf.gz.tbi",
