@@ -76,6 +76,16 @@ set-resources:
     mem_mb: 4096  # 4 GB - Python HTML rendering
 
   # Step 5: Annotate variants
+  run_vep:
+    mem_mb: 32768
+  process_vep:
+    mem_mb: 16384
+  bgzip_tabix:
+    mem_mb: 4096
+  tabix:
+    mem_mb: 2048
+  split_by_chrom:
+    mem_mb: 4096
   run_vep_combine:
     mem_mb: 49152
   process_vep_combine:
@@ -90,6 +100,14 @@ set-resources:
     mem_mb: 32768
   compute_gerp:
     mem_mb: 32768
+  run_phastCons:
+    mem_mb: 8192
+  run_phyloP:
+    mem_mb: 8192
+  run_phastCons_combine:
+    mem_mb: 8192
+  run_phyloP_combine:
+    mem_mb: 8192
   phylo_fit_combine:
     mem_mb: 32768
 
