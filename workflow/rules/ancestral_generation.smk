@@ -205,11 +205,11 @@ rule reuse_sorted_for_conservation:
 # Define rule precedence: use reuse_sorted when orders match, otherwise use full conservation path
 if conservation_matches_filter():
 
-    ruleorder: reuse_sorted_for_conservation > sort_by_chr_conservation
+    ruleorder: reuse_sorted_for_conservation > sort_by_chr_conservation > unzip_maf
 
 else:
 
-    ruleorder: sort_by_chr_conservation > reuse_sorted_for_conservation
+    ruleorder: sort_by_chr_conservation > reuse_sorted_for_conservation > unzip_maf
 
 
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest

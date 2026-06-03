@@ -88,6 +88,8 @@ set-resources:
     mem_mb: 32768
   compute_gerp:
     mem_mb: 32768
+  split_alignment:
+    mem_mb: 16384
   phylo_fit_combine:
     mem_mb: 32768
 

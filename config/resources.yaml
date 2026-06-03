@@ -129,6 +129,69 @@ compute_gerp:
   threads: 4
   time: "08:00:00"
 
+# Alignment preprocessing for conservation annotations
+split_alignment:
+  mem_mb: 16384
+  threads: 4
+  time: "04:00:00"
+
+convert_alignment:
+  mem_mb: 4096
+  threads: 1
+  runtime: 60
+  time: "01:00:00"
+
+format_alignment:
+  mem_mb: 4096
+  threads: 1
+  runtime: 60
+  time: "01:00:00"
+
+prune_columns:
+  mem_mb: 4096
+  threads: 1
+  runtime: 60
+  time: "01:00:00"
+
+gerp2coords:
+  mem_mb: 4096
+  threads: 1
+  runtime: 60
+  time: "01:00:00"
+
+run_phastCons:
+  mem_mb: 8192
+  threads: 2
+  runtime: 180
+  time: 180
+
+run_phyloP:
+  mem_mb: 8192
+  threads: 2
+  runtime: 180
+  time: 180
+
+wig2bed:
+  mem_mb: 4096
+  threads: 1
+  runtime: 30
+  time: "00:30:00"
+
+run_phastCons_combine:
+  mem_mb: 8192
+  threads: 2
+  time: 180
+
+run_phyloP_combine:
+  mem_mb: 8192
+  threads: 2
+  time: 180
+
+wig2bed_combine:
+  mem_mb: 4096
+  threads: 1
+  time: 30
+
 phylo_fit_combine:
   mem_mb: 32768
   threads: 4
