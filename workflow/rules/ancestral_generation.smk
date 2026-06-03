@@ -183,6 +183,35 @@ rule sort_by_chr_conservation:
         """
 
 
+# Reuse sorted alignments for conservation when filter and conservation orders match
+# This avoids reprocessing the same MAF files twice
+# Takes priority when species orders are identical
+rule reuse_sorted_for_conservation:
+    input:
+        "results/alignment/sorted/chr{chr}.maf.gz",
+    output:
+        "results/alignment/merged_conservation/chr{chr}.maf",
+    log:
+        "results/logs/reuse_sorted_conservation/chr{chr}.log",
+    conda:
+        get_conda_env("alignment")
+    shell:
+        """
+        mkdir -p $(dirname {output})
+        gzip -dc {input} > {output} 2> {log}
+        """
+
+
+# Define rule precedence: use reuse_sorted when orders match, otherwise use full conservation path
+if conservation_matches_filter():
+
+    ruleorder: reuse_sorted_for_conservation > sort_by_chr_conservation
+
+else:
+
+    ruleorder: sort_by_chr_conservation > reuse_sorted_for_conservation
+
+
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
 # Note: Always processes row_ordered files (not conservation) because extraction needs both
 # reference species and ancestor. Conservation path optimization only applies to scoring.

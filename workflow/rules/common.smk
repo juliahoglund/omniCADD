@@ -151,6 +151,17 @@ def get_conservation_species_order():
     return order
 
 
+def conservation_matches_filter():
+    """
+    Check if conservation species order matches filter order.
+    Returns: True if they're the same (can reuse sorted files), False otherwise
+    """
+    alignment_config = get_alignment_config()
+    filter_order = alignment_config["filter_order"]
+    conservation_order = get_conservation_species_order()
+    return filter_order == conservation_order
+
+
 def gather_part_files():
     """
     Gather all alignment part files based on configuration.
