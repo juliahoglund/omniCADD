@@ -6,6 +6,9 @@ containers:
   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
   snpeff: "docker://biocontainers/snpeff:v5.1.0_cv1"
   maftools: "docker://juliahoglund/maftools:latest"
+  gerp: "docker://juliahoglund/gerp:2.1"
+  phast: "docker://juliahoglund/phast:1.5"
+  vep: "docker://ensemblorg/ensembl-vep:release_111.0"
 
 ###################
 ### DATA TIER #####

@@ -9,8 +9,8 @@ rule phylo_fit:
         "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
     log:
         "results/logs/phylo_fit/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("phast")
     threads: get_resource("phylo_fit", "threads")
     resources:
         mem_mb=get_resource("phylo_fit", "mem_mb"),
@@ -41,8 +41,8 @@ rule run_phastCons:
         temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
     log:
         "results/logs/run_phastCons/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("phast")
     threads: get_resource("run_phastCons", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("run_phastCons", "mem_mb") * attempt,
@@ -67,8 +67,8 @@ rule run_phyloP:
         temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
     log:
         "results/logs/run_phyloP/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("phast")
     threads: get_resource("run_phyloP", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("run_phyloP", "mem_mb") * attempt,
@@ -94,8 +94,8 @@ rule wig2bed:
         "results/logs/wig2bed/{tool}/chr{chr}/{part}.log",
     wildcard_constraints:
         tool="(phastCons|phyloP)",
-    conda:
-        get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("phast")
     threads: get_resource("wig2bed", "threads")
     resources:
         mem_mb=get_resource("wig2bed", "mem_mb"),

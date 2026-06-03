@@ -24,11 +24,12 @@ checkpoint split_alignment:
         time=get_resource("split_alignment", "time"),
         partition=get_resource("split_alignment", "partition"),
     params:
-        blocksize=config["parallelization"]["alignment_positions_per_file"],
+        ref_species=config["species_name"],
+        n_chunks=config["annotation"]["conservation"]["gerp"]["n_chunks"],
     shell:
         """
         mkdir -p {output}
-        python3 {input.script} -i {input.maf} -o {output} -s {params.blocksize} 2> {log}
+        python3 {input.script} {input.maf} {params.n_chunks} {output} {params.ref_species} 2> {log}
         """
 
 
@@ -101,8 +102,8 @@ rule compute_gerp:
         temp("results/annotation/gerp/chr{chr}/{part}.rates"),
     log:
         "results/logs/compute_gerp/chr{chr}_{part}.log",
-    conda:
-        get_conda_env("annotation")
+    container:
+        config.get("containers", {}).get("gerp")
     threads: get_resource("compute_gerp", "threads")
     resources:
         mem_mb=lambda wildcards, attempt: min(get_resource("compute_gerp", "mem_mb"), 2000 * attempt),
