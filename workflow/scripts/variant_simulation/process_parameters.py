@@ -195,9 +195,9 @@ with open(args.logfile, 'w') as logfile:
 
     # SUBSTITUTION MATRIX CpG
     mtotalrefC = (totalCpG - (
-            mCA + mCG + mCT + mGA + mGC + mGT)) / 2.0 + mCA + mCG + mCT
+        mCA + mCG + mCT + mGA + mGC + mGT)) / 2.0 + mCA + mCG + mCT
     mtotalrefG = (totalCpG - (
-            mCA + mCG + mCT + mGA + mGC + mGT)) / 2.0 + mGA + mGC + mGT
+        mCA + mCG + mCT + mGA + mGC + mGT)) / 2.0 + mGA + mGC + mGT
 
     GTR_CpG = {'C': [mCA / mtotalrefC,                0, mCG / mtotalrefC, mCT / mtotalrefC],
                'G': [mGA / mtotalrefG, mGC / mtotalrefG,                0, mGT / mtotalrefG]}

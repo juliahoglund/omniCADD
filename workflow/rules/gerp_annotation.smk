@@ -8,7 +8,7 @@ wildcard_constraints:
 
 checkpoint split_alignment:
     input:
-        script="../scripts/combine_annotations/split_alignments.py",
+        script="workflow/scripts/combine_annotations/split_alignments.py",
         # Use conservation alignment that preserves all species for GERP
         maf="results/alignment/merged_conservation/chr{chr}.maf",
     output:
@@ -34,7 +34,7 @@ checkpoint split_alignment:
 
 rule convert_alignment:
     input:
-        script="../scripts/combine_annotations/maf2fasta.pl",
+        script="workflow/scripts/combine_annotations/maf2fasta.pl",
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
     output:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta"),
@@ -54,7 +54,7 @@ rule convert_alignment:
 
 rule format_alignment:
     input:
-        script="../scripts/combine_annotations/format_alignments.py",
+        script="workflow/scripts/combine_annotations/format_alignments.py",
         fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
     output:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
@@ -75,7 +75,7 @@ rule format_alignment:
 
 rule prune_columns:
     input:
-        script="../scripts/combine_annotations/prune_cols.py",
+        script="workflow/scripts/combine_annotations/prune_cols.py",
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
     output:
         pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",

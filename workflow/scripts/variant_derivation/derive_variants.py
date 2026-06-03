@@ -120,7 +120,7 @@ def main(args):
     index_outer = (args.start, args.start + 350000)
     input_snps.readline()  # Skip header
     snp_line = input_snps.readline()
-    
+
     # Handle empty frequency file (no variants passed filter)
     if not snp_line.strip():
         print(f'No population variants found for Chr{args.chrom} - processing ancestral differences only')

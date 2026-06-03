@@ -5,10 +5,10 @@ rule decompress_genome_fasta:
         fasta="resources/genome/{prefix}.fa.gz",
     output:
         fasta="resources/genome/{prefix}.fa",
-    wildcard_constraints:
-        prefix="[^/]+",  # Match anything except path separator
     log:
         "results/logs/decompress_genome_fasta/{prefix}.log",
+    wildcard_constraints:
+        prefix="[^/]+",  # Match anything except path separator
     conda:
         get_conda_env("common")
     threads: 1
