@@ -39,7 +39,7 @@ def batch_iterator(iterator, batch_size):
 
 
 if len(sys.argv) != 5:
-    sys.exit("usage: convert_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_MAF REF_SPECIES")
+    sys.exit("usage: split_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_MAF REF_SPECIES")
 
 mfile = sys.argv[1]  # maf file
 ofile = gzip.open(mfile, "rt") if mfile.endswith('.gz') else open(mfile, "r")  # maf file
