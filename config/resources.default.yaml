@@ -106,7 +106,7 @@ compute_gerp:
   threads: 4
   time: "08:00:00"
 
-phylo_fit_combine:
+phylo_fit:
   mem_mb: 32768
   threads: 4
   time: "08:00:00"

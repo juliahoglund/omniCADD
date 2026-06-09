@@ -52,19 +52,20 @@ have the full phylogenetic context.
         time=get_resource("split_alignment_combine", "time"),
         partition=get_resource("split_alignment_combine", "partition"),
     params:
-        blocksize=config["parallelization"]["alignment_positions_per_file"],
+        ref_species=config["species_name"],
+        n_chunks=config["annotation"]["conservation"]["gerp"]["n_chunks"],
     shell:
         """
         mkdir -p {output}
-        python3 {input.script} -i {input.maf} -o {output} -s {params.blocksize} 2> {log}
+        python3 {input.script} {input.maf} {params.n_chunks} {output} {params.ref_species} 2> {log}
         """
 
 
 # script from mugsy [ref];
 # forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
-rule convert_alignment_combine:
+rule convert_alignment:
     input:
-        script="workflow/scripts/vep_annotation/maf2fasta.pl",
+        script="workflow/scripts/combine_annotations/maf2fasta.pl",
         maf="results/alignment/splitted/chr{chr}/{part}.maf",
     output:
         converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta"),
@@ -72,19 +73,19 @@ rule convert_alignment_combine:
         "results/logs/convert_alignment/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
-    threads: get_resource("convert_alignment_combine", "threads")
+    threads: get_resource("convert_alignment", "threads")
     resources:
-        mem_mb=get_resource("convert_alignment_combine", "mem_mb"),
-        runtime=get_resource("convert_alignment_combine", "runtime"),
-        time=get_resource("convert_alignment_combine", "time"),
-        partition=get_resource("convert_alignment_combine", "partition"),
+        mem_mb=get_resource("convert_alignment", "mem_mb"),
+        runtime=get_resource("convert_alignment", "runtime"),
+        time=get_resource("convert_alignment", "time"),
+        partition=get_resource("convert_alignment", "partition"),
     shell:
         "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
 
 
-rule format_alignment_combine:
+rule format_alignment:
     input:
-        script="workflow/scripts/vep_annotation/format_alignments.py",
+        script="workflow/scripts/combine_annotations/format_alignments.py",
         fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
     output:
         formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
@@ -93,12 +94,12 @@ rule format_alignment_combine:
         "results/logs/format_alignment/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
-    threads: get_resource("format_alignment_combine", "threads")
+    threads: get_resource("format_alignment", "threads")
     resources:
-        mem_mb=get_resource("format_alignment_combine", "mem_mb"),
-        runtime=get_resource("format_alignment_combine", "runtime"),
-        time=get_resource("format_alignment_combine", "time"),
-        partition=get_resource("format_alignment_combine", "partition"),
+        mem_mb=get_resource("format_alignment", "mem_mb"),
+        runtime=get_resource("format_alignment", "runtime"),
+        time=get_resource("format_alignment", "time"),
+        partition=get_resource("format_alignment", "partition"),
     shell:
         "python3 {input.script} {input.fasta} {output.formatted} {output.index} 2> {log}"
 
@@ -106,9 +107,9 @@ rule format_alignment_combine:
 # modified version of script, originally written andreas wilm under the MIT License
 # original (pythhon < 2.7 included in compbio-utils)
 # REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
-rule prune_columns_combine:
+rule prune_columns:
     input:
-        script="workflow/scripts/vep_annotation/prune_cols.py",
+        script="workflow/scripts/combine_annotations/prune_cols.py",
         fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
     output:
         pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
@@ -116,185 +117,19 @@ rule prune_columns_combine:
         "results/logs/prune_columns/chr{chr}/{part}.log",
     conda:
         get_conda_env("annotation")
-    threads: get_resource("prune_columns_combine", "threads")
+    threads: get_resource("prune_columns", "threads")
     resources:
-        mem_mb=get_resource("prune_columns_combine", "mem_mb"),
-        runtime=get_resource("prune_columns_combine", "runtime"),
-        time=get_resource("prune_columns_combine", "time"),
-        partition=get_resource("prune_columns_combine", "partition"),
+        mem_mb=get_resource("prune_columns", "mem_mb"),
+        runtime=get_resource("prune_columns", "runtime"),
+        time=get_resource("prune_columns", "time"),
+        partition=get_resource("prune_columns", "partition"),
     shell:
         "python3 {input.script} {input.fasta} {output.pruned} 2> {log}"
 
 
-# adapted from generode [ref]
-# https://github.com/NBISweden/GenErode
-rule compute_gerp_combine:
-    """
-Compute GERP++ (gerpcol) scores.
-Output only includes scores, no bp positions, no contig names.
-Column one is GERP_ExpSubst and the other one GERP_RejSubstScore.
-This analysis is run as one job per genome chunk.
-"""
-    input:
-        fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        tree=config["annotation"]["conservation"]["gerp"]["tree"],
-    output:
-        temp("results/annotation/gerp/chr{chr}/{part}.rates"),
-    log:
-        "results/logs/compute_gerp_combine/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
-    threads: get_resource("compute_gerp_combine", "threads")
-    resources:
-        mem_mb=lambda wildcards, attempt: get_resource("compute_gerp_combine", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("compute_gerp_combine", "runtime") * attempt,
-        time=lambda wildcards, attempt: get_resource("compute_gerp_combine", "time") * attempt,
-        partition=get_resource("compute_gerp_combine", "partition"),
-    params:
-        reference_species=config["species_name"],
-    shell:
-        """
-        gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log}
-        """
-
-
-# adapted from generode [ref]
-# https://github.com/NBISweden/GenErode
-rule gerp2coords_combine:
-    """
-Convert GERP-scores to the correct genomic coordinates.
-Script currently written to output positions without contig names.
-This analysis is run as one job per genome chunk, but is internally run per contig.
-"""
-    input:
-        script="workflow/scripts/gerp_annotation/gerp_to_position.py",
-        fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
-        gerp="results/annotation/gerp/chr{chr}/{part}.rates",
-    output:
-        "results/annotation/gerp/chr{chr}/{part}.rates.parsed",
-    log:
-        "results/logs/gerp2coords_combine/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
-    threads: get_resource("gerp2coords_combine", "threads")
-    resources:
-        mem_mb=get_resource("gerp2coords_combine", "mem_mb"),
-        runtime=get_resource("gerp2coords_combine", "runtime"),
-        time=get_resource("gerp2coords_combine", "time"),
-        partition=get_resource("gerp2coords_combine", "partition"),
-    params:
-        reference_species=config["species_name"],
-    shell:
-        "python3 {input.script} {input.fasta} {input.gerp} {params.reference_species} > {output} 2> {log}"
-
-
-################################
-##### PHYLOP and PHASTCONS #####
-################################
-
-
-rule phylo_fit_combine:
-    input:
-        "results/alignment/splitted/chr{chr}/{part}.maf",
-    output:
-        "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
-    log:
-        "results/logs/phylo_fit/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
-    threads: get_resource("phylo_fit_combine", "threads")
-    resources:
-        mem_mb=get_resource("phylo_fit_combine", "mem_mb"),
-        runtime=get_resource("phylo_fit_combine", "runtime"),
-        time=get_resource("phylo_fit_combine", "time"),
-        partition=get_resource("phylo_fit_combine", "partition"),
-    params:
-        tree=config["annotation"]["conservation"]["phast"]["tree"],
-        tree_species=config["annotation"]["conservation"]["phast"]["tree_species"],
-        precision=config["annotation"]["conservation"]["phast"]["train_precision"],
-        out="results/annotation/phast/phylo_model/chr{chr}/{part}",
-    shell:
-        "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa 2>> {log} && "
-        "phyloFit "
-        "--tree '{params.tree}' "
-        "-p {params.precision} "
-        "--subst-mod REV "
-        "--out-root {params.out} "
-        "tmp{wildcards.part}.fa 2>> {log} && "
-        "rm tmp{wildcards.part}.fa 2>> {log}"
-
-
-rule run_phastCons_combine:
-    input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
-        mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
-    output:
-        temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
-    log:
-        "results/logs/run_phastCons_combine/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
-    threads: get_resource("run_phastCons_combine", "threads")
-    resources:
-        mem_mb=lambda wildcards, attempt: get_resource("run_phastCons_combine", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("run_phastCons_combine", "runtime") * attempt,
-        time=lambda wildcards, attempt: get_resource("run_phastCons_combine", "time") * attempt,
-        partition=get_resource("run_phastCons_combine", "partition"),
-    params:
-        species_interest=config["species_name"],
-        phast_params=config["annotation"]["conservation"]["phast"]["phastCons_params"],
-    shell:
-        """
-         mkdir -p $(dirname {output})
-         phastCons --msa-format FASTA --not-informative={params.species_interest} {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
-         """
-
-
-rule run_phyloP_combine:
-    input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
-        mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
-    output:
-        temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
-    log:
-        "results/logs/run_phyloP_combine/chr{chr}/{part}.log",
-    conda:
-        get_conda_env("annotation")
-    threads: get_resource("run_phyloP_combine", "threads")
-    resources:
-        mem_mb=lambda wildcards, attempt: get_resource("run_phyloP_combine", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("run_phyloP_combine", "runtime") * attempt,
-        time=lambda wildcards, attempt: get_resource("run_phyloP_combine", "time") * attempt,
-        partition=get_resource("run_phyloP_combine", "partition"),
-    params:
-        species_interest=config["species_name"],
-        phylo_params=config["annotation"]["conservation"]["phast"]["phyloP_params"],
-    shell:
-        """
-        mkdir -p $(dirname {output})
-        phyloP --msa-format FASTA --chrom {wildcards.chr} --wig-scores --not-informative={params.species_interest} {params.phylo_params} {input.mod} {input.maf} > {output} 2> {log}
-        """
-
-
-rule wig2bed_combine:
-    input:
-        "results/annotation/phast/{tool}/chr{chr}/{part}.wig",
-    output:
-        "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed",
-    log:
-        "results/logs/wig2bed_combine/{tool}/chr{chr}/{part}.log",
-    wildcard_constraints:
-        tool="(phastCons|phyloP)",
-    conda:
-        get_conda_env("annotation")
-    threads: get_resource("wig2bed_combine", "threads")
-    resources:
-        mem_mb=get_resource("wig2bed_combine", "mem_mb"),
-        runtime=get_resource("wig2bed_combine", "runtime"),
-        time=get_resource("wig2bed_combine", "time"),
-        partition=get_resource("wig2bed_combine", "partition"),
-    shell:
-        "wig2bed < {input} > {output} 2> {log}"
+############################
+##### COMBINE OUTPUTS ######
+############################
 
 
 rule combine_constraint:

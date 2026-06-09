@@ -177,22 +177,7 @@ wig2bed:
   runtime: 30
   time: "00:30:00"
 
-run_phastCons_combine:
-  mem_mb: 8192
-  threads: 2
-  time: 180
-
-run_phyloP_combine:
-  mem_mb: 8192
-  threads: 2
-  time: 180
-
-wig2bed_combine:
-  mem_mb: 4096
-  threads: 1
-  time: 30
-
-phylo_fit_combine:
+phylo_fit:
   mem_mb: 32768
   threads: 4
   time: "08:00:00"

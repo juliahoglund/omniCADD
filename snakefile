@@ -216,6 +216,7 @@ if should_include_snpeff():
 
 
 include: "workflow/rules/phast_annotation.smk"
+include: "workflow/rules/gerp_annotation.smk"
 include: "workflow/rules/combine_annotations.smk"
 include: "workflow/rules/train_test_model.smk"
 include: "workflow/rules/score_variants.smk"

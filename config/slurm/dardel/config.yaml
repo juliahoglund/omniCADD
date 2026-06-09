@@ -90,7 +90,7 @@ set-resources:
     mem_mb: 32768
   split_alignment:
     mem_mb: 16384
-  phylo_fit_combine:
+  phylo_fit:
     mem_mb: 32768
 
   # Step 6: Combine annotations

@@ -1,7 +1,6 @@
 FROM ubuntu:jammy
 
 ################## METADATA ######################
-LABEL maintainer="julia.hoglund@scilifelab.se"
 LABEL version=2.1
 LABEL gerp=2.1
 
