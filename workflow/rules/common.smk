@@ -318,6 +318,8 @@ rule unzip_maf:
         "{folder}/{file}.maf",  # TODO Mark TEMP after testing
     log:
         "results/logs/unzip_maf/{folder}/{file}.log",
+    wildcard_constraints:
+        folder="(?!results/alignment/splitted).*",
     conda:
         get_conda_env("common")
     threads: get_resource("unzip_maf", "threads")

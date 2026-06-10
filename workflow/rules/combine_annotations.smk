@@ -66,9 +66,9 @@ have the full phylogenetic context.
 rule convert_alignment:
     input:
         script="workflow/scripts/combine_annotations/maf2fasta.pl",
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
+        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
     output:
-        converted=temp("results/alignment/fasta/chr{chr}/{part}.fasta"),
+        converted=temp("results/alignment/fasta/chr{chr}/chr{chr}-{part}.fasta"),
     log:
         "results/logs/convert_alignment/chr{chr}/{part}.log",
     conda:
@@ -86,12 +86,12 @@ rule convert_alignment:
 rule format_alignment:
     input:
         script="workflow/scripts/combine_annotations/format_alignments.py",
-        fasta="results/alignment/fasta/chr{chr}/{part}.fasta",
+        fasta="results/alignment/fasta/chr{chr}/chr{chr}-{part}.fasta",
     output:
-        formatted=temp("results/alignment/fasta/chr{chr}/{part}_formatted.fasta"),
-        index=temp("results/alignment/indexfiles/chr{chr}/{part}.index"),
+        formatted=temp("results/alignment/fasta/chr{chr}/chr{chr}-{part}_formatted.fasta"),
+        index=temp("results/alignment/indexfiles/chr{chr}/chr{chr}-{part}.index"),
     log:
-        "results/logs/format_alignment/chr{chr}/{part}.log",
+        "results/logs/format_alignment/chr{chr}/chr{chr}-{part}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("format_alignment", "threads")
@@ -110,11 +110,11 @@ rule format_alignment:
 rule prune_columns:
     input:
         script="workflow/scripts/combine_annotations/prune_cols.py",
-        fasta="results/alignment/fasta/chr{chr}/{part}_formatted.fasta",
+        fasta="results/alignment/fasta/chr{chr}/chr{chr}-{part}_formatted.fasta",
     output:
-        pruned="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
+        pruned="results/alignment/pruned/chr{chr}/chr{chr}-{part}.nogap.fasta",
     log:
-        "results/logs/prune_columns/chr{chr}/{part}.log",
+        "results/logs/prune_columns/chr{chr}/chr{chr}-{part}.log",
     conda:
         get_conda_env("annotation")
     threads: get_resource("prune_columns", "threads")
@@ -139,22 +139,22 @@ constraint BED for merging with variant annotations.
 """
     input:
         gerp=lambda wc: expand(
-            "results/annotation/gerp/chr{chr}/{part}.rates.parsed",
+            "results/annotation/gerp/chr{chr}/chr{chr}-{part}.rates.parsed",
             chr=wc.chr,
             part=get_alignment_parts(wc),
         ),
         phastCons=lambda wc: expand(
-            "results/annotation/phast/phastCons/chr{chr}/{part}.phastCons.bed",
+            "results/annotation/phast/phastCons/chr{chr}/chr{chr}-{part}.phastCons.bed",
             chr=wc.chr,
             part=get_alignment_parts(wc),
         ),
         phyloP=lambda wc: expand(
-            "results/annotation/phast/phyloP/chr{chr}/{part}.phyloP.bed",
+            "results/annotation/phast/phyloP/chr{chr}/chr{chr}-{part}.phyloP.bed",
             chr=wc.chr,
             part=get_alignment_parts(wc),
         ),
         index=lambda wc: expand(
-            "results/alignment/indexfiles/chr{chr}/{part}.index",
+            "results/alignment/indexfiles/chr{chr}/chr{chr}-{part}.index",
             chr=wc.chr,
             part=get_alignment_parts(wc),
         ),

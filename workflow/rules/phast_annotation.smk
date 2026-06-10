@@ -4,11 +4,11 @@
 
 rule phylo_fit:
     input:
-        "results/alignment/splitted/chr{chr}/{part}.maf",
+        "results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
     output:
-        "results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
+        "results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}.mod",
     log:
-        "results/logs/phylo_fit/chr{chr}/{part}.log",
+        "results/logs/phylo_fit/chr{chr}/chr{chr}-{part}.log",
     container:
         config.get("containers", {}).get("phast")
     threads: get_resource("phylo_fit", "threads")
@@ -21,7 +21,7 @@ rule phylo_fit:
         tree=config["annotation"]["conservation"]["phast"]["tree"],
         tree_species=config["annotation"]["conservation"]["phast"]["tree_species"],
         precision=config["annotation"]["conservation"]["phast"]["train_precision"],
-        out="results/annotation/phast/phylo_model/chr{chr}/{part}",
+        out="results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}",
     shell:
         "grep -E -A1 '{params.tree_species}' {input} > tmp{wildcards.part}.fa 2>> {log} && "
         "phyloFit "
@@ -35,12 +35,12 @@ rule phylo_fit:
 
 rule run_phastCons:
     input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
-        mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
+        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+        mod="results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}.mod",
     output:
-        temp("results/annotation/phast/phastCons/chr{chr}/{part}.wig"),
+        temp("results/annotation/phast/phastCons/chr{chr}/chr{chr}-{part}.wig"),
     log:
-        "results/logs/run_phastCons/chr{chr}/{part}.log",
+        "results/logs/run_phastCons/chr{chr}/chr{chr}-{part}.log",
     container:
         config.get("containers", {}).get("phast")
     threads: get_resource("run_phastCons", "threads")
@@ -61,12 +61,12 @@ rule run_phastCons:
 
 rule run_phyloP:
     input:
-        maf="results/alignment/splitted/chr{chr}/{part}.maf",
-        mod="results/annotation/phast/phylo_model/chr{chr}/{part}.mod",
+        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+        mod="results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}.mod",
     output:
-        temp("results/annotation/phast/phyloP/chr{chr}/{part}.wig"),
+        temp("results/annotation/phast/phyloP/chr{chr}/chr{chr}-{part}.wig"),
     log:
-        "results/logs/run_phyloP/chr{chr}/{part}.log",
+        "results/logs/run_phyloP/chr{chr}/chr{chr}-{part}.log",
     container:
         config.get("containers", {}).get("phast")
     threads: get_resource("run_phyloP", "threads")
@@ -87,11 +87,11 @@ rule run_phyloP:
 
 rule wig2bed:
     input:
-        "results/annotation/phast/{tool}/chr{chr}/{part}.wig",
+        "results/annotation/phast/{tool}/chr{chr}/chr{chr}-{part}.wig",
     output:
-        "results/annotation/phast/{tool}/chr{chr}/{part}.{tool}.bed",
+        "results/annotation/phast/{tool}/chr{chr}/chr{chr}-{part}.{tool}.bed",
     log:
-        "results/logs/wig2bed/{tool}/chr{chr}/{part}.log",
+        "results/logs/wig2bed/{tool}/chr{chr}/chr{chr}-{part}.log",
     wildcard_constraints:
         tool="(phastCons|phyloP)",
     container:

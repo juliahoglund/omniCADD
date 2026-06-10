@@ -9,10 +9,10 @@ wildcard_constraints:
 
 rule compute_gerp:
     input:
-        fasta="results/alignment/pruned/chr{chr}/{part}.nogap.fasta",
+        fasta="results/alignment/pruned/chr{chr}/chr{chr}-{part}.nogap.fasta",
         tree=config["annotation"]["conservation"]["gerp"]["tree"],
     output:
-        temp("results/annotation/gerp/chr{chr}/{part}.rates"),
+        temp("results/annotation/gerp/chr{chr}/chr{chr}-{part}.rates"),
     log:
         "results/logs/compute_gerp/chr{chr}_{part}.log",
     container:
