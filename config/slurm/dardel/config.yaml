@@ -29,7 +29,7 @@ rerun-triggers:
 retries: 2
 
 default-resources:
-  slurm_account: "naiss2026-3-90"
+  slurm_account: "naiss2026-1-30"
   slurm_partition: "shared"
   slurm_job_name: "{rule}_{wildcards}"
   mem_mb: 8192
@@ -128,21 +128,16 @@ set-resources:
     mem_mb: 32768
 
 groups:
-  # Group 1: Alignment preprocessing happening BEFORE compute_gerp
+ # === STEP 5 & 6: STANDARD ANNOTATION PROCESSING ===
   format_alignment: "pre_gerp_group"
   convert_alignment: "pre_gerp_group"
   prune_columns: "pre_gerp_group"
-
-  # Group 2: Annotation parsing happening AFTER compute_gerp
   gerp2coords: "post_gerp_group"
   wig2bed: "post_gerp_group"
-  
-  # Group 3: Step 2 filtering remains independent
-  snp_filter: "filter_group"
-  merge_by_chr: "filter_group"
+  combine_constraint: "constraint_merge_group"
 
 group-components:
+ # === STEP 5 & 6: STANDARD ANNOTATION PROCESSING ===
   pre_gerp_group: 25
   post_gerp_group: 25
-  filter_group: 10
-
+  constraint_merge_group: 15
