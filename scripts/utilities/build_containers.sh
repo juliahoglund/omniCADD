@@ -40,7 +40,7 @@ push_container() {
 }
 
 # Available containers
-CONTAINERS=("mafTools" "sift4g" "GERP" "renv")
+CONTAINERS=("mafTools" "sift4g" "gerp" "phast" "renv" "augustus" "snpeff" "vep")
 
 case "${1:-all}" in
     "all")
@@ -59,19 +59,25 @@ case "${1:-all}" in
         done
         echo "All containers pushed successfully!"
         ;;
-    "mafTools"|"sift4g"|"GERP"|"renv")
+    "mafTools"|"sift4g"|"gerp"|"phast"|"renv"|"augustus"|"snpeff"|"vep")
         build_container "$1"
         ;;
     *)
-        echo "Usage: $0 [all|push|mafTools|sift4g|GERP|renv]"
+        echo "Usage: $0 [all|push|container_name]"
         echo ""
         echo "Available commands:"
         echo "  all      - Build all containers (default)"
         echo "  push     - Push all containers to Docker Hub"
+        echo ""
+        echo "Available containers:"
         echo "  mafTools - Build only mafTools container"
-        echo "  sift4g   - Build only SIFT4G container" 
-        echo "  GERP     - Build only GERP container"
+        echo "  sift4g   - Build only SIFT4G container"
+        echo "  gerp     - Build only GERP container"
+        echo "  phast    - Build only PHAST container"
         echo "  renv     - Build only R environment container"
+        echo "  augustus - Build only Augustus container"
+        echo "  snpeff   - Build only SnpEff container"
+        echo "  vep      - Build only VEP container"
         exit 1
         ;;
 esac
