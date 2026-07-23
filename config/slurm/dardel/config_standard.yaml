@@ -7,7 +7,7 @@ containers:
   snpeff: "docker://biocontainers/snpeff:v5.1.0_cv1"
   maftools: "docker://juliahoglund/maftools:latest"
   gerp: "docker://juliahoglund/gerp:2.1"
-  phast: "docker://juliahoglund/phast:1.5"
+  phast: "docker://juliahoglund/phast:1.9.7"
   vep: "docker://ensemblorg/ensembl-vep:release_111.0"
 
 # data_tier: "custom"  # Using explicit config below instead of presets
