@@ -126,3 +126,15 @@ set-resources:
     mem_mb: 32768
   sort_bam:
     mem_mb: 32768
+
+groups:
+  # Group the small step 5 preprocessing files into chunks of 25 tasks per Slurm job
+  convert_alignment: 25
+  format_alignment: 25
+  prune_columns: 25
+  gerp2coords: 25
+  wig2bed: 25
+  
+  # Group your quick step 2 file filtering/merges into chunks of 10
+  snp_filter: 10
+  merge_by_chr: 10
