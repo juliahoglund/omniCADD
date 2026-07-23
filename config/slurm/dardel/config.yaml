@@ -127,17 +127,81 @@ set-resources:
   sort_bam:
     mem_mb: 32768
 
+# job group assignments for better scheduling and resource allocation
 groups:
- # === STEP 5 & 6: STANDARD ANNOTATION PROCESSING ===
+  # Step 1: Alignment & Ancestral
+  filter_alignments: "species_align_group"
+  sort_bam: "species_align_group"
+  generate_consensus: "species_align_group"
+  format_for_gerp: "multiway_group"
+  clean_ambiguous: "maf_part_group"
+  mark_ancestor: "maf_part_group"
+  maf_df: "maf_part_group"
+  maf_ro: "maf_part_group"
+  maf_ro_conservation: "maf_part_group"
+  maf_str: "maf_chr_group"
+  maf_sorter: "maf_chr_group"
+
+  # Step 2: Variant Derivation
+  freq_files: "variant_derive_group"
+  gen_derived: "variant_derive_group"
+  snp_filter: "variant_derive_group"
+
+  # Step 3: Variant Simulation
+  create_parameters: "sim_param_group"
+  simulate_snps: "sim_exec_group"
+  filter_variants: "sim_exec_group"
+  split_by_chrom: "sim_split_group"
+
+  # Step 4: Summary Report
+  summary_report_with_gene_prediction: "summary_per_chr_group"
+
+  # Step 5 & 6: Standard Annotation Processing
   format_alignment: "pre_gerp_group"
   convert_alignment: "pre_gerp_group"
   prune_columns: "pre_gerp_group"
   gerp2coords: "post_gerp_group"
   wig2bed: "post_gerp_group"
   combine_constraint: "constraint_merge_group"
+  run_vep: "post_gerp_group"
+  process_vep: "post_gerp_group"
+  run_snpeff: "post_gerp_group"
+  process_snpeff_derived: "post_gerp_group"
+  process_snpeff_simulated: "post_gerp_group"
+  merge_vep_snpeff: "post_gerp_group"
 
+  # SnpEff Database Helpers
+  snpeff_extract_normalized_chr: "snpeff_prep_group"
+  snpeff_generate_sequences: "snpeff_prep_group"
+  snpeff_validate_prep: "snpeff_prep_group"
+
+  # Step 8: Whole Genome Scoring
+  run_genome_vep: "genome_prep_shard_group"
+  process_genome_vep: "genome_prep_shard_group"
+  run_genome_snpeff: "genome_prep_shard_group"
+  process_genome_snpeff: "genome_prep_shard_group"
+  intersect_genomewide: "genome_prep_shard_group"
+  prepare_whole_genome: "genome_prep_shard_group"
+  count_positions: "genome_post_index_group"
+  format_cadd_scores: "genome_post_index_group"
+  index_cadd_scores: "genome_post_index_group"
+
+# bundle sized per group
 group-components:
- # === STEP 5 & 6: STANDARD ANNOTATION PROCESSING ===
   pre_gerp_group: 25
   post_gerp_group: 25
+  filter_group: 10
+  species_align_group: 5
+  multiway_group: 25
+  maf_part_group: 30
+  maf_chr_group: 10
+  variant_derive_group: 5
+  sim_param_group: 20
+  sim_exec_group: 5
+  sim_split_group: 10
+  summary_per_chr_group: 10
   constraint_merge_group: 15
+  snpeff_prep_group: 15
+  genome_prep_shard_group: 10
+  genome_post_index_group: 15
+
