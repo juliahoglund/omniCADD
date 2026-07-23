@@ -128,16 +128,21 @@ set-resources:
     mem_mb: 32768
 
 groups:
-  # Group A: Pre-processing tasks before compute_gerp
-  prune_columns: 25
+  # Group 1: Upstream of GERP
+  prune_columns: "pre_gerp_group"
 
-  # Group B: Post-processing tasks after compute_gerp has finished
-  gerp2coords: 25
-  convert_alignment: 25
-  format_alignment: 25
-  wig2bed: 25
+  # Group 2: Downstream of GERP
+  gerp2coords: "post_gerp_group"
+  convert_alignment: "post_gerp_group"
+  format_alignment: "post_gerp_group"
+  wig2bed: "post_gerp_group"
   
-  # Group C: Step 2 file filtering/merges (separate part of pipeline)
-  snp_filter: 10
-  merge_by_chr: 10
+  # Group 3: Step 2 filtering
+  snp_filter: "filter_group"
+  merge_by_chr: "filter_group"
+
+group-components:
+  pre_gerp_group: 25
+  post_gerp_group: 25
+  filter_group: 10
 
