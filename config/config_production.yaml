@@ -58,7 +58,7 @@ annotation:
     enabled: true
     phastCons: true
     phyloP: true
-    tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))'
+    tree: 'resources/tree_43_mammals.nwk'
     tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
     train_precision: "HIGH"
     phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"

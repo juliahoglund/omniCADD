@@ -128,16 +128,16 @@ set-resources:
     mem_mb: 32768
 
 groups:
-  # Group 1: Upstream of GERP
+  # Group 1: Alignment preprocessing happening BEFORE compute_gerp
+  format_alignment: "pre_gerp_group"
+  convert_alignment: "pre_gerp_group"
   prune_columns: "pre_gerp_group"
 
-  # Group 2: Downstream of GERP
+  # Group 2: Annotation parsing happening AFTER compute_gerp
   gerp2coords: "post_gerp_group"
-  convert_alignment: "post_gerp_group"
-  format_alignment: "post_gerp_group"
   wig2bed: "post_gerp_group"
   
-  # Group 3: Step 2 filtering
+  # Group 3: Step 2 filtering remains independent
   snp_filter: "filter_group"
   merge_by_chr: "filter_group"
 
