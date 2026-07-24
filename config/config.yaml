@@ -242,8 +242,8 @@ annotation:
       phastCons: true
       phyloP: true
       # Tree matching the species downloaded and aligned with minimap2
-      tree: '(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))'
-      tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
+      tree: 'resources/tree_44_mammals.nwk'
+      tree_species: ".*"
       train_precision: "MEDIUM"  # Medium precision for custom alignment
       phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
       phyloP_params: "--method=LRT --mode=CONACC"

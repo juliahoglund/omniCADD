@@ -136,4 +136,45 @@ rule chunk_maf:
         "python workflow/scripts/preprocessing/chunk_maf.py --input {input.maf} --output {output.chunks} --size {params.chunk_size} 2> {log}"
 
 
-# Add more shared preprocessing rules as needed
+# Alignment format conversion rules
+# script from mugsy [ref];
+# forked version https://github.com/kloetzl/mugsy/blob/master/maf2fasta.pl used
+rule convert_alignment:
+    input:
+        script="workflow/scripts/combine_annotations/maf2fasta.pl",
+        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+    output:
+        converted=temp("results/alignment/fasta/chr{chr}/chr{chr}-{part}.fasta"),
+    log:
+        "results/logs/convert_alignment/chr{chr}/{part}.log",
+    conda:
+        get_conda_env("annotation")
+    threads: get_resource("convert_alignment", "threads")
+    resources:
+        mem_mb=get_resource("convert_alignment", "mem_mb"),
+        runtime=get_resource("convert_alignment", "runtime"),
+        time=get_resource("convert_alignment", "time"),
+        partition=get_resource("convert_alignment", "partition"),
+    shell:
+        "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
+
+
+rule format_alignment:
+    input:
+        script="workflow/scripts/combine_annotations/format_alignments.py",
+        fasta="results/alignment/fasta/chr{chr}/chr{chr}-{part}.fasta",
+    output:
+        formatted=temp("results/alignment/fasta/chr{chr}/chr{chr}-{part}_formatted.fasta"),
+        index=temp("results/alignment/indexfiles/chr{chr}/chr{chr}-{part}.index"),
+    log:
+        "results/logs/format_alignment/chr{chr}/chr{chr}-{part}.log",
+    conda:
+        get_conda_env("annotation")
+    threads: get_resource("format_alignment", "threads")
+    resources:
+        mem_mb=get_resource("format_alignment", "mem_mb"),
+        runtime=get_resource("format_alignment", "runtime"),
+        time=get_resource("format_alignment", "time"),
+        partition=get_resource("format_alignment", "partition"),
+    shell:
+        "python3 {input.script} {input.fasta} {output.formatted} {output.index} 2> {log}"

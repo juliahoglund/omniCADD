@@ -4,7 +4,7 @@
 
 rule phylo_fit:
     input:
-        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+        fasta="results/alignment/fasta/chr{chr}/chr{chr}-{part}_formatted.fasta",
         tree=config["annotation"]["conservation"]["phast"]["tree"],
     output:
         "results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}.mod",
@@ -19,18 +19,15 @@ rule phylo_fit:
         time=get_resource("phylo_fit", "time"),
         partition=get_resource("phylo_fit", "partition"),
     params:
-        tree_species=config["annotation"]["conservation"]["phast"]["tree_species"],
         precision=config["annotation"]["conservation"]["phast"]["train_precision"],
         out="results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}",
     shell:
-        "grep -E -A1 '{params.tree_species}' {input.maf} > tmp{wildcards.part}.fa 2>> {log} && "
         "phyloFit "
         "--tree {input.tree} "
         "-p {params.precision} "
         "--subst-mod REV "
         "--out-root {params.out} "
-        "tmp{wildcards.part}.fa 2>> {log} && "
-        "rm tmp{wildcards.part}.fa 2>> {log}"
+        "{input.fasta} 2>> {log}"
 
 
 rule run_phastCons:
