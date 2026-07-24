@@ -61,8 +61,6 @@ have the full phylogenetic context.
         """
 
 
-
-
 # modified version of script, originally written andreas wilm under the MIT License
 # original (pythhon < 2.7 included in compbio-utils)
 # REF: https://github.com/andreas-wilm/compbio-utils/blob/master/prune_aln_cols.py
