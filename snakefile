@@ -156,6 +156,8 @@ SCRIPTS_3 = "workflow/scripts/variant_simulation/"
 include: "workflow/rules/config_helpers.smk"
 ##### Load common rules #####
 include: "workflow/rules/common.smk"
+##### Load alignment preprocessing rules #####
+include: "workflow/rules/prepare_annotation.smk"
 ##### Load data preparation and annotation processing rules (always needed for model training) #####
 include: "workflow/rules/data_preparation.smk"
 
