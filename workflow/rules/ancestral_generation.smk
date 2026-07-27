@@ -71,6 +71,8 @@ rule mark_ancestor:
         "results/alignment/marked_ancestor/{part}.maf.gz",
     log:
         "results/logs/mark_ancestor/{part}.log",
+    wildcard_constraints:
+        part="[a-zA-Z0-9._-]+",
     conda:
         get_conda_env("ancestor")
     params:
@@ -98,6 +100,8 @@ rule maf_df:
         "results/alignment/dedup/{part}.maf.lz4",
     log:
         "results/logs/maf_df/{part}.log",
+    wildcard_constraints:
+        part="[a-zA-Z0-9._-]+",
     # conda:
     #    get_conda_env("ancestor")
     container:
@@ -122,6 +126,8 @@ rule maf_ro:
         "results/alignment/row_ordered/{part}.maf.lz4",
     log:
         "results/logs/maf_ro/{part}.log",
+    wildcard_constraints:
+        part="[a-zA-Z0-9._-]+",
     # conda:
     #    get_conda_env("ancestor")
     container:
