@@ -44,14 +44,28 @@ conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-
 
 # Per-rule overrides — memory only (time is set in resources.yaml)
 # Only rules with values different from the defaults above are listed
+#
+# NOTE on `time` overrides below: Snakemake 8 requires every rule in a SLURM
+# job-group (see `groups:` further down) to request the *same* `time` value,
+# since it's a string and can't be auto-merged like numeric resources (e.g.
+# mem_mb, runtime). Rules pull their own `time` from config/resources.yaml,
+# which differs per rule — so for any group containing rules with different
+# `time` values, we force them all to the group's max requirement here.
 set-resources:
   # Step 1: Ancestral sequence
+  # maf_ro, maf_df, mark_ancestor, clean_ambiguous share "maf_part_group" below,
+  # so their `time` is pinned to the group's max requirement (maf_ro's 12h)
   maf_ro:
     mem_mb: 49152
+    time: "12:00:00"
   maf_df:
     mem_mb: 32768
+    time: "12:00:00"
   mark_ancestor:
     mem_mb: 24576
+    time: "12:00:00"
+  clean_ambiguous:
+    time: "12:00:00"
   reconstruct_ancestor:
     mem_mb: 49152
   fit_phylo_model:
@@ -78,12 +92,28 @@ set-resources:
     mem_mb: 49152
   process_vep_combine:
     mem_mb: 32768
+  # run_snpeff, process_snpeff_derived, process_snpeff_simulated, gerp2coords,
+  # wig2bed, run_vep, process_vep, merge_vep_snpeff share "post_gerp_group"
+  # below, so their `time` is pinned to the group's max requirement (12h)
   run_snpeff:
     mem_mb: 49152
+    time: "12:00:00"
   process_snpeff_derived:
     mem_mb: 32768
+    time: "12:00:00"
   process_snpeff_simulated:
     mem_mb: 32768
+    time: "12:00:00"
+  gerp2coords:
+    time: "12:00:00"
+  wig2bed:
+    time: "12:00:00"
+  run_vep:
+    time: "12:00:00"
+  process_vep:
+    time: "12:00:00"
+  merge_vep_snpeff:
+    time: "12:00:00"
   augustus_predict_genes:
     mem_mb: 32768
   compute_gerp:
@@ -104,28 +134,44 @@ set-resources:
     mem_mb: 98304
 
   # Step 8: Score variants
+  # run_genome_vep, process_genome_vep, run_genome_snpeff, process_genome_snpeff,
+  # intersect_genomewide, prepare_whole_genome share "genome_prep_shard_group"
+  # below, so their `time` is pinned to the group's max requirement (16h)
   run_genome_vep:
     mem_mb: 49152
+    time: "16:00:00"
   process_genome_vep:
     mem_mb: 49152
+    time: "16:00:00"
   run_genome_snpeff:
     mem_mb: 49152
+    time: "16:00:00"
   process_genome_snpeff:
     mem_mb: 49152
+    time: "16:00:00"
+  intersect_genomewide:
+    time: "16:00:00"
   prepare_whole_genome:
     mem_mb: 65536
+    time: "16:00:00"
   score_variants:
     mem_mb: 98304
   sort_raw_scores:
     mem_mb: 49152
 
   # Alignment generation
+  # filter_alignments, sort_bam, generate_consensus share "species_align_group"
+  # below, so their `time` is pinned to the group's max requirement (8h)
   align_species:
     mem_mb: 49152
   filter_alignments:
     mem_mb: 32768
+    time: "08:00:00"
   sort_bam:
     mem_mb: 32768
+    time: "08:00:00"
+  generate_consensus:
+    time: "08:00:00"
 
 # job group assignments for better scheduling and resource allocation
 groups:
@@ -138,7 +184,6 @@ groups:
   mark_ancestor: "maf_part_group"
   maf_df: "maf_part_group"
   maf_ro: "maf_part_group"
-  maf_ro_conservation: "maf_part_group"
   maf_str: "maf_chr_group"
   maf_sorter: "maf_chr_group"
 
