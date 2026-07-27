@@ -22,10 +22,21 @@ import sys
 from snakemake.io import expand, glob_wildcards
 
 
+# Helper function for clean_ambiguous input
+def get_clean_ambiguous_input(wildcards):
+    try:
+        alignment_config = get_alignment_config()
+        result = f"{alignment_config['path']}{wildcards.part}.{alignment_config['type']}"
+        return result
+    except Exception as e:
+        import sys
+        print(f"ERROR in get_clean_ambiguous_input: {e}", file=sys.stderr)
+        raise
+
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
     input:
-        lambda wildcards: f"{get_alignment_config()['path']}{wildcards.part}.{get_alignment_config()['type']}",
+        get_clean_ambiguous_input,
     output:
         temp("results/alignment/cleaned_maf/{part}.maf.gz"),
     log:
@@ -139,7 +150,7 @@ rule maf_ro:
 # Note: Always processes row_ordered files since all species are now kept in one path
 rule sort_by_chr:
     input:
-        maf=lambda wildcards: gather_part_files(),
+        maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
         temp(expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"])),
