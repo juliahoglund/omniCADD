@@ -33,12 +33,12 @@ wildcard_constraints:
 checkpoint split_alignment:
     """
 Splits the MAF alignment into fixed-size chunks for parallel GERP/PHAST scoring.
-Uses the conservation alignment (all species preserved) so GERP/phastCons/phyloP
+Uses the sorted alignment (all species preserved) so GERP/phastCons/phyloP
 have the full phylogenetic context.
 """
     input:
         script="workflow/scripts/combine_annotations/split_alignments.py",
-        maf="results/alignment/merged_conservation/chr{chr}.maf",
+        maf="results/alignment/sorted/chr{chr}.maf.gz",
     output:
         directory("results/alignment/splitted/chr{chr}/"),
     log:
@@ -57,7 +57,7 @@ have the full phylogenetic context.
     shell:
         """
         mkdir -p {output}
-        python3 {input.script} {input.maf} {params.n_chunks} {output} {params.ref_species} 2> {log}
+        gunzip -c {input.maf} | python3 {input.script} /dev/stdin {params.n_chunks} {output} {params.ref_species} 2> {log}
         """
 
 

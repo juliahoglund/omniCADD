@@ -95,9 +95,8 @@ ancestral_sequence:
         type: 'maf.gz'
         clean_maf: true
         ancestral_label: "Ancestor_Pig_Cow"
-        # Species order for ancestral extraction (filters to only these species)
-        filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
-        # Note: conservation_species_order not needed when alignment.enabled = false
+        # Species order: reference first, limited test set (for quick tests)
+        species_order: "sus_scrofa,ancestral_sequences,bos_taurus,ovis_aries,homo_sapiens,mus_musculus"
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: "chr"

@@ -47,7 +47,8 @@ alignment:
     path: "{{OMNICADD_REF_DATA}}/alignment/"
     type: "maf.gz"
     ancestral_label: "Ancestor_Pig_Cow"
-    filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
+    # Species order: reference first, then all species from EPO (keeps ALL species)
+    species_order: "sus_scrofa,ancestral_sequences,balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,callithrix_jacchus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,papio_anubis,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,pongo_abelii,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris"
     name_species_interest: "sus_scrofa"
 
 ################################

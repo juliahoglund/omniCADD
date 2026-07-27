@@ -53,7 +53,7 @@ rule split_fasta_by_chromosome:
         partition=get_resource("split_fasta_by_chromosome", "partition"),
     params:
         chromosomes=config["chromosomes"]["karyotype"],
-        output_dir="resources/genome/",
+        output_dir=lambda wildcards, output: os.path.dirname(output[0]) + "/",
     shell:
         """
         for chr in {params.chromosomes}; do
@@ -110,8 +110,10 @@ rule linearize_fasta:
         runtime=get_resource("linearize_fasta", "runtime"),
         time=get_resource("linearize_fasta", "time"),
         partition=get_resource("linearize_fasta", "partition"),
+    params:
+        awk_script='BEGIN {{ORS=""}} /^>/ {{print "\\n" $0 "\\n"; next}} {{print}} END {{print "\\n"}}',
     shell:
-        'awk \'/^>/ {printf("\\n%s\\n",$0); next;} {printf("%s",$0);} END {printf("\\n");}\' {input.fasta} > {output.linearized} 2> {log}'
+        "awk '{params.awk_script}' {input.fasta} > {output.linearized} 2> {log}"
 
 
 # Rule: Chunk VCF/MAF files

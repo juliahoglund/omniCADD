@@ -37,26 +37,12 @@ def get_alignment_config():
     return config["ancestral_sequence"]["alignment"]["alignments"][alignment_name]
 
 
-def should_skip_ancestral_path():
-    """
-    Check if ancestral and conservation paths use same species order.
-    If true, the workflow can skip ancestral-specific MAF processing and
-    reuse conservation outputs, saving ~50% of alignment processing time.
-    """
-    filter_order = get_alignment_config().get("filter_order", "")
-    conservation_order = get_alignment_config().get("conservation_species_order", "")
-    return filter_order == conservation_order and conservation_order != ""
-
-
 def get_maf_ro_output(wildcards):
     """
-    Return appropriate maf_ro output depending on whether paths are merged.
-    When species orders match, returns conservation path to avoid duplication.
+    Return maf_ro output path.
+    Simplified: now only one row_ordered path since all species are kept.
     """
-    if should_skip_ancestral_path():
-        return f"results/alignment/row_ordered_conservation/{wildcards.part}.maf.lz4"
-    else:
-        return f"results/alignment/row_ordered/{wildcards.part}.maf.lz4"
+    return f"results/alignment/row_ordered/{wildcards.part}.maf.lz4"
 
 
 def get_sort_by_chr_output(wildcards):
@@ -127,39 +113,26 @@ def get_mark_ancestor_input_maf(wildcards):
     return f"{alignment_config['path']}{wildcards.part}.maf.gz"
 
 
-def get_conservation_species_order():
+def get_species_order():
     """
-    Get species order for conservation files, ensuring ancestor is included.
-    Conservation files need the ancestor for ancestral extraction when paths are shared.
-    Returns: Comma-separated string of species names including the ancestor.
+    Get species order for alignment processing.
+    Returns comma-separated list with reference species first, then ancestor, then all other species.
+    This order is used for ALL alignment processing (no separate filter/conservation paths).
     """
     alignment_config = get_alignment_config()
     ancestor_name = config["mark_ancestor"].get("name_ancestor", "")
 
-    # Get the conservation order, defaulting to filter_order
-    order = alignment_config.get("conservation_species_order", alignment_config["filter_order"])
+    # Get species order from config (should list ALL species)
+    order = alignment_config.get("species_order", alignment_config.get("filter_order", ""))
 
-    # If ancestor is configured and not already in the order, add it at the beginning
+    # Ensure ancestor is in the order (after reference species)
     if ancestor_name and ancestor_name not in order:
-        # Order is comma-separated for mafRowOrderer
         order_parts = order.split(",")
-        # Insert ancestor after the reference species (first in list)
         if len(order_parts) > 0:
             order_parts.insert(1, ancestor_name)
             order = ",".join(order_parts)
 
     return order
-
-
-def conservation_matches_filter():
-    """
-    Check if conservation species order matches filter order.
-    Returns: True if they're the same (can reuse sorted files), False otherwise
-    """
-    alignment_config = get_alignment_config()
-    filter_order = alignment_config["filter_order"]
-    conservation_order = get_conservation_species_order()
-    return filter_order == conservation_order
 
 
 def gather_part_files():
@@ -198,28 +171,6 @@ def gather_part_files():
             sys.exit(f"No alignment parts found in the form {input_pattern}")
 
     return infiles
-
-
-def gather_part_files_conservation():
-    """
-    Gather all alignment part files for conservation analysis (preserves all species).
-    Used by: ancestral_generation.smk (sort_by_chr_conservation rule)
-    """
-    alignment_config = get_alignment_config()
-    alignment_dir = alignment_config["path"]
-    parts = glob_wildcards(os.path.join(alignment_dir, "{part}.maf.gz")).part
-
-    # Handle the case when no files are found
-    if len(parts) == 0:
-        import sys
-
-        if "--lint" in sys.argv or "--dry-run" in sys.argv or "-n" in sys.argv:
-            print(f"Warning: No conservation alignment parts found in {alignment_dir} (dry-run mode)")
-            return ["results/alignment/row_ordered_conservation/placeholder.maf.lz4"]
-        else:
-            sys.exit(f"No conservation alignment parts found in {alignment_dir}")
-
-    return expand("results/alignment/row_ordered_conservation/{part}.maf.lz4", part=parts)
 
 
 def get_folds(excluding=None) -> list:

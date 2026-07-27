@@ -89,11 +89,8 @@ ancestral_sequence:
         type: 'maf.gz'
         clean_maf: true
         ancestral_label: "Ancestor_Pig_Cow"
-        # Species order for ancestral extraction (filters to only these species)
-        filter_order: "sus_scrofa,Ancestor_Pig_Cow,bos_taurus"
-        # Species order for conservation (keeps ALL species, just reorders with reference first)
-        # IMPORTANT: List all species from your phylogenetic tree to preserve full tree for GERP
-        conservation_species_order: "sus_scrofa,bos_taurus,ovis_aries_rambouillet,camelus_dromedarius,catagonus_wagneri,sus_barbatus,sus_cebifrons,sus_celebensis,sus_verrucosus,babyrousa_babyrussa,phacochoerus_africanus,potamochoerus_porcus,tayassu_pecari,pecari_tajacu,hippopotamus_amphibius,cervus_hanglu_yarkandensis,bos_indicus_hybrid,bos_grunniens,bos_mutus,bison_bison_bison,bubalus_bubalis,capra_hircus,ovis_canadensis,ammotragus_lervia,pantholops_hodgsonii,antilocapra_americana,giraffa_tippelskirchi,vicugna_pacos,equus_caballus,equus_asinus,ceratotherium_simum_simum,rhinolophus_ferrumequinum,canis_lupus_familiaris,felis_catus,tursiops_truncatus,orcinus_orca,physeter_catodon,balaenoptera_musculus,loxodonta_africana,homo_sapiens,mus_musculus"
+        # Species order: reference first, then all species from EPO (keeps ALL 44 species)
+        species_order: "sus_scrofa,ancestral_sequences,balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,callithrix_jacchus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,papio_anubis,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,pongo_abelii,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris"
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: "chr"

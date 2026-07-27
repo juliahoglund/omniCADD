@@ -99,10 +99,9 @@ rule maf_df:
         "mkdir -p $(dirname {output}) && gzip -dc {input} 2>> {log} | mafDuplicateFilter --maf /dev/stdin 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 
-# Reorders species within any alignment block, so that the wanted species are in front.
-# (it also removes sequences that are not from species given in the order)
-# Note: Always processes dedup files (not symlinked to conservation) because extraction
-# needs both reference species and ancestor. Conservation path optimization only applies to scoring.
+# Reorders species within any alignment block, putting reference species first.
+# IMPORTANT: This now keeps ALL species in the alignment (does not filter).
+# mafRowOrderer with species_order reorders but keeps all species present in the input.
 rule maf_ro:
     input:
         dedup="results/alignment/dedup/{part}.maf.lz4",
@@ -121,100 +120,23 @@ rule maf_ro:
         time=get_resource("maf_ro", "time"),
         partition=get_resource("maf_ro", "partition"),
     params:
-        order=get_alignment_config()["filter_order"],
+        order=get_species_order(),
     shell:
         """
         lz4 -dc {input.dedup} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}
         """
 
 
-# Reorder species for conservation annotations (keeps ALL species, just reorders with reference first)
-# This preserves the full phylogenetic tree for GERP/phastCons/phyloP
-rule maf_ro_conservation:
-    input:
-        "results/alignment/dedup/{part}.maf.lz4",
-    output:
-        temp("results/alignment/row_ordered_conservation/{part}.maf.lz4"),
-    log:
-        "results/logs/maf_ro_conservation/{part}.log",
-    # conda:
-    #    get_conda_env("ancestor")
-    container:
-        config.get("containers", {}).get("maftools")
-    threads: get_resource("maf_ro", "threads")
-    resources:
-        mem_mb=get_resource("maf_ro", "mem_mb"),
-        runtime=get_resource("maf_ro", "runtime"),
-        time=get_resource("maf_ro", "time"),
-        partition=get_resource("maf_ro", "partition"),
-    params:
-        order=get_conservation_species_order(),
-    shell:
-        "lz4 -dc {input} 2>> {log} | mafRowOrderer --maf /dev/stdin --order {params.order} 2>> {log} | lz4 -f stdin {output} 2>> {log}"
+# Note: sort_by_chr_conservation and reuse_sorted_for_conservation removed.
+# Now all rules use the same species order (all species kept), so we only need
+# one sorted output path: results/alignment/sorted/
+# Conservation annotations (GERP, phast) use results/alignment/splitted/ directly.
 
-
-# Sort conserv alignment blocks by chromosome (preserves all species)
-rule sort_by_chr_conservation:
-    input:
-        maf=gather_part_files_conservation(),
-        script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
-    output:
-        expand("results/alignment/merged_conservation/chr{chr}.maf", chr=config["chromosomes"]["karyotype"]),
-    log:
-        "results/logs/sort_by_chr_conservation/all_chr.log",
-    conda:
-        get_conda_env("alignment")
-    threads: get_resource("sort_by_chr", "threads")
-    resources:
-        mem_mb=lambda wildcards, attempt: get_resource("sort_by_chr", "mem_mb") * attempt,
-        runtime=lambda wildcards, attempt: get_resource("sort_by_chr", "runtime") * attempt,
-        time=lambda wildcards, attempt: get_resource("sort_by_chr", "time") * attempt,
-        partition=get_resource("sort_by_chr", "partition"),
-        tmpdir="results/tmp/sort_chr_conservation",
-    params:
-        species_name=get_alignment_config()["name_species_interest"],
-        chromosomes=config["chromosomes"]["karyotype"],
-        ancestor=config["mark_ancestor"]["name_ancestor"],
-        directory=lambda w, output: os.path.dirname(output[0]),
-    shell:
-        """
-        mkdir -p $(dirname {log})
-        python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} > {log} 2>&1
-        """
-
-
-# Reuse sorted alignments for conservation when filter and conservation orders match
-# This avoids reprocessing the same MAF files twice
-# Takes priority when species orders are identical
-rule reuse_sorted_for_conservation:
-    input:
-        "results/alignment/sorted/chr{chr}.maf.gz",
-    output:
-        "results/alignment/merged_conservation/chr{chr}.maf",
-    log:
-        "results/logs/reuse_sorted_conservation/chr{chr}.log",
-    conda:
-        get_conda_env("alignment")
-    shell:
-        """
-        mkdir -p $(dirname {output})
-        gzip -dc {input} > {output} 2> {log}
-        """
-
-
-# Define rule precedence: use reuse_sorted when orders match, otherwise use full conservation path
-if conservation_matches_filter():
-
-    ruleorder: reuse_sorted_for_conservation > sort_by_chr_conservation > unzip_maf
-
-else:
-
-    ruleorder: sort_by_chr_conservation > reuse_sorted_for_conservation > unzip_maf
+# The old split rule already handles creating per-chromosome splits.
 
 
 # Go through all MAF alignment files and sort the blocks by the chromosome of the species of interest
-# Note: Always processes row_ordered files (not conservation) because extraction needs both
-# reference species and ancestor. Conservation path optimization only applies to scoring.
+# Note: Always processes row_ordered files since all species are now kept in one path
 rule sort_by_chr:
     input:
         maf=gather_part_files(),
