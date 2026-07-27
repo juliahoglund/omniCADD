@@ -38,9 +38,11 @@ rule clean_ambiguous:
     input:
         get_clean_ambiguous_input,
     output:
-        temp("results/alignment/cleaned_maf/{part}.maf.gz"),
+        "results/alignment/cleaned_maf/{part}.maf.gz",
     log:
         "results/logs/clean_ambiguous/{part}.log",
+    wildcard_constraints:
+        part="[a-zA-Z0-9._-]+",
     conda:
         get_conda_env("alignment")
     threads: get_resource("clean_ambiguous", "threads")
