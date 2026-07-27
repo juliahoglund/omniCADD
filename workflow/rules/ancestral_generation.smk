@@ -25,7 +25,7 @@ from snakemake.io import expand, glob_wildcards
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
     input:
-        lambda wildcards: f"{get_alignment_config()['path']}{wildcards.part}.maf.gz",
+        lambda wildcards: f"{get_alignment_config()['path']}{wildcards.part}.{get_alignment_config()['type']}",
     output:
         temp("results/alignment/cleaned_maf/{part}.maf.gz"),
     log:
@@ -139,7 +139,7 @@ rule maf_ro:
 # Note: Always processes row_ordered files since all species are now kept in one path
 rule sort_by_chr:
     input:
-        maf=gather_part_files(),
+        maf=lambda wildcards: gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
         temp(expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"])),

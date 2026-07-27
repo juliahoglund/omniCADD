@@ -110,7 +110,7 @@ def get_mark_ancestor_input_maf(wildcards):
     if alignment_config["clean_maf"]:
         return f"results/alignment/cleaned_maf/{wildcards.part}.maf.gz"
 
-    return f"{alignment_config['path']}{wildcards.part}.maf.gz"
+    return f"{alignment_config['path']}{wildcards.part}.{alignment_config['type']}"
 
 
 def get_species_order():
