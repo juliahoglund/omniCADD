@@ -68,7 +68,7 @@ rule mark_ancestor:
         maf=lambda wildcards: get_mark_ancestor_input_maf(wildcards),
         script="workflow/scripts/ancestral_generation/mark_ancestor.py",
     output:
-        temp("results/alignment/marked_ancestor/{part}.maf.gz"),
+        "results/alignment/marked_ancestor/{part}.maf.gz",
     log:
         "results/logs/mark_ancestor/{part}.log",
     conda:
@@ -95,7 +95,7 @@ rule maf_df:
     input:
         lambda wildcards: get_df_input_maf(wildcards),
     output:
-        temp("results/alignment/dedup/{part}.maf.lz4"),
+        "results/alignment/dedup/{part}.maf.lz4",
     log:
         "results/logs/maf_df/{part}.log",
     # conda:
@@ -119,7 +119,7 @@ rule maf_ro:
     input:
         dedup="results/alignment/dedup/{part}.maf.lz4",
     output:
-        temp("results/alignment/row_ordered/{part}.maf.lz4"),
+        "results/alignment/row_ordered/{part}.maf.lz4",
     log:
         "results/logs/maf_ro/{part}.log",
     # conda:
@@ -155,7 +155,7 @@ rule sort_by_chr:
         maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
-        temp(expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"])),
+        expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"]),
     log:
         "results/logs/sort_by_chr/all_chr.log",
     conda:
@@ -184,7 +184,7 @@ rule maf_str:
     input:
         "results/alignment/merged/chr{chr}.maf.gz",
     output:
-        temp("results/alignment/stranded/chr{chr}.maf.gz"),
+        "results/alignment/stranded/chr{chr}.maf.gz",
     log:
         "results/logs/maf_str/chr{chr}.log",
     # conda:
@@ -208,7 +208,7 @@ rule maf_sorter:
     input:
         "results/alignment/stranded/chr{chr}.maf.gz",
     output:
-        temp("results/alignment/sorted/chr{chr}.maf.gz"),
+        "results/alignment/sorted/chr{chr}.maf.gz",
     log:
         "results/logs/maf_sorter/chr{chr}.log",
     # conda:
