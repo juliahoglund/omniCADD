@@ -44,13 +44,6 @@ conda-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/conda-
 
 # Per-rule overrides — memory only (time is set in resources.yaml)
 # Only rules with values different from the defaults above are listed
-#
-# NOTE on `time` overrides below: Snakemake 8 requires every rule in a SLURM
-# job-group (see `groups:` further down) to request the *same* `time` value,
-# since it's a string and can't be auto-merged like numeric resources (e.g.
-# mem_mb, runtime). Rules pull their own `time` from config/resources.yaml,
-# which differs per rule — so for any group containing rules with different
-# `time` values, we force them all to the group's max requirement here.
 set-resources:
   # Step 1: Ancestral sequence
   # maf_ro, maf_df, mark_ancestor, clean_ambiguous share "maf_part_group" below,
@@ -92,9 +85,6 @@ set-resources:
     mem_mb: 49152
   process_vep_combine:
     mem_mb: 32768
-  # run_snpeff, process_snpeff_derived, process_snpeff_simulated, gerp2coords,
-  # wig2bed, run_vep, process_vep, merge_vep_snpeff share "post_gerp_group"
-  # below, so their `time` is pinned to the group's max requirement (12h)
   run_snpeff:
     mem_mb: 49152
     time: "12:00:00"
@@ -134,9 +124,6 @@ set-resources:
     mem_mb: 98304
 
   # Step 8: Score variants
-  # run_genome_vep, process_genome_vep, run_genome_snpeff, process_genome_snpeff,
-  # intersect_genomewide, prepare_whole_genome share "genome_prep_shard_group"
-  # below, so their `time` is pinned to the group's max requirement (16h)
   run_genome_vep:
     mem_mb: 49152
     time: "16:00:00"
@@ -160,8 +147,6 @@ set-resources:
     mem_mb: 49152
 
   # Alignment generation
-  # filter_alignments, sort_bam, generate_consensus share "species_align_group"
-  # below, so their `time` is pinned to the group's max requirement (8h)
   align_species:
     mem_mb: 49152
   filter_alignments:
@@ -233,20 +218,20 @@ groups:
 
 # bundle sized per group
 group-components:
-  pre_gerp_group: 25
-  post_gerp_group: 25
+  pre_gerp_group: 25  # 3 rules x ~1h = ~3h/item -> 75h at 25
+  post_gerp_group: 1  # 8 rules x 12h = ~96h/item -> can't bundle more than 1 item
   filter_group: 10
-  species_align_group: 5
+  species_align_group: 5  # 3 rules x 8h = 24h/item -> 120h at 5
   multiway_group: 25
-  maf_part_group: 30
-  maf_chr_group: 10
+  maf_part_group: 2  # 4 rules x 12h = 48h/item -> 96h at 2
+  maf_chr_group: 10  # 2 rules x ~4h = ~8h/item -> 80h at 10
   variant_derive_group: 5
   sim_param_group: 20
   sim_exec_group: 5
   sim_split_group: 10
   summary_per_chr_group: 10
   constraint_merge_group: 15
-  snpeff_prep_group: 15
-  genome_prep_shard_group: 10
-  genome_post_index_group: 15
+  snpeff_prep_group: 10  # 3 rules x ~4h = ~12h/item -> 120h at 10 (was 15 -> 180h, over the cap)
+  genome_prep_shard_group: 1  # 6 rules x 16h = 96h/item -> can't bundle more than 1 item
+  genome_post_index_group: 10  # 3 rules x ~4h = ~12h/item -> 120h at 10 (was 15 -> 180h, over the cap)
 
