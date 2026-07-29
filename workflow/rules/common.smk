@@ -51,7 +51,7 @@ def get_sort_by_chr_output(wildcards):
     Note: Always returns merged (ancestral) path, not conservation path,
     because extraction requires both reference and ancestor species.
     """
-    return f"results/alignment/merged/chr{wildcards.chr}.maf.gz"
+    return f"results/alignment/merged/chr{wildcards.chr}.maf.lz4"
 
 
 def get_gene_annotation_file():

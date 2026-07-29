@@ -30,8 +30,10 @@ def get_clean_ambiguous_input(wildcards):
         return result
     except Exception as e:
         import sys
+
         print(f"ERROR in get_clean_ambiguous_input: {e}", file=sys.stderr)
         raise
+
 
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
@@ -161,7 +163,7 @@ rule sort_by_chr:
         maf=gather_part_files(),
         script="workflow/scripts/ancestral_generation/sort_by_chromosome.py",
     output:
-        expand("results/alignment/merged/chr{chr}.maf.gz", chr=config["chromosomes"]["karyotype"]),
+        expand("results/alignment/merged/chr{chr}.maf.lz4", chr=config["chromosomes"]["karyotype"]),
     log:
         "results/logs/sort_by_chr/all_chr.log",
     conda:
@@ -181,14 +183,14 @@ rule sort_by_chr:
     shell:
         """
         mkdir -p $(dirname {log})
-        python3 {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} --compress > {log} 2>&1
+        python3 -u {input.script} -i {input.maf} -s {params.species_name} -a {params.ancestor} -c {params.chromosomes} -o {params.directory} --compress > {log} 2>&1
         """
 
 
 # Flips all alignment blocks in which the species of interest and its ancestors have been on the negative strand.
 rule maf_str:
     input:
-        "results/alignment/merged/chr{chr}.maf.gz",
+        "results/alignment/merged/chr{chr}.maf.lz4",
     output:
         "results/alignment/stranded/chr{chr}.maf.gz",
     log:
@@ -206,7 +208,7 @@ rule maf_str:
     params:
         species_label=get_alignment_config()["name_species_interest"],
     shell:
-        "gzip -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | gzip > {output} 2>> {log}"
+        "lz4 -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | gzip > {output} 2>> {log}"
 
 
 # Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.

@@ -55,7 +55,7 @@ PARSER.add_argument("-o", "--output-dir",
                     default=".",
                     required=False)
 PARSER.add_argument("--compress",
-                    help="compress output files with gzip",
+                    help="compress output files with lz4",
                     action="store_true",
                     default=False)
 
@@ -70,8 +70,8 @@ if __name__ == '__main__':
     chr_list = {}
     for chromosome in args.chromosomes:
         if args.compress:
-            output_path = os.path.join(args.output_dir, "chr" + str(chromosome) + ".maf.gz")
-            chr_list[chromosome] = gzip.open(output_path, "at")
+            output_path = os.path.join(args.output_dir, "chr" + str(chromosome) + ".maf.lz4")
+            chr_list[chromosome] = lz4.frame.open(output_path, "at")
         else:
             output_path = os.path.join(args.output_dir, "chr" + str(chromosome) + ".maf")
             chr_list[chromosome] = open(output_path, "a")
