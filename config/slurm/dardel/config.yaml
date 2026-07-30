@@ -63,6 +63,10 @@ set-resources:
     mem_mb: 49152
   fit_phylo_model:
     mem_mb: 32768
+  maf_str:
+    mem_mb: 16384
+  maf_sorter:
+    mem_mb: 32768
 
   # Step 2: Derive variants
   freq_files:
@@ -169,8 +173,12 @@ groups:
   mark_ancestor: "maf_part_group"
   maf_df: "maf_part_group"
   maf_ro: "maf_part_group"
-  maf_str: "maf_chr_group"
-  maf_sorter: "maf_chr_group"
+  # maf_str and maf_sorter are split into separate groups (rather than one
+  # shared maf_chr_group) because they have very different memory profiles
+  # (~16GB vs ~32GB/item) - bundling them together would force maf_str's
+  # batch size down to match maf_sorter's tighter memory ceiling.
+  maf_str: "maf_str_group"
+  maf_sorter: "maf_sorter_group"
 
   # Step 2: Variant Derivation
   freq_files: "variant_derive_group"
@@ -224,7 +232,8 @@ group-components:
   species_align_group: 5  # 3 rules x 8h = 24h/item -> 120h at 5
   multiway_group: 25
   maf_part_group: 2  # 4 rules x 12h = 48h/item -> 96h at 2
-  maf_chr_group: 10  # 2 rules x ~4h = ~8h/item -> 80h at 10
+  maf_str_group: 6  # mem_mb=16384/item -> 98GB at 6; time 4h/item -> 24h at 6
+  maf_sorter_group: 3  # mem_mb=32768/item -> 98GB at 3; time 4h/item -> 12h at 3
   variant_derive_group: 5
   sim_param_group: 20
   sim_exec_group: 5
