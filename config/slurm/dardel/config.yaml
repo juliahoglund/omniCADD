@@ -64,9 +64,9 @@ set-resources:
   fit_phylo_model:
     mem_mb: 32768
   maf_str:
-    mem_mb: 16384
+    mem_mb: 4096
   maf_sorter:
-    mem_mb: 32768
+    mem_mb: 65536
 
   # Step 2: Derive variants
   freq_files:
@@ -232,8 +232,8 @@ group-components:
   species_align_group: 5  # 3 rules x 8h = 24h/item -> 120h at 5
   multiway_group: 25
   maf_part_group: 2  # 4 rules x 12h = 48h/item -> 96h at 2
-  maf_str_group: 6  # mem_mb=16384/item -> 98GB at 6; time 4h/item -> 24h at 6
-  maf_sorter_group: 3  # mem_mb=32768/item -> 98GB at 3; time 4h/item -> 12h at 3
+  maf_str_group: 25  # mem_mb=4096/item -> 100GB at 25; time 4h/item -> 100h at 25
+  maf_sorter_group: 1  # mem_mb=65536/item -> bundling more than 1 gets too close to the 231GB node cap
   variant_derive_group: 5
   sim_param_group: 20
   sim_exec_group: 5
