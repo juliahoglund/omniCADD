@@ -192,7 +192,7 @@ rule maf_str:
     input:
         "results/alignment/merged/chr{chr}.maf.lz4",
     output:
-        "results/alignment/stranded/chr{chr}.maf.gz",
+        "results/alignment/stranded/chr{chr}.maf.lz4",
     log:
         "results/logs/maf_str/chr{chr}.log",
     # conda:
@@ -208,15 +208,15 @@ rule maf_str:
     params:
         species_label=get_alignment_config()["name_species_interest"],
     shell:
-        "lz4 -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | gzip > {output} 2>> {log}"
+        "lz4 -dc {input} 2>> {log} | mafStrander --maf /dev/stdin --seq {params.species_label}. --strand + 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 
 # Sorts alignment blocks with respect to coordinates of the first species of interest using its genome.
 rule maf_sorter:
     input:
-        "results/alignment/stranded/chr{chr}.maf.gz",
+        "results/alignment/stranded/chr{chr}.maf.lz4",
     output:
-        "results/alignment/sorted/chr{chr}.maf.gz",
+        "results/alignment/sorted/chr{chr}.maf.lz4",
     log:
         "results/logs/maf_sorter/chr{chr}.log",
     # conda:
@@ -232,7 +232,7 @@ rule maf_sorter:
     params:
         species_label=get_alignment_config()["name_species_interest"],
     shell:
-        "gzip -dc {input} 2>> {log} | mafSorter --maf /dev/stdin --seq {params.species_label}. 2>> {log} | gzip > {output} 2>> {log}"
+        "lz4 -dc {input} 2>> {log} | mafSorter --maf /dev/stdin --seq {params.species_label}. 2>> {log} | lz4 -f stdin {output} 2>> {log}"
 
 
 # Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers.
@@ -284,7 +284,7 @@ rule prepare_reference_genome:
 # Reconstructs the marked ancestor sequences in the preprocessed maf files using the identifiers.
 rule gen_ancestor_seq:
     input:
-        maf=f"results/alignment/sorted/chr{{chr}}.maf.gz",
+        maf=f"results/alignment/sorted/chr{{chr}}.maf.lz4",
         script="workflow/scripts/ancestral_generation/extract_ancestor.py",
         ref_idx="results/reference/reference_genome.fa.gz.fai",
     output:

@@ -65,8 +65,10 @@ set-resources:
     mem_mb: 32768
   maf_str:
     mem_mb: 4096
+  # OOM'd on chr1 (largest chromosome, 44 species kept) at both 32768 and
+  # 65536.
   maf_sorter:
-    mem_mb: 65536
+    mem_mb: 131072
 
   # Step 2: Derive variants
   freq_files:

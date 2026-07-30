@@ -38,7 +38,7 @@ have the full phylogenetic context.
 """
     input:
         script="workflow/scripts/combine_annotations/split_alignments.py",
-        maf="results/alignment/sorted/chr{chr}.maf.gz",
+        maf="results/alignment/sorted/chr{chr}.maf.lz4",
     output:
         directory("results/alignment/splitted/chr{chr}/"),
     log:
@@ -57,7 +57,7 @@ have the full phylogenetic context.
     shell:
         """
         mkdir -p {output}
-        gunzip -c {input.maf} | python3 {input.script} /dev/stdin {params.n_chunks} {output} {params.ref_species} 2> {log}
+        lz4 -dc {input.maf} | python3 {input.script} /dev/stdin {params.n_chunks} {output} {params.ref_species} 2> {log}
         """
 
 

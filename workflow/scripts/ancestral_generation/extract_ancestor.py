@@ -36,6 +36,7 @@ get_alignment_generator and get_ancestral_sequence functions from main code.
 import os
 import sys
 import gzip
+import lz4.frame
 import copy
 from argparse import ArgumentParser
 from Bio import AlignIO
@@ -123,7 +124,12 @@ def get_alignment_generator(input_f):
     if not os.path.isfile(input_f):
         logging.error(f"File not found: {input_f}")
         sys.exit(f"Program stops prematurely\n Parsed Path does not show to a file. The parsed file is following: {input_f}")
-    handle = gzip.open(input_f, "rt") if str(input_f).endswith(".gz") else open(input_f, "r")
+    if str(input_f).endswith(".gz"):
+        handle = gzip.open(input_f, "rt")
+    elif str(input_f).endswith(".lz4"):
+        handle = lz4.frame.open(input_f, "rt")
+    else:
+        handle = open(input_f, "r")
     return AlignIO.parse(handle, "maf")
 
 
