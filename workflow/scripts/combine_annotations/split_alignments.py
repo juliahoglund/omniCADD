@@ -10,9 +10,18 @@ Modified by: Julia Höglund 2025-03-05
 import sys
 import math
 import gzip
+import lz4.frame
 import Bio
 from Bio import AlignIO
 import os
+
+
+def open_maf(path):
+    if path.endswith(".gz"):
+        return gzip.open(path, "rt")
+    if path.endswith(".lz4"):
+        return lz4.frame.open(path, "rt")
+    return open(path, "r")
 
 
 def batch_iterator(iterator, batch_size):
@@ -42,8 +51,6 @@ if len(sys.argv) != 5:
     sys.exit("usage: split_alignments.py MAF_FILE N_CHUNKS OUTPUT_FOLDER_MAF REF_SPECIES")
 
 mfile = sys.argv[1]  # maf file
-ofile = gzip.open(mfile, "rt") if mfile.endswith('.gz') else open(mfile, "r")  # maf file
-
 chunks = sys.argv[2]  # number of chunks
 maf_folder = sys.argv[3]  # folder to save maf chunks in
 ref_species = sys.argv[4]
@@ -51,20 +58,25 @@ ref_species = sys.argv[4]
 if not os.path.exists(maf_folder):
     os.makedirs(maf_folder)
 
-to_keep = []
+# First pass: count matching blocks without holding them in memory
+nseq = 0
+with open_maf(mfile) as handle:
+    for alignment in AlignIO.parse(handle, "maf"):
+        if ref_species in str(alignment):
+            nseq += 1
 
-# parse alignment
-for alignment in AlignIO.parse(ofile, "maf"):
-    if ref_species in str(alignment):
-        to_keep.append(alignment)
-
-nseq = len(to_keep)
 chunksize = math.ceil(nseq / int(chunks))
 chrom = mfile.split('.')[0].split('chr')[1]
 
 print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "blocks")
-for i, batch in enumerate(batch_iterator(to_keep, chunksize)):
-    filename = os.path.join(maf_folder, f"chr{chrom}-{i + 1}.maf")
-    with open(filename, "w") as maf_handle:
-        count = Bio.AlignIO.write(batch, maf_handle, "maf")
-    print("Wrote %i sequences to %s" % (count, filename))
+
+# Second pass: stream matching blocks straight into batches and write each
+# batch out immediately, rather than accumulating the whole chromosome in
+# memory before writing anything
+with open_maf(mfile) as handle:
+    matching = (alignment for alignment in AlignIO.parse(handle, "maf") if ref_species in str(alignment))
+    for i, batch in enumerate(batch_iterator(matching, chunksize)):
+        filename = os.path.join(maf_folder, f"chr{chrom}-{i + 1}.maf")
+        with open(filename, "w") as maf_handle:
+            count = Bio.AlignIO.write(batch, maf_handle, "maf")
+        print("Wrote %i sequences to %s" % (count, filename))

@@ -45,19 +45,19 @@ have the full phylogenetic context.
         "results/logs/split_alignment/chr{chr}.log",
     conda:
         get_conda_env("alignment")
-    threads: get_resource("split_alignment_combine", "threads")
+    threads: get_resource("split_alignment", "threads")
     resources:
-        mem_mb=get_resource("split_alignment_combine", "mem_mb"),
-        runtime=get_resource("split_alignment_combine", "runtime"),
-        time=get_resource("split_alignment_combine", "time"),
-        partition=get_resource("split_alignment_combine", "partition"),
+        mem_mb=get_resource("split_alignment", "mem_mb"),
+        runtime=get_resource("split_alignment", "runtime"),
+        time=get_resource("split_alignment", "time"),
+        partition=get_resource("split_alignment", "partition"),
     params:
         ref_species=config["species_name"],
         n_chunks=config["annotation"]["conservation"]["gerp"]["n_chunks"],
     shell:
         """
         mkdir -p {output}
-        lz4 -dc {input.maf} | python3 {input.script} /dev/stdin {params.n_chunks} {output} {params.ref_species} 2> {log}
+        python3 {input.script} {input.maf} {params.n_chunks} {output} {params.ref_species} 2> {log}
         """
 
 
