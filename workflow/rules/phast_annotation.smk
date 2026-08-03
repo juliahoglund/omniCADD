@@ -30,9 +30,35 @@ rule phylo_fit:
         "{input.fasta} 2>> {log}"
 
 
+# run_phastCons/run_phyloP run inside the phast container (a minimal
+# biocontainer with no lz4), so the compressed alignment chunk is
+# decompressed to a temp plain .maf first, outside that container, rather
+# than piping lz4 through a tool that may not have it.
+rule decompress_split_maf:
+    input:
+        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf.lz4",
+    output:
+        maf=temp("results/alignment/splitted_plain/chr{chr}/chr{chr}-{part}.maf"),
+    log:
+        "results/logs/decompress_split_maf/chr{chr}/chr{chr}-{part}.log",
+    conda:
+        get_conda_env("common")
+    threads: get_resource("decompress_split_maf", "threads")
+    resources:
+        mem_mb=get_resource("decompress_split_maf", "mem_mb"),
+        runtime=get_resource("decompress_split_maf", "runtime"),
+        time=get_resource("decompress_split_maf", "time"),
+        partition=get_resource("decompress_split_maf", "partition"),
+    shell:
+        """
+        mkdir -p $(dirname {output.maf})
+        lz4 -dc {input.maf} > {output.maf} 2> {log}
+        """
+
+
 rule run_phastCons:
     input:
-        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+        maf="results/alignment/splitted_plain/chr{chr}/chr{chr}-{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}.mod",
     output:
         temp("results/annotation/phast/phastCons/chr{chr}/chr{chr}-{part}.wig"),
@@ -58,7 +84,7 @@ rule run_phastCons:
 
 rule run_phyloP:
     input:
-        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+        maf="results/alignment/splitted_plain/chr{chr}/chr{chr}-{part}.maf",
         mod="results/annotation/phast/phylo_model/chr{chr}/chr{chr}-{part}.mod",
     output:
         temp("results/annotation/phast/phyloP/chr{chr}/chr{chr}-{part}.wig"),

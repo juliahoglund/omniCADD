@@ -135,6 +135,12 @@ split_alignment:
   threads: 4
   time: "04:00:00"
 
+decompress_split_maf:
+  mem_mb: 2048
+  threads: 1
+  runtime: 30
+  time: "00:30:00"
+
 convert_alignment:
   mem_mb: 4096
   threads: 1

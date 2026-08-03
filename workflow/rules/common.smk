@@ -73,6 +73,25 @@ def get_gene_annotation_file():
         raise ValueError(f"Unknown gene annotation source: {source}")
 
 
+def get_clean_ambiguous_input(wildcards):
+    """
+    Input for clean_ambiguous rule (first step in alignment preprocessing).
+    Returns the raw alignment file path based on configuration.
+    Used by: ancestral_generation.smk (clean_ambiguous input)
+    :param wildcards: Snakemake wildcards object
+    :return: str, input file path with wildcard resolved
+    """
+    try:
+        alignment_config = get_alignment_config()
+        result = f"{alignment_config['path']}{wildcards.part}.{alignment_config['type']}"
+        return result
+    except Exception as e:
+        import sys
+
+        print(f"ERROR in get_clean_ambiguous_input: {e}", file=sys.stderr)
+        raise
+
+
 def get_df_input_maf(wildcards):
     """
     Input for maf_df rule (duplicate filter step), which follows after marking.
@@ -219,7 +238,7 @@ def gather_scores(wildcards):
 def get_alignment_parts(wildcards):
     """Resolve chunk part IDs for a chromosome using the split_alignment checkpoint."""
     cp = checkpoints.split_alignment.get(chr=wildcards.chr)
-    (parts,) = glob_wildcards(os.path.join(cp.output[0], f"chr{wildcards.chr}-{{part}}.maf"))
+    (parts,) = glob_wildcards(os.path.join(cp.output[0], f"chr{wildcards.chr}-{{part}}.maf.lz4"))
     return parts
 
 

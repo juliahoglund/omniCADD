@@ -35,6 +35,7 @@ dependencies:
   - tk
   - xz
   - zstd
+  - lz4-c  # provides the `lz4` CLI, for decompressing .maf.lz4 alignment chunks
   
   # Jupyter and notebook support
   - jupyter_core

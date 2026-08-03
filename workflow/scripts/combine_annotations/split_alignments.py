@@ -76,7 +76,7 @@ print("Splitting maffile file of", nseq, "blocks into chunks of", chunksize, "bl
 with open_maf(mfile) as handle:
     matching = (alignment for alignment in AlignIO.parse(handle, "maf") if ref_species in str(alignment))
     for i, batch in enumerate(batch_iterator(matching, chunksize)):
-        filename = os.path.join(maf_folder, f"chr{chrom}-{i + 1}.maf")
-        with open(filename, "w") as maf_handle:
+        filename = os.path.join(maf_folder, f"chr{chrom}-{i + 1}.maf.lz4")
+        with lz4.frame.open(filename, "wt") as maf_handle:
             count = Bio.AlignIO.write(batch, maf_handle, "maf")
         print("Wrote %i sequences to %s" % (count, filename))

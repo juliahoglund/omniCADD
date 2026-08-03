@@ -144,7 +144,7 @@ rule chunk_maf:
 rule convert_alignment:
     input:
         script="workflow/scripts/combine_annotations/maf2fasta.pl",
-        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf",
+        maf="results/alignment/splitted/chr{chr}/chr{chr}-{part}.maf.lz4",
     output:
         converted=temp("results/alignment/fasta/chr{chr}/chr{chr}-{part}.fasta"),
     log:
@@ -158,7 +158,7 @@ rule convert_alignment:
         time=get_resource("convert_alignment", "time"),
         partition=get_resource("convert_alignment", "partition"),
     shell:
-        "perl {input.script} < {input.maf} > {output.converted} 2> {log}"
+        "lz4 -dc {input.maf} | perl {input.script} > {output.converted} 2> {log}"
 
 
 rule format_alignment:

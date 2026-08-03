@@ -22,19 +22,6 @@ import sys
 from snakemake.io import expand, glob_wildcards
 
 
-# Helper function for clean_ambiguous input
-def get_clean_ambiguous_input(wildcards):
-    try:
-        alignment_config = get_alignment_config()
-        result = f"{alignment_config['path']}{wildcards.part}.{alignment_config['type']}"
-        return result
-    except Exception as e:
-        import sys
-
-        print(f"ERROR in get_clean_ambiguous_input: {e}", file=sys.stderr)
-        raise
-
-
 # Parse MAF file and removes ambiguous nucleotides from the alignment (if necessary).
 rule clean_ambiguous:
     input:
