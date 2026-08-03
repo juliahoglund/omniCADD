@@ -18,17 +18,14 @@ __license__ = "The MIT License (MIT)"
 def prune_aln(ofile, fh_out):
     """Prune columns from alignment and print result."""
     keep_cols = []
-    try:
-        for aln in AlignIO.parse(ofile, "fasta"):
-            for i in range(aln.get_alignment_length()):
-                col_nucs = [sr.seq[i].upper() for sr in aln]
-                if aln[0].seq[i] != '-':
-                    keep_cols.append(i)
-            for s in aln:
-                fh_out.write(">%s\n" % (s.id))
-                fh_out.write('%s\n' % ''.join([s.seq[i] for i in keep_cols]))
-    except Exception as e:
-        print(f"Error processing alignment: {e}")
+    for aln in AlignIO.parse(ofile, "fasta"):
+        for i in range(aln.get_alignment_length()):
+            col_nucs = [sr.seq[i].upper() for sr in aln]
+            if aln[0].seq[i] != '-':
+                keep_cols.append(i)
+        for s in aln:
+            fh_out.write(">%s\n" % (s.id))
+            fh_out.write('%s\n' % ''.join([s.seq[i] for i in keep_cols]))
 
 
 def main():
