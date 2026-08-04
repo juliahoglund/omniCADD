@@ -5,7 +5,7 @@
 # Convert MAF to FASTA 
 # Optionally only convert blocks that contain label 
 # ./maf2fasta.pl [label] < maf > fasta
-# Modified by: Julia Höglund 2025-03-05
+# Modified by: Julia Höglund 2026-08-04
 
 use strict; 
 use warnings;  # Add warnings for better debugging
@@ -21,12 +21,14 @@ my @blocks;
 
 # Read input line by line
 while (my $line = <STDIN>) {
-    if ($line =~ /a\s+score=([\d\.\-]+)/) {
+    if ($line =~ /^a(?:\s|$)/) {
+        # New alignment block. score= and label= are optional extensions,
+        # not present in all MAF sources
         if ($saveblock > 0) {
             my @nmatches = @matches;
             push @blocks, [$currscore, $currlabel, $currorient, $currcoord, \@nmatches];
         }
-        ($currscore) = ($line =~ /a\s+score=([\d\.\-]+)/);
+        ($currscore) = ($line =~ /score=([\d\.\-]+)/);
         ($currlabel) = ($line =~ /label=(\d+)/);
         @matches = ();
     }
