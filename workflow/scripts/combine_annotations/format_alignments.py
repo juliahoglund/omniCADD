@@ -30,7 +30,7 @@ def parse_blocks(ffile):
 
     with open(ffile, "r") as fh:
         for line in fh:
-            line = line.rstrip("\n")
+            line = line.rstrip()
             if line == "=":
                 flush_record()
                 blocks.append(current)
@@ -77,12 +77,16 @@ def main():
     sequences = {sp: [] for sp in species_order}
     index_lines = []
 
-    for block in blocks:
+    for block_index, block in enumerate(blocks):
         if not block:
             continue
         widths = {len(seq) for _, seq in block.values()}
         if len(widths) > 1:
-            sys.exit(f"ERROR: inconsistent sequence widths within a block: {widths}")
+            per_species = {sp: len(seq) for sp, (_, seq) in block.items()}
+            sys.exit(
+                f"ERROR: inconsistent sequence widths within block {block_index} "
+                f"(of {len(blocks)} blocks): {per_species}"
+            )
         width = widths.pop()
 
         for sp in species_order:
