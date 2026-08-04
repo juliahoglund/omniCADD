@@ -1,79 +1,109 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Linearize a per-chunk multi-block FASTA (from maf2fasta.pl) into one
+continuous sequence per species, gap-filling species missing from
+individual blocks, and write an index of genomic positions for the
+species of interest.
 
-import os
+:Modified by: Julia Höglund 2025-03-05
+:Rewritten: 2026-08-03
+"""
+
 import sys
-from argparse import ArgumentParser
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
-from Bio.Seq import Seq
-from collections import defaultdict
+
+
+def parse_blocks(ffile):
+    """
+    Parse maf2fasta.pl output into a list of blocks.
+    Each block is a dict: species_id -> (start, sequence).
+    """
+    blocks = []
+    current = {}
+    current_id = None
+    current_start = None
+    current_seq_parts = []
+
+    def flush_record():
+        if current_id is not None:
+            current[current_id] = (current_start, "".join(current_seq_parts))
+
+    with open(ffile, "r") as fh:
+        for line in fh:
+            line = line.rstrip("\n")
+            if line == "=":
+                flush_record()
+                blocks.append(current)
+                current = {}
+                current_id = None
+                current_start = None
+                current_seq_parts = []
+            elif line.startswith(">"):
+                flush_record()
+                fields = line[1:].split()
+                current_id = fields[0].split(".")[0]
+                current_start = int(fields[1])
+                current_seq_parts = []
+            else:
+                current_seq_parts.append(line)
+
+    # in case the file doesn't end with a trailing "=" block separator
+    if current:
+        flush_record()
+        blocks.append(current)
+
+    return blocks
 
 
 def main():
-    parser = ArgumentParser(description="Format alignments")
-    parser.add_argument("ffile", help="Converted multi-fasta file")
-    parser.add_argument("output", help="Name of formatted file")
-    parser.add_argument("indexfile", help="Name of index file with genomic positions")
-    args = parser.parse_args()
+    if len(sys.argv) != 5:
+        sys.exit("usage: format_alignments.py FASTA OUTPUT INDEXFILE SPECIES_OF_INTEREST")
 
-    species = defaultdict(list)
-    entries = defaultdict(list)
+    ffile, output, indexfile, species_of_interest = sys.argv[1:5]
 
-    # retrieve all species present in any block to get maximum number of aligned species
-    for record in SeqIO.parse(args.ffile, "fasta"):
-        record.id = record.id.split('.')[0]
-        if record.id not in species:
-            species[record.id] = []
-        entries[record.id].append(len(record))
-        species[record.id].append(record)
+    blocks = parse_blocks(ffile)
 
-    # prepare additional dictionaries
-    ik = dict()
-    for i, k in enumerate(entries):
-        ik[i] = k   # dictionary key_of_index
+    # species order: species of interest first (matches prune_columns.py,
+    # which prunes columns based on the FIRST record in the alignment),
+    # then all others in first-appearance order
+    species_order = [species_of_interest]
+    seen = {species_of_interest}
+    for block in blocks:
+        for sp in block:
+            if sp not in seen:
+                seen.add(sp)
+                species_order.append(sp)
 
-    # add gaps for the length of the block, where that specific species is lacking
-    offset = 1
-    for i in range(0, len(ik)-1):
-        next_species = ik[i + offset]
-        for j in range(0, len(entries[ik[0]])-1):
-            if entries[ik[0]][j] != entries[next_species][j]:
-                entries[next_species].insert(j, entries[ik[0]][j])
-                gaps = '-' * entries[ik[0]][j]
-                species[next_species].insert(j, SeqRecord(Seq(gaps)))
-            elif j == len(entries[next_species])-1:
-                entries[next_species].append(entries[ik[0]][j+1])
-                gaps = '-' * entries[ik[0]][j+1]
-                species[next_species].append(SeqRecord(Seq(gaps)))
+    sequences = {sp: [] for sp in species_order}
+    index_lines = []
+
+    for block in blocks:
+        if not block:
+            continue
+        widths = {len(seq) for _, seq in block.values()}
+        if len(widths) > 1:
+            sys.exit(f"ERROR: inconsistent sequence widths within a block: {widths}")
+        width = widths.pop()
+
+        for sp in species_order:
+            if sp in block:
+                sequences[sp].append(block[sp][1])
             else:
-                continue
+                sequences[sp].append("-" * width)
 
-    # as of now hardcoded to trailing unwanted '=' characters
-    for i in range(0, len(ik)-1):
-        for j in range(0, len(entries[ik[0]])):
-            if '=' in species[ik[i]][j].seq:
-                species[ik[i]][j].seq = species[ik[i]][j].seq.rstrip('=')
+        if species_of_interest in block:
+            start, _ = block[species_of_interest]
+            index_lines.append(f"start: {start}, size: {width}\n")
 
-    # write linearized fasta sequence
-    with open(args.output, 'w') as fasta_seq:
-        for i in range(0, len(ik)):
-            for j in range(0, len(entries[ik[0]])):
-                if j == 0:
-                    if i == 0:
-                        fasta_seq.write('>' + ik[i] + '\n')
-                    else:
-                        fasta_seq.write('\n>' + ik[i] + '\n')
-                else:
-                    fasta_seq.write(str(species[ik[i]][j].seq))
+    with open(output, "w") as fasta_out:
+        for i, sp in enumerate(species_order):
+            if i > 0:
+                fasta_out.write("\n")
+            fasta_out.write(">" + sp + "\n")
+            fasta_out.write("".join(sequences[sp]))
 
-    # make indexfile of bp positions in reference species
-    with open(args.indexfile, 'w') as index_out:
-        for j in range(1, len(species[ik[0]])):
-            index_out.write(
-                'start: ' + str(species[ik[0]][j].description.split(" ")[1]) +
-                ', size: ' + str(species[ik[0]][j].description.split(" ")[2]) + '\n'
-            )
+    with open(indexfile, "w") as index_out:
+        index_out.writelines(index_lines)
 
 
 if __name__ == "__main__":

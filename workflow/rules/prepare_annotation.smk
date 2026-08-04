@@ -178,5 +178,7 @@ rule format_alignment:
         runtime=get_resource("format_alignment", "runtime"),
         time=get_resource("format_alignment", "time"),
         partition=get_resource("format_alignment", "partition"),
+    params:
+        species_of_interest=config["species_name"],
     shell:
-        "python3 {input.script} {input.fasta} {output.formatted} {output.index} 2> {log}"
+        "python3 {input.script} {input.fasta} {output.formatted} {output.index} {params.species_of_interest} 2> {log}"
