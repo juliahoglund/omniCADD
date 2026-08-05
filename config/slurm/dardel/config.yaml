@@ -12,8 +12,11 @@ executor: slurm
 jobs: 50  # Max simultaneous jobs - reduced to be more considerate on shared cluster
 cores: 8
 use-conda: True
-use-apptainer: true
-apptainer-args: "--bind /sw,/cfs/klemming"
+# Container execution is enabled via --use-singularity/--singularity-args,
+# passed explicitly by start_omnicadd.sh (which also carries the actual
+# bind-mount args)
+# add if not using start_omnicadd.sh: use-singularity: True
+# and then args via singularity-args: "--bind <path>"
 apptainer-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/singularity-cache"
 restart-times: 2
 max-jobs-per-second: 1
