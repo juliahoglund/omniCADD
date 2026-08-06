@@ -27,7 +27,9 @@ rule compute_gerp:
         reference_species=config["species_name"],
     shell:
         """
+        mkdir -p $(dirname {output})
         gerpcol -v -f {input.fasta} -t {input.tree} -a -e {params.reference_species} 2>> {log}
+        mv {input.fasta}.rates {output}
         """
 
 
