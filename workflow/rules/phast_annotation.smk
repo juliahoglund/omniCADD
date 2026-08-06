@@ -78,7 +78,7 @@ rule run_phastCons:
     shell:
         """
          mkdir -p $(dirname {output})
-         phastCons --msa-format FASTA --not-informative={params.species_interest} {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
+         phastCons --msa-format MAF --not-informative={params.species_interest} {params.phast_params} {input.maf} {input.mod} > {output} 2> {log}
          """
 
 
@@ -99,12 +99,11 @@ rule run_phyloP:
         time=lambda wildcards, attempt: get_resource("run_phyloP", "time") * attempt,
         partition=get_resource("run_phyloP", "partition"),
     params:
-        species_interest=config["species_name"],
         phylo_params=config["annotation"]["conservation"]["phast"]["phyloP_params"],
     shell:
         """
         mkdir -p $(dirname {output})
-        phyloP --msa-format FASTA --chrom {wildcards.chr} --wig-scores --not-informative={params.species_interest} {params.phylo_params} {input.mod} {input.maf} > {output} 2> {log}
+        phyloP --msa-format MAF --chrom {wildcards.chr} --wig-scores {params.phylo_params} {input.mod} {input.maf} > {output} 2> {log}
         """
 
 
