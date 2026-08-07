@@ -116,8 +116,8 @@ rule wig2bed:
         "results/logs/wig2bed/{tool}/chr{chr}/chr{chr}-{part}.log",
     wildcard_constraints:
         tool="(phastCons|phyloP)",
-    container:
-        config.get("containers", {}).get("phast")
+    conda:
+        get_conda_env("annotation")
     threads: get_resource("wig2bed", "threads")
     resources:
         mem_mb=get_resource("wig2bed", "mem_mb"),
