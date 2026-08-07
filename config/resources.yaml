@@ -188,6 +188,11 @@ phylo_fit:
   threads: 4
   time: "08:00:00"
 
+combine_constraint:
+  mem_mb: 32768
+  threads: 4
+  time: "08:00:00"
+
 #########################################
 ### STEP 6: COMBINE ANNOTATIONS #########
 #########################################

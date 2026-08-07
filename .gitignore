@@ -108,3 +108,4 @@ README_dardel.md
 config/slurm/dardel/start_omnicadd.sh
 .vscode/settings.json
 stats_report.html
+config/slurm/dardel/submit_full_run.sbatch

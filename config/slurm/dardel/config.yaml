@@ -245,7 +245,9 @@ group-components:
   sim_exec_group: 5
   sim_split_group: 10
   summary_per_chr_group: 10
-  constraint_merge_group: 15
+  # Shrunk to 3 (~98GB) until a real run gives us actual
+  # MaxRSS to right-size from, same as the other groups this session.
+  constraint_merge_group: 3
   snpeff_prep_group: 10  # 3 rules x ~4h = ~12h/item -> 120h at 10 (was 15 -> 180h, over the cap)
   genome_prep_shard_group: 1  # 6 rules x 16h = 96h/item -> can't bundle more than 1 item
   genome_post_index_group: 10  # 3 rules x ~4h = ~12h/item -> 120h at 10 (was 15 -> 180h, over the cap)
