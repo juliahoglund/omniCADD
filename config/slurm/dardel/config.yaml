@@ -201,9 +201,6 @@ groups:
   summary_report_with_gene_prediction: "summary_per_chr_group"
 
   # Step 5 & 6: Standard Annotation Processing
-  format_alignment: "pre_gerp_group"
-  convert_alignment: "pre_gerp_group"
-  prune_columns: "pre_gerp_group"
   gerp2coords: "post_gerp_group"
   wig2bed: "post_gerp_group"
   combine_constraint: "constraint_merge_group"
@@ -232,7 +229,6 @@ groups:
 
 # bundle sized per group
 group-components:
-  pre_gerp_group: 5  # 3 rules x ~1h = ~3h/item -> 15h at 5
   post_gerp_group: 1  # 8 rules x 12h = ~96h/item -> can't bundle more than 1 item
   filter_group: 10
   species_align_group: 5  # 3 rules x 8h = 24h/item -> 120h at 5
