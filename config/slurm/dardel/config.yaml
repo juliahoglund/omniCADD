@@ -21,7 +21,10 @@ apptainer-prefix: "/cfs/klemming/projects/supr/sllstore2017093/julia_omniCADD/si
 restart-times: 2
 max-jobs-per-second: 1
 max-status-checks-per-second: 10
-local-cores: 1
+# 0 forces every job - including ones dynamically discovered downstream of
+# checkpoints to always be submitted as its own independent SLURM
+# job, never run "locally".
+local-cores: 0
 latency-wait: 60
 keep-going: True
 rerun-incomplete: True
