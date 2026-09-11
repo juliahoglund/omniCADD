@@ -46,6 +46,15 @@ def read_bed_score(path, col_name):
         return pd.DataFrame(columns=['start', col_name])
 
 
+def downcast(df):
+    """Shrink numeric dtypes: genomic positions fit in int32, scores don't need float64."""
+    df['start'] = df['start'].astype('int32')
+    for col in ('GERP_NS', 'GERP_RS', 'phastCons', 'phyloP'):
+        if col in df.columns:
+            df[col] = df[col].astype('float32')
+    return df
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--gerp', nargs='+', required=True,
@@ -61,7 +70,9 @@ def main():
                         help='Output constraint BED file (space-separated)')
     args = parser.parse_args()
 
-    gerp_frames, phast_frames, phylo_frames = [], [], []
+    # outer-join and fill each chunk immediately,
+    # and concatenate the per-chunk results at the end. 
+    merged_chunks = []
 
     for gerp_f, phast_f, phylo_f, idx_f in zip(
         sorted(args.gerp), sorted(args.phastCons),
@@ -71,23 +82,21 @@ def main():
         if not positions:
             print(f"Warning: empty index file {idx_f}, skipping chunk", file=sys.stderr)
             continue
-        gerp_frames.append(read_gerp(gerp_f, positions))
-        phast_frames.append(read_bed_score(phast_f, 'phastCons'))
-        phylo_frames.append(read_bed_score(phylo_f, 'phyloP'))
 
-    if not gerp_frames:
+        gerp_df = read_gerp(gerp_f, positions)
+        phast_df = read_bed_score(phast_f, 'phastCons')
+        phylo_df = read_bed_score(phylo_f, 'phyloP')
+
+        chunk = gerp_df.merge(phast_df, on='start', how='outer')
+        chunk = chunk.merge(phylo_df, on='start', how='outer')
+        chunk = chunk.fillna(0)
+        merged_chunks.append(downcast(chunk))
+
+    if not merged_chunks:
         print("Error: no valid chunks found", file=sys.stderr)
         sys.exit(1)
 
-    gerp_all = pd.concat(gerp_frames, ignore_index=True)
-    phast_all = pd.concat(phast_frames, ignore_index=True) if phast_frames else pd.DataFrame(
-        columns=['start', 'phastCons'])
-    phylo_all = pd.concat(phylo_frames, ignore_index=True) if phylo_frames else pd.DataFrame(
-        columns=['start', 'phyloP'])
-
-    merged = gerp_all.merge(phast_all, on='start', how='outer')
-    merged = merged.merge(phylo_all, on='start', how='outer')
-    merged = merged.fillna(0)
+    merged = pd.concat(merged_chunks, ignore_index=True)
 
     merged.insert(0, 'chr', f'chr{args.chr}')
     merged['end'] = merged['start']
