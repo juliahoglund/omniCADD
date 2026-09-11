@@ -71,7 +71,7 @@ def main():
     args = parser.parse_args()
 
     # outer-join and fill each chunk immediately,
-    # and concatenate the per-chunk results at the end. 
+    # and concatenate the per-chunk results at the end.
     merged_chunks = []
 
     for gerp_f, phast_f, phylo_f, idx_f in zip(
