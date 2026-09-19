@@ -149,7 +149,9 @@ def main(args):
                         elif lines.startswith(f's {args.sp1_label}.'):
                             # Stores coords for ancestor
                             elem = lines.strip().split()[0:-1]
-                        elif lines.startswith('s ancestral_sequences.Ancestor_' + ancestor_id):
+                        # ancestor_id already includes the leading "Ancestor_"
+                        # so don't add it again here.
+                        elif lines.startswith('s ancestral_sequences.' + ancestor_id):
                             to_write = False
                             ancestor_seq = lines.strip().split()[-1]
 
