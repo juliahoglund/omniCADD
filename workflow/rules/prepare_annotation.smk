@@ -18,11 +18,11 @@ rule decompress_genome_fasta:
         partition="core",
     shell:
         """
-        # Check if input is gzip-compressed
-        if file {input.fasta} | grep -q "gzip compressed"; then
+        # Check if input is gzip-compressed. -L dereferences symlinks
+        if file -L {input.fasta} | grep -q "gzip compressed"; then
             echo "Decompressing gzipped FASTA: {input.fasta}" > {log}
             gunzip -c {input.fasta} > {output.fasta} 2>> {log}
-        elif file {input.fasta} | grep -q "ASCII text"; then
+        elif file -L {input.fasta} | grep -q "ASCII text"; then
             # Already uncompressed, just copy
             echo "FASTA already uncompressed, copying: {input.fasta}" > {log}
             cp {input.fasta} {output.fasta} 2>> {log}
