@@ -124,7 +124,9 @@ constraint BED for merging with variant annotations.
         get_conda_env("annotation")
     threads: get_resource("combine_constraint", "threads")
     resources:
-        mem_mb=get_resource("combine_constraint", "mem_mb"),
+        # SLURM-detected OOM kill now gets more memory
+        # on retry (profile has retries: 2) instead of failing identically.
+        mem_mb=lambda wildcards, attempt: get_resource("combine_constraint", "mem_mb") * attempt,
         runtime=get_resource("combine_constraint", "runtime"),
         time=get_resource("combine_constraint", "time"),
         partition=get_resource("combine_constraint", "partition"),

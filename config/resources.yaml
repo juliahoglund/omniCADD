@@ -189,7 +189,9 @@ phylo_fit:
   time: "16:00:00"
 
 combine_constraint:
-  mem_mb: 32768
+  # combine_annotations.smk scales this by attempt on
+  # retry (65536 -> 131072 -> 196608 MB). chr1 (largest chromosome, ~274Mb)
+  mem_mb: 65536
   threads: 4
   time: "08:00:00"
 
