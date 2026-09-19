@@ -25,7 +25,8 @@ max-status-checks-per-second: 10
 # checkpoints to always be submitted as its own independent SLURM
 # job, never run "locally".
 local-cores: 0
-latency-wait: 60
+# Bumped from 60 with ~1200 maf_part_group jobs hitting storage concurrently.
+latency-wait: 300
 keep-going: True
 rerun-incomplete: True
 rerun-triggers:
