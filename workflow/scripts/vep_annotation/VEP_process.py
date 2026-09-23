@@ -477,10 +477,10 @@ def dist_to_spl(output_dict, vepfields, fVfeature, ref_id):
 # Function for returning the most deleterious annotation for the same variant,
 # when there are two annotations given for a single variant.
 def indexing(previous, current):
-    global HIERACHY1
+    global HIERARCHY1
 
-    index_current = HIERACHY1.index(current)
-    index_previous = HIERACHY1.index(previous)
+    index_current = HIERARCHY1.index(current)
+    index_previous = HIERARCHY1.index(previous)
 
     if index_previous > index_current:
         return current
