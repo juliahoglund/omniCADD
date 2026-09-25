@@ -57,7 +57,14 @@ ancestral_sequence:
         ancestral_label: "Ancestor_Pig_Cow"
         # Species order: reference first, then all exact species names from EPO alignment
         # IMPORTANT: These must match the EXACT lowercase names in your EPO MAF files
-        species_order: "sus_scrofa,ancestral_sequences,balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,callithrix_jacchus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,papio_anubis,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,pongo_abelii,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris"
+        # "ancestral_sequences" (Ensembl's raw generic ancestral-node
+        # placeholder) intentionally excluded: mark_ancestor.py fully
+        # consumes it (renames the target row to Ancestor_Pig_Cow, drops
+        # every other ancestral_sequences.* row), so it should never
+        # survive to this point - see workflow/scripts/ancestral_generation/mark_ancestor.py.
+        # get_species_order() in workflow/rules/common.smk inserts
+        # Ancestor_Pig_Cow itself right after the reference species.
+        species_order: "sus_scrofa,balaenoptera_musculus,bos_grunniens,bos_indicus_hybrid,bos_taurus,callithrix_jacchus,camelus_dromedarius,canis_lupus_dingo,canis_lupus_familiaris,capra_hircus,catagonus_wagneri,cavia_porcellus,cervus_hanglu_yarkandensis,chlorocebus_sabaeus,cricetulus_griseus_chok1gshd,delphinapterus_leucas,equus_caballus,gorilla_gorilla,homo_sapiens,loxodonta_africana,macaca_fascicularis,macaca_mulatta,marmota_marmota_marmota,microcebus_murinus,microtus_ochrogaster,monodon_monoceros,mus_caroli,mus_musculus,mus_pahari,nomascus_leucogenys,oryctolagus_cuniculus,ovis_aries,pan_paniscus,pan_troglodytes,panthera_leo,panthera_pardus,papio_anubis,peromyscus_maniculatus_bairdii,phocoena_sinus,physeter_catodon,pongo_abelii,rattus_norvegicus,rhinolophus_ferrumequinum,sciurus_vulgaris"
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: ""  # number only; no prefix

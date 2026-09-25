@@ -149,11 +149,10 @@ def main(args):
                         elif lines.startswith(f's {args.sp1_label}.'):
                             # Stores coords for ancestor
                             elem = lines.strip().split()[0:-1]
-                        # ancestor_id already includes the leading "Ancestor_"
-                        # so don't add it again here.
-                        elif lines.startswith('s ancestral_sequences.' + ancestor_id):
+                        elif lines.startswith('s ancestral_sequences.'):
                             to_write = False
-                            ancestor_seq = lines.strip().split()[-1]
+                            if lines.startswith('s ancestral_sequences.' + ancestor_id):
+                                ancestor_seq = lines.strip().split()[-1]
 
                         # Write renamed/annotated ancestral alignment if fields found.
                         if ancestor_seq and elem:

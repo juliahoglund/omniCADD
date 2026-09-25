@@ -96,7 +96,7 @@ ancestral_sequence:
         clean_maf: true
         ancestral_label: "Ancestor_Pig_Cow"
         # Species order: reference first, limited test set (for quick tests)
-        species_order: "sus_scrofa,ancestral_sequences,bos_taurus,ovis_aries,homo_sapiens,mus_musculus"
+        species_order: "sus_scrofa,bos_taurus,ovis_aries,homo_sapiens,mus_musculus"
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: "chr"
