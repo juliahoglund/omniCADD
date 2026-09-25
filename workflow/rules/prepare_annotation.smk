@@ -158,7 +158,8 @@ rule convert_alignment:
         time=get_resource("convert_alignment", "time"),
         partition=get_resource("convert_alignment", "partition"),
     shell:
-        "lz4 -dc {input.maf} | perl {input.script} > {output.converted} 2> {log}"
+        # [[ -s ]] guards against a silently-empty output
+        "lz4 -dc {input.maf} | perl {input.script} > {output.converted} 2> {log} && [[ -s {output.converted} ]]"
 
 
 rule format_alignment:
@@ -181,4 +182,6 @@ rule format_alignment:
     params:
         species_of_interest=config["species_name"],
     shell:
+        # [[ -s ]] on both outputs
         "python3 {input.script} {input.fasta} {output.formatted} {output.index} {params.species_of_interest} 2> {log}"
+        " && [[ -s {output.formatted} ]] && [[ -s {output.index} ]]"

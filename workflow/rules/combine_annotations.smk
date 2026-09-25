@@ -81,7 +81,8 @@ rule prune_columns:
         time=get_resource("prune_columns", "time"),
         partition=get_resource("prune_columns", "partition"),
     shell:
-        "python3 {input.script} {input.fasta} {output.pruned} 2> {log}"
+        # [[ -s ]] guards against a silently-empty output 
+        "python3 {input.script} {input.fasta} {output.pruned} 2> {log} && [[ -s {output.pruned} ]]"
 
 
 ############################
