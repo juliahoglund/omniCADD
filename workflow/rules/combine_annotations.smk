@@ -76,9 +76,10 @@ rule prune_columns:
         get_conda_env("annotation")
     threads: get_resource("prune_columns", "threads")
     resources:
-        mem_mb=get_resource("prune_columns", "mem_mb"),
-        runtime=get_resource("prune_columns", "runtime"),
-        time=get_resource("prune_columns", "time"),
+        # Scaled by attempt; retries get 2x/3x time and memory.
+        mem_mb=lambda wildcards, attempt: get_resource("prune_columns", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("prune_columns", "runtime") * attempt,
+        time=lambda wildcards, attempt: "{:02d}:{:02d}:00".format(*divmod(get_resource("prune_columns", "runtime") * attempt, 60)),
         partition=get_resource("prune_columns", "partition"),
     shell:
         # [[ -s ]] guards against a silently-empty output 

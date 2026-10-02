@@ -154,10 +154,12 @@ format_alignment:
   time: "01:00:00"
 
 prune_columns:
-  mem_mb: 4096
+  # Base for attempt 1; combine_annotations.smk scales mem/runtime/time by
+  # attempt on retry (chr10-13 timed out at the previous flat 60 min / 4 GB).
+  mem_mb: 8192
   threads: 1
-  runtime: 60
-  time: "01:00:00"
+  runtime: 120
+  time: "02:00:00"
 
 gerp2coords:
   mem_mb: 4096
