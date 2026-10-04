@@ -7,6 +7,7 @@ script to merge annotations to one annotation file per chromosome.
 import pandas as pd
 from argparse import ArgumentParser
 import logging
+import sys
 from typing import Any
 
 # Set up logging
@@ -30,6 +31,23 @@ def parse_arguments() -> Any:
     return parser.parse_args()
 
 
+def read_bed_at_positions(path: str, positions: pd.Index, chunksize: int = 5_000_000) -> pd.DataFrame:
+    """
+    Read the chromosome-wide constraint BED in chunks, keeping only rows
+    whose position occurs in the VEP file.
+    """
+    def usecols(col: str) -> bool:
+        return col not in ("chr", "end")
+
+    kept = [
+        chunk[chunk["start"].isin(positions)]
+        for chunk in pd.read_csv(path, sep=" ", usecols=usecols, chunksize=chunksize)
+    ]
+    if not kept:
+        return pd.read_csv(path, sep=" ", usecols=usecols, nrows=0)
+    return pd.concat(kept, ignore_index=True)
+
+
 def main() -> None:
     args = parse_arguments()
 
@@ -38,25 +56,21 @@ def main() -> None:
         logging.info("Reading VEP file...")
         vepfile = pd.read_csv(args.vep, sep="\t", low_memory=False)
 
-        logging.info("Reading BED file...")
-        bedfile = pd.read_csv(args.bed, sep=" ", low_memory=False)
-
-        # 1. remove some unwanted columns in bed file,
-        #    like chrom end maybe more
-        logging.info("Processing BED file...")
-        bedfile = bedfile.drop(columns=['chr', 'end'])
+        logging.info("Reading BED file (only positions present in the VEP file)...")
+        bedfile = read_bed_at_positions(args.bed, pd.Index(vepfile["Pos"].unique()))
         bedfile = bedfile.rename(columns={"start": "Pos"})
 
-        # 2. left outer join with vep versus bed
+        # left outer join with vep versus bed
         logging.info("Merging files...")
         left_merged = pd.merge(vepfile, bedfile, how="left", on=["Pos"])
 
-        # 3. write to file
+        # write to file
         logging.info("Writing output file...")
         left_merged.to_csv(args.outfile, index=False, sep="\t")
         logging.info("Merge completed successfully.")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
+    except Exception:
+        logging.exception("An error occurred while merging annotations")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

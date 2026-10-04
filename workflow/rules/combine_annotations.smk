@@ -147,7 +147,7 @@ constraint BED for merging with variant annotations.
 
 if should_include_vep():
 
-    rule combine_annotations_combine:
+    rule add_constraint_to_vep:
         input:
             annotation="results/annotation/vep/{type}/chr{chr}_vep.tsv",
             constraint="results/annotation/constraint/constraint_chr{chr}.bed",
@@ -155,22 +155,22 @@ if should_include_vep():
         output:
             annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
         log:
-            "results/logs/combine_annotations_combine/{type}/chr{chr}.log",
+            "results/logs/add_constraint_to_vep/{type}/chr{chr}.log",
         conda:
             get_conda_env("annotation")
-        threads: get_resource("combine_annotations_combine", "threads")
+        threads: get_resource("add_constraint_to_vep", "threads")
         resources:
-            mem_mb=get_resource("combine_annotations_combine", "mem_mb"),
-            runtime=get_resource("combine_annotations_combine", "runtime"),
-            time=get_resource("combine_annotations_combine", "time"),
-            partition=get_resource("combine_annotations_combine", "partition"),
+            mem_mb=lambda wildcards, attempt: get_resource("add_constraint_to_vep", "mem_mb") * attempt,
+            runtime=get_resource("add_constraint_to_vep", "runtime"),
+            time=get_resource("add_constraint_to_vep", "time"),
+            partition=get_resource("add_constraint_to_vep", "partition"),
         shell:
             "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"
 
 
 if should_include_snpeff():
 
-    rule combine_annotations_snpeff_combine:
+    rule add_constraint_to_snpeff:
         input:
             annotation="results/annotation/snpeff/{type}/chr{chr}_snpeff.tsv",
             constraint="results/annotation/constraint/constraint_chr{chr}.bed",
@@ -178,14 +178,14 @@ if should_include_snpeff():
         output:
             annotated="results/dataset/{type}/chr{chr}_annotated.tsv",
         log:
-            "results/logs/combine_annotations_snpeff_combine/{type}/chr{chr}.log",
+            "results/logs/add_constraint_to_snpeff/{type}/chr{chr}.log",
         conda:
             get_conda_env("annotation")
-        threads: get_resource("combine_annotations_snpeff_combine", "threads")
+        threads: get_resource("add_constraint_to_snpeff", "threads")
         resources:
-            mem_mb=get_resource("combine_annotations_snpeff_combine", "mem_mb"),
-            runtime=get_resource("combine_annotations_snpeff_combine", "runtime"),
-            time=get_resource("combine_annotations_snpeff_combine", "time"),
-            partition=get_resource("combine_annotations_snpeff_combine", "partition"),
+            mem_mb=lambda wildcards, attempt: get_resource("add_constraint_to_snpeff", "mem_mb") * attempt,
+            runtime=get_resource("add_constraint_to_snpeff", "runtime"),
+            time=get_resource("add_constraint_to_snpeff", "time"),
+            partition=get_resource("add_constraint_to_snpeff", "partition"),
         shell:
             "python3 {input.script} -v {input.annotation} -b {input.constraint} -o {output.annotated} 2> {log}"

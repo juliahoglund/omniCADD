@@ -128,9 +128,9 @@ set-resources:
     mem_mb: 32768
 
   # Step 6: Combine annotations
-  combine_annotations_combine:
+  add_constraint_to_vep:
     mem_mb: 65536
-  combine_annotations_snpeff_combine:
+  add_constraint_to_snpeff:
     mem_mb: 65536
 
   # Step 7: Train & test model

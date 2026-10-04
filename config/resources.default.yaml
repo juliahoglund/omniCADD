@@ -114,12 +114,12 @@ phylo_fit:
 #########################################
 ### STEP 6: COMBINE ANNOTATIONS #########
 #########################################
-combine_annotations_combine:
+add_constraint_to_vep:
   mem_mb: 65536
   threads: 8
   time: "12:00:00"
 
-combine_annotations_snpeff_combine:
+add_constraint_to_snpeff:
   mem_mb: 65536
   threads: 8
   time: "12:00:00"
