@@ -213,9 +213,25 @@ add_constraint_to_snpeff:
 #######################################
 ### STEP 7: TRAIN & TEST MODEL ########
 #######################################
-train_test_model:
+prepare_data:
+  mem_mb: 65536
+  threads: 2
+  runtime: 240
+  time: "04:00:00"
+
+fold_data:
   mem_mb: 98304
-  threads: 12
+  threads: 4
+  time: "08:00:00"
+
+train_model:
+  mem_mb: 98304
+  threads: 3  # one worker per C value in config["model"]["test_params"]["c"]
+  time: "24:00:00"
+
+final_model:
+  mem_mb: 98304
+  threads: 4
   time: "24:00:00"
 
 #####################################

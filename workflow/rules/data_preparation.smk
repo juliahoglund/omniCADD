@@ -96,7 +96,7 @@ rule prepare_data:
     resources:
         mem_mb=lambda wildcards, attempt: get_resource("prepare_data", "mem_mb") * attempt,
         runtime=lambda wildcards, attempt: get_resource("prepare_data", "runtime") * attempt,
-        time=lambda wildcards, attempt: get_resource("prepare_data", "time") * attempt,
+        time=lambda wildcards, attempt: "{:02d}:{:02d}:00".format(*divmod(get_resource("prepare_data", "runtime") * attempt, 60)),
         partition=get_resource("prepare_data", "partition"),
     params:
         derived_flag=lambda wildcards: ("--derived" if wildcards.type == "derived" else ""),

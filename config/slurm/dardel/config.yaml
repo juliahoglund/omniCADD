@@ -127,15 +127,10 @@ set-resources:
   phylo_fit:
     mem_mb: 32768
 
-  # Step 6: Combine annotations
-  add_constraint_to_vep:
-    mem_mb: 65536
-  add_constraint_to_snpeff:
-    mem_mb: 65536
-
-  # Step 7: Train & test model
-  train_test_model:
-    mem_mb: 98304
+  # Step 6 & 7 (add_constraint_to_*, prepare_data, fold_data, train_model,
+  # final_model) are intentionally NOT listed here: an entry in
+  # set-resources overrides the rule's own mem_mb and would switch off its
+  # retry-attempt scaling. Their sizes live in config/resources.yaml.
 
   # Step 8: Score variants
   run_genome_vep:
