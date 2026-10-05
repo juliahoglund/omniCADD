@@ -18,9 +18,11 @@ rule derive_impute_means:
         get_conda_env("annotation")
     threads: get_resource("derive_impute_means", "threads")
     resources:
-        mem_mb=get_resource("derive_impute_means", "mem_mb"),
-        runtime=get_resource("derive_impute_means", "runtime"),
-        time=get_resource("derive_impute_means", "time"),
+        mem_mb=lambda wildcards, attempt: get_resource("derive_impute_means", "mem_mb") * attempt,
+        runtime=lambda wildcards, attempt: get_resource("derive_impute_means", "runtime") * attempt,
+        time=lambda wildcards, attempt: "{:02d}:{:02d}:00".format(
+            *divmod(get_resource("derive_impute_means", "runtime") * attempt, 60)
+        ),
         partition=get_resource("derive_impute_means", "partition"),
     shell:
         """

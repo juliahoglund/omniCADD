@@ -213,6 +213,12 @@ add_constraint_to_snpeff:
 #######################################
 ### STEP 7: TRAIN & TEST MODEL ########
 #######################################
+derive_impute_means:
+  mem_mb: 16384
+  threads: 1
+  runtime: 360
+  time: "06:00:00"
+
 prepare_data:
   mem_mb: 65536
   threads: 2

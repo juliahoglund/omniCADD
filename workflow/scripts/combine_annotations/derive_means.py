@@ -20,6 +20,7 @@ the imputation dictionary.
 from argparse import ArgumentParser
 import pandas
 import logging
+import sys
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -69,30 +70,39 @@ def load_tsv_configuration(file: str) -> dict[str, dict[str, str]]:
     return samples
 
 
-def load_mean_cols(infiles: list[str]) -> pandas.DataFrame:
+def derive_means(infiles: list[str], chunksize: int = 2_000_000) -> dict[str, float]:
     """
-    For each file in the input load pandas dataframe from csv and save
-    required columns, as defined in the configuration file
-    :param infiles: list of str, input csv files to load
-    :return: Pandas dataframe, all files merged and filtered for required cols
+    Stream all input files in chunks and derive, for each column that needs
+    mean imputation, the mean over all non-missing values.
+    :param infiles: list of str, input tsv files to read
+    :param chunksize: int, rows per chunk
+    :return: dict, column label -> mean
     """
-    dtypes = dict(
-        [(key, value["type"]) for key, value in CONFIGURATION.items()])
-    parts = []
+    dtypes = {col: CONFIGURATION[col]["type"] for col in MEAN_COLS}
+    sums = {col: 0.0 for col in MEAN_COLS}
+    counts = {col: 0 for col in MEAN_COLS}
     for file in infiles:
         try:
-            df = pandas.read_csv(file,
-                                 sep='\t',
-                                 na_values=['-'],
-                                 dtype=dtypes)[MEAN_COLS]
-            parts.append(df)
+            logging.info(f"Reading {file}")
+            for chunk in pandas.read_csv(file,
+                                         sep='\t',
+                                         na_values=['-'],
+                                         dtype=dtypes,
+                                         usecols=MEAN_COLS,
+                                         chunksize=chunksize):
+                for col in MEAN_COLS:
+                    sums[col] += float(chunk[col].sum())
+                    counts[col] += int(chunk[col].count())
         except FileNotFoundError:
             logging.error(f"Input file {file} not found.")
             raise
         except Exception as e:
             logging.error(f"Error loading file {file}: {e}")
             raise
-    return pandas.concat(parts, axis=0)
+    empty = [col for col in MEAN_COLS if counts[col] == 0]
+    if empty:
+        raise ValueError(f"No non-missing values found to derive a mean from for column(s): {empty}")
+    return {col: sums[col] / counts[col] for col in MEAN_COLS}
 
 
 try:
@@ -101,18 +111,12 @@ try:
     MEAN_COLS = [key for key, value in CONFIGURATION.items()
                  if value["isMetadata"] == "False" and value["impute"] == "Mean"]
 
-    # Load data
-    myData = load_mean_cols(args.input)
-
-    logging.info("Data from which means are derived:")
-    logging.info(myData.describe())
-
     # Deriving means and writing them to file
-    means = {}
-    for label in MEAN_COLS:
-        means[label] = myData[label].mean()
+    means = derive_means(args.input)
+    logging.info(f"Derived means: {means}")
     with open(args.output, "w") as f:
         f.write(str(means))
     logging.info(f"Means written to {args.output}")
 except Exception as e:
     logging.error(f"An error occurred: {e}")
+    sys.exit(1)
