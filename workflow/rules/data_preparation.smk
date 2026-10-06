@@ -86,7 +86,6 @@ rule prepare_data:
         npz="results/dataset/{type}/chr{chr}.npz",
         meta="results/dataset/{type}/chr{chr}.npz.meta.csv.gz",
         cols="results/dataset/{type}/chr{chr}.npz.columns.csv",
-        temp_processed=temp("results/temp/{type}_chr{chr}_processed.tsv"),
     log:
         "results/logs/prepare_data/{type}_chr{chr}.log",
     wildcard_constraints:
@@ -105,6 +104,6 @@ rule prepare_data:
         y_value=lambda wildcards: "0.0" if wildcards.type == "derived" else "1.0",
     shell:
         """
-        mkdir -p $(dirname {output.npz}) results/temp $(dirname {log})
-        python3 {input.script} -i {input.data} --npz {output.npz} --processing-config {input.processing} --interaction-config {input.interactions} --imputation-dict {input.imputation} {params.derived_flag} -y {params.y_value} > {log}
+        mkdir -p $(dirname {output.npz}) $(dirname {log})
+        python3 {input.script} -i {input.data} --npz {output.npz} --processing-config {input.processing} --interaction-config {input.interactions} --imputation-dict {input.imputation} {params.derived_flag} -y {params.y_value} > {log} 2>&1
         """

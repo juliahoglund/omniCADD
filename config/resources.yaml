@@ -219,11 +219,13 @@ derive_impute_means:
   runtime: 360
   time: "06:00:00"
 
+# Measured on chr1 (the largest): MaxRSS ~16.4 GB, 40 min. Base leaves ~1.5x
+# headroom; mem/runtime scale by attempt on retry.
 prepare_data:
-  mem_mb: 65536
-  threads: 2
-  runtime: 240
-  time: "04:00:00"
+  mem_mb: 24576
+  threads: 1
+  runtime: 120
+  time: "02:00:00"
 
 fold_data:
   mem_mb: 98304
