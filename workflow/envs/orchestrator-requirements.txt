@@ -1,0 +1,9 @@
+# Python packages for the Snakemake *orchestrator* (the process that submits jobs),
+# not for the per-rule environments in this folder. Install into a venv:
+#   python3 -m venv .venv && .venv/bin/pip install -r workflow/envs/orchestrator-requirements.txt
+# Tested on PDC Dardel with Snakemake 9.27.0. The SLURM executor plugin is pinned: newer
+# versions broke job submission on Dardel. No DRMAA is needed; the plugin talks to SLURM
+# through sbatch/squeue/sacct.
+snakemake==9.27.0
+snakemake-executor-plugin-slurm==0.11.2
+pandas
