@@ -71,9 +71,7 @@ omniCADD.docx
 ~$niCADD.docx
 notes.md
 docs/boar_tmp_HOWTO.md
-docs/DARDEL_SETUP.md
 docs/DOCKER_SLURM_GUIDE.md
-docs/SETUP.md
 docs/ALIGNMENT_GENERATION.md
 
 # Misc
@@ -84,7 +82,6 @@ genomeBoar/
 # Removed: packrat/lib* (not present)
 # Removed: /GERP (redundant with GERP/README.md)
 # Removed: workflow/rules/5_annotate_vars_unimplemented.smk (if not present)
-docs/DARDEL_SETUP.md
 config/config.yaml.bak_20260316
 .venv/
 
