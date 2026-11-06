@@ -33,6 +33,13 @@ This directory contains minimal test data files for running workflow tests witho
 **Samples**: 3 individuals  
 **Used by**: `.tests/config/config_standard.yaml`
 
+### Species tree
+
+#### tree_test.nwk
+**Purpose**: Toy tree for the summary report in the test configs (`stats_report.tree`)  
+**Content**: Four species (sus_scrofa, bos_taurus, ovis_aries_rambouillet, equus_caballus) with made-up branch lengths  
+**Note**: Not a real species tree and not meant for GERP or phast
+
 ### Multi-species Alignment (`alignment/`)
 
 #### chr18.maf.gz
@@ -53,6 +60,7 @@ This directory contains minimal test data files for running workflow tests witho
 ├── genome/
 │   ├── Sus_scrofa_ref_18.fa                         # Reference genome (chr18)
 │   └── Sus_scrofa_ref.fa → Sus_scrofa_ref_18.fa     # Symlink
+├── tree_test.nwk                                    # Toy species tree (stats report)
 ├── population/
 │   └── chr18.vcf.gz                                 # Population variants
 └── alignment/

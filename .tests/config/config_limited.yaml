@@ -90,13 +90,13 @@ ancestral_sequence:
   alignment:
     enabled: true
     alignments:
-      43_mammals.epo:
+      44_mammals.epo:
         path: '.tests/resources/alignment/'
         type: 'maf.gz'
         clean_maf: true
         ancestral_label: "Ancestor_Pig_Cow"
         # Species order: reference first, limited test set (for quick tests)
-        species_order: "sus_scrofa,ancestral_sequences,bos_taurus,ovis_aries,homo_sapiens,mus_musculus"
+        species_order: "sus_scrofa,bos_taurus,ovis_aries,homo_sapiens,mus_musculus"
         exclude_patterns: [ "scaffold", "epo.Y" ]
         name_species_interest: "sus_scrofa"
         chrom_prefix: "chr"
@@ -106,11 +106,11 @@ ancestral_sequence:
     enabled: true
     method: "minimap2"
     
-    # Download relevant EPO 43 mammals species
+    # Download relevant EPO 44 mammals species
     download_genomes:
       enabled: true
       source: "ensembl"
-      # Select phylogenetically relevant species from EPO 43 mammals
+      # Select phylogenetically relevant species from EPO 44 mammals
       species_list:
         - name: "bos_taurus"
           ensembl_name: "Bos_taurus"
@@ -176,7 +176,7 @@ ancestral_sequence:
     species: "bos_taurus"
 
 mark_ancestor:
-  ancestral_alignment: "43_mammals.epo"
+  ancestral_alignment: "44_mammals.epo"
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
@@ -260,7 +260,7 @@ stats_report:
   enabled: true
   annotation: false
   prefix: ''
-  tree: '.tests/resources/tree_43_mammals.nwk'  # Test data
+  tree: '.tests/resources/tree_test.nwk'  # Test data
   ingroup: 'sus scrofa'
   outgroup: 'bos taurus'
 

@@ -1,107 +1,95 @@
-# Test Configurations
+# Tests
 
-This directory contains test configurations for validating the omniCADD workflow under different data availability scenarios.
+This directory contains the test configurations and test data used to check that the workflow's job graph builds
+under two data scenarios. The tests are **dry runs**: Snakemake builds and checks the DAG, it does not execute the
+scripts or tools, so they catch rule, config and wiring errors but not runtime problems such as memory use or bugs
+inside scripts.
 
-## Available Test Configs
+## Contents
 
-### `config_standard.yaml` - Standard Data Tier
-**Use case:** Well-annotated species with comprehensive resources
-
-**Features:**
-- ✅ Pre-existing GFF gene annotation
-- ✅ VEP cache available
-- ✅ MAF alignments for ancestral extraction
-- ✅ Full conservation scores (GERP, phastCons, phyloP)
-- ✅ Minimal preprocessing needed
-
-**Example species:** Human, mouse, domestic pig, cattle
-
-### `config_limited.yaml` - Limited Data Tier  
-**Use case:** Poorly-annotated species requiring reconstruction
-
-**Features:**
-- 🔧 Gene prediction with Augustus (no GFF)
-- 🔧 SNPEff database building (no VEP cache)
-- 🔧 **Multi-species alignment creation with minimap2** (species not in EPO)
-- 🔧 Ancestral reconstruction from built alignment
-- 🔧 Full alignment used for GERP/phastCons/phyloP
-- 🔧 Extensive preprocessing (formatting, filtering)
-- ⚡ Faster model training settings
-
-**Workflow for alignment:**
-1. Download genomes of related species from Ensembl (e.g., cattle, sheep, camel)
-2. Align each species to your reference genome using minimap2
-3. Convert alignments to MAF format
-4. Reconstruct ancestral sequences using phast
-5. Use full multi-species alignment for conservation scores
-
-**Example species:** local assemblies, non-model organisms, emerging model species
-
-## Running Tests
-
-### Quick Test (Manual)
-```bash
-# Test with standard config
-snakemake --dry-run --configfile .tests/config/config_standard.yaml
-
-# Test with limited config
-snakemake --dry-run --configfile .tests/config/config_limited.yaml
+```
+.tests/
+├── config/
+│   ├── config_standard.yaml   # Standard data tier test configuration
+│   └── config_limited.yaml    # Limited data tier test configuration
+├── resources/                 # Minimal chr18 test data (see resources/README.md)
+├── annotation/, genome/, grantham/, snpEff/   # Small support files (used by config_production.yaml and snpeff_annotation.smk, not by the two test configs)
+├── test_configs.sh            # Runs the dry run for both configs
+└── test_debug.sh              # Debug helper for bash behaviour in CI (set -e with arithmetic)
 ```
 
-### Automated Testing
+## The two scenarios
+
+Both use `sus_scrofa` and **chromosome 18 only**. Where they differ:
+
+| Setting | Standard | Limited |
+|---------|----------|---------|
+| `data_tier` | `standard` | `limited` |
+| Gene annotation | `gff` (existing annotation), no gene prediction | `augustus` (gene prediction on) |
+| Variant annotator | VEP | SnpEff |
+| Alignment entry | `44_mammals.epo`, full species list | `44_mammals.epo`, a short list of six species |
+| `build_alignment` (minimap2) | not set | enabled |
+| Preprocessing | none needed (`needs_*` false) | formatting, filtering and VCF processing on; chromosome-name standardization on |
+| GERP tree | `resources/tree_44_mammals.nwk` | `resources/tree_custom.nwk` |
+| phastCons / phyloP precision | `HIGH` | `MEDIUM` |
+| Cross-validation | 10 folds, C in [0.1, 1.0, 10.0] | 5 folds, C = 1.0 |
+| Final model C | 10.0 | 1.0 |
+
+Notes:
+
+- The `data_tier` value matters: `standard` and `limited` apply a preset from the `profiles:` section that
+  **overrides** explicit settings of the same keys (for example the variant annotator and the ancestral-sequence
+  source). See `docs/configuration.rst` and `docs/DATA_TIERS.md`.
+- The limited scenario exercises the alignment-free mode, which is still under development.
+
+## Running the tests
+
+### One scenario, by hand
+
 ```bash
-# Run both configs automatically
+snakemake --dry-run test_dag --configfile .tests/config/config_standard.yaml
+snakemake --dry-run test_dag --configfile .tests/config/config_limited.yaml
+```
+
+`test_dag` is a CI target defined in the `snakefile` that requests the main outputs of all eight modules.
+
+### Both scenarios, with the script
+
+```bash
 bash .tests/test_configs.sh
 ```
 
-The test script will:
-1. Copy each config to `config/config.yaml`
-2. Run `snakemake --dry-run`
-3. Report pass/fail for each scenario
-4. Save logs to `/tmp/snakemake_<scenario>.log`
+For each scenario the script
 
-## Key Differences
+1. **copies the test config over `config/config.yaml`** (and creates `config/config_refs.yaml` and
+   `config/resources.yaml` from the `*.default.yaml` templates if they are missing),
+2. runs `snakemake --dry-run test_dag --configfile config/config.yaml`,
+3. prints PASSED or FAILED and writes the output to `/tmp/snakemake_<scenario>.log`.
 
-| Feature | Standard | Limited |
-|---------|----------|---------|
-| **Data Tier** | `standard` | `limited` |
-| **Gene Annotation** | GFF (pre-existing) | Augustus (predicted) |
-| **Variant Annotator** | VEP | SNPEff |
-| **Ancestral Source** | MAF alignment (EPO) | Build alignment (minimap2) |
-| **Alignment Creation** | ❌ Not needed | ✅ Download + minimap2 |
-| **Related Species** | Pre-aligned in EPO | Downloaded from Ensembl |
-| **Ancestral Reconstruction** | Extract from MAF | Reconstruct with phast |
-| **GERP** | ✅ Full tree (43 species) | ✅ Built tree (5+ species) |
-| **phastCons/phyloP** | ✅ HIGH precision | ✅ Custom tree |
-| **Preprocessing** | Minimal | Extensive |
-| **Model Folds** | 10 | 5 |
-| **Test Parameters** | 3 values | 1 value |
+> **Warning**: because `config/config.yaml` is overwritten, it is left holding the last scenario that ran. It is a
+> tracked file, so restore it afterwards with `git checkout config/config.yaml`. Do not keep your own run configuration
+> under that name.
 
-## CI/CD Integration
+## Continuous integration
 
-These configs can be used in GitHub Actions workflows:
+`.github/workflows/snakemake-dry-run.yml` runs on pushes and pull requests to `main`, `master`, `dev` and
+`restructure` that change a `.smk` file, the `snakefile`, `.tests/config/**` or `workflow/scripts/**`. It
 
-```yaml
-strategy:
-  matrix:
-    config: [standard, limited]
-steps:
-  - name: Test ${{ matrix.config }} config
-    run: |
-      snakemake --dry-run --configfile .tests/config/config_${{ matrix.config }}.yaml
-```
+1. checks that every Python script in `workflow/scripts` compiles (files of two lines or fewer are treated as placeholders),
+2. copies the default `config_refs` and `resources` templates and runs `test_configs.sh`,
+3. runs `snakemake --lint` with the standard test config and fails if more than two lint warnings are reported.
 
-## Customization
+Other workflows check formatting and style: `snakefmt.yml`, `snakemake-lint.yml` and `pycodestyle.yml`.
 
-To add new test scenarios:
-1. Copy `config_standard.yaml` or `config_limited.yaml`
-2. Modify relevant sections (e.g., `data_tier`, `annotation`, `ancestral_sequence`)
-3. Add to `test_configs.sh` if automated testing is desired
-4. Document in this README
+## Adding a test scenario
 
-## Notes
+1. Copy `config_standard.yaml` or `config_limited.yaml` and change the relevant sections (for example `data_tier`,
+   `annotation`, `ancestral_sequence`). Keep all six entries in `containers:`.
+2. Add a `test_config` call for it in `test_configs.sh`.
+3. Document it in the table above.
 
-- Test configs use the same `sus_scrofa` species for consistency
-- Only chromosome 18 is used for faster validation
-- Conservation tree species remain the same (5 species)
-- Both configs expect the same file paths (only usage differs)
+## Test data
+
+The two test configs read their data from `.tests/resources/`. The minimal chr18 data (a 600 bp synthetic
+reference, a handful of variants, a five-block alignment, a tiny annotation) is described in [resources/README.md](resources/README.md). It is only meant to let the configs resolve their input
+files; it is too small to produce meaningful scores.
