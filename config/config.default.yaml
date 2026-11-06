@@ -3,6 +3,9 @@ containers:
   augustus: "docker://quay.io/biocontainers/augustus:3.5.0--pl5321h9f8466b_5"
   snpeff: "docker://biocontainers/snpeff:v5.1.0_cv1"
   maftools: "docker://juliahoglund/maftools:latest"
+  gerp: "docker://juliahoglund/gerp:2.1"
+  phast: "docker://juliahoglund/phast:1.9.7"
+  vep: "docker://ensemblorg/ensembl-vep:release_111.0"
 #####################################
 ### ENHANCED omniCADD CONFIGURATION ###
 #####################################
@@ -109,7 +112,7 @@ ancestral_sequence:
   alignment:
     enabled: true
     alignments:
-      43_mammals.epo:
+      44_mammals.epo:
         path: 'resources/alignment/'
         type: 'maf.gz'
         clean_maf: true
@@ -191,7 +194,7 @@ ancestral_sequence:
     species: "bos_taurus"
 
 mark_ancestor:
-  ancestral_alignment: "43_mammals.epo"
+  ancestral_alignment: "44_mammals.epo"
   name_ancestor: 'Ancestor_Pig_Cow'
   sp1_tree_ab: 'Sscr'
   sp2_tree_ab: 'Btau'
@@ -262,9 +265,11 @@ annotation:
     # Enable/disable specific conservation scores
     gerp:
       enabled: true
-      alignment: '43_mammals.epo'
+      alignment: '44_mammals.epo'
       n_chunks: 30
-      tree: 'resources/tree_43_mammals.nwk'
+      # Neutral tree, leaf labels = alignment species labels, branch lengths in neutral substitutions per site
+      # (total length ~1.0 for the 44-mammal tree). A time-calibrated tree must be rescaled, see docs/input_data.rst
+      tree: 'resources/tree_44_mammals.nwk'
       
     phast:
       enabled: true
@@ -283,7 +288,7 @@ annotation:
   #########################
   ### GRANTHAM MATRIX #####
   #########################
-  grantham_matrix: "resources/grantham_matrix/grantham_matrix_formatted_correct.tsv"
+  grantham_matrix: "resources/grantham_matrix/grantham_table.tsv"
 
 annotation_config:
   processing: "config/annot_processing_config.tsv"
@@ -296,7 +301,7 @@ stats_report:
   enabled: true
   annotation: true
   prefix: 'resources/Sus_scrofa.Sscrofa11.1.111.chr'
-  tree: 'resources/tree_43_mammals.nwk'
+  tree: 'resources/tree_44_mammals.nwk'
   ingroup: 'sus scrofa'
   outgroup: 'bos taurus'
 

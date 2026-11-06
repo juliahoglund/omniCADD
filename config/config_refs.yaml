@@ -32,7 +32,7 @@ population:
 ### PHYLOGENETIC TREES ####
 ###########################
 phylogeny:
-  tree_newick: "{{OMNICADD_REF_DATA}}/tree_43_mammals.nwk"
+  tree_newick: "{{OMNICADD_REF_DATA}}/tree_44_mammals.nwk"
   phast_tree_string: "(camelus_dromedarius,(catagonus_wagneri,sus_scrofa),(bos_taurus,ovis_aries_rambouillet))"
   phast_tree_species: "sus_scrofa|camelus_dromedarius|catagonus_wagneri|bos_taurus|ovis_aries_rambouillet"
 
@@ -43,7 +43,7 @@ alignment:
   maf_dir: "{{OMNICADD_REF_DATA}}/alignment/"
   maf_pattern: "*.maf.gz"  # Files matching this pattern in maf_dir
   # Alignment metadata
-  43_mammals_epo:
+  44_mammals_epo:
     path: "{{OMNICADD_REF_DATA}}/alignment/"
     type: "maf.gz"
     ancestral_label: "Ancestor_Pig_Cow"
@@ -76,7 +76,7 @@ annotation_db:
     parent_dir: "{{OMNICADD_REF_DATA}}/SIFT4G/"
   
   # Grantham substitution matrix
-  grantham_matrix: "{{OMNICADD_REF_DATA}}/grantham_matrix/grantham_matrix_formatted_correct.tsv"
+  grantham_matrix: "{{OMNICADD_REF_DATA}}/grantham_matrix/grantham_table.tsv"
 
 ############################
 ### ANNOTATION CONFIG ######
@@ -90,7 +90,7 @@ annotation_config:
 ###########################
 report:
   annotation_prefix: "{{OMNICADD_REF_DATA}}/Sus_scrofa.Sscrofa11.1.111.chr"
-  tree: "{{OMNICADD_REF_DATA}}/tree_43_mammals.nwk"
+  tree: "{{OMNICADD_REF_DATA}}/tree_44_mammals.nwk"
 
 #########################
 ### CONTAINER IMAGES ####

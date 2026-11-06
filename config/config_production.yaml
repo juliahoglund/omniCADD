@@ -50,16 +50,16 @@ annotation:
   # Conservation annotation (GERP, phastCons, phyloP)
   gerp:
     enabled: true
-    alignment: '43_mammals.epo'
+    alignment: '44_mammals.epo'
     n_chunks: 30
-    tree: 'resources/tree_43_mammals.nwk'
+    tree: 'resources/tree_44_mammals.nwk'
   
   phast:
     enabled: true
     phastCons: true
     phyloP: true
-    tree: 'resources/tree_43_mammals.nwk'
-    tree_species: ".*"  # Extract all species to match the 43-mammal tree
+    tree: 'resources/tree_44_mammals.nwk'
+    tree_species: ".*"  # Extract all species to match the 44-mammal tree
     train_precision: "HIGH"
     phastCons_params: "--target-coverage 0.3 --expected-length 45 --rho 0.3"
     phyloP_params: "--method=LRT --mode=CONACC"
